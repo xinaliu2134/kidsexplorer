@@ -12,18 +12,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#faf9f5;
-  --surface:#fff;
-  --border:#ebebeb;
-  --border-strong:#dddddd;
-  --text:#141413;
-  --text-soft:#5e5d59;
-  --text-mute:#87867f;
-  --brand:#c96442;
-  --brand-dark:#b65736;
-  --accent:#d97757;
-  --shadow:0 2px 12px rgba(0,0,0,.08);
-  --shadow-lg:0 10px 40px rgba(0,0,0,.12);
+  /* Original Holland Kids palette (restored from v1) */
+  --bg:#F2F4F8;
+  --surface:#FFFFFF;
+  --border:#CBD5E1;
+  --border-strong:#94A3B8;
+  --text:#1A2B4A;
+  --text-soft:#5A6A84;
+  --text-mute:#9AA5B8;
+  --brand:#E05A1E;
+  --brand-dark:#B84515;
+  --brand-light:#FFF0E9;
+  --teal:#0EA5A0;
+  --navy:#1A2B4A;
+  --shadow:0 1px 3px rgba(26,43,74,.12), 0 0 0 1px rgba(26,43,74,.04);
+  --shadow-lg:0 8px 24px rgba(26,43,74,.20), 0 0 0 1px rgba(26,43,74,.08);
   --radius:14px;
   --header-h:56px;
   --safe-bottom:env(safe-area-inset-bottom,0);
@@ -1145,33 +1148,33 @@ const STATIC_NL_VENUES = [
 
 // ===== Category config =====
 const CATS = {
-  theme_park:  {emoji:'🎢', en:'Theme parks',   zh:'主题乐园'},
-  zoo:         {emoji:'🦒', en:'Zoos',          zh:'动物园'},
-  aquarium:    {emoji:'🐠', en:'Aquariums',     zh:'水族馆'},
-  museum:      {emoji:'🏛️', en:'Museums',       zh:'博物馆'},
-  nature:      {emoji:'🌳', en:'Nature',        zh:'自然'},
-  beach:       {emoji:'🏖️', en:'Beaches',       zh:'海滩'},
-  playground:  {emoji:'🎪', en:'Playgrounds',   zh:'游乐场'},
-  indoor_play: {emoji:'🏠', en:'Indoor play',   zh:'室内游乐'},
-  trampoline:  {emoji:'🤸', en:'Trampoline',    zh:'蹦床'},
-  swim:        {emoji:'🏊', en:'Swimming',      zh:'游泳'},
-  climbing:    {emoji:'🧗', en:'Climbing',      zh:'攀爬'},
-  karting:     {emoji:'🏎️', en:'Karting',       zh:'卡丁车'},
-  farm:        {emoji:'🐑', en:'Farms',         zh:'农场'},
-  attraction:  {emoji:'⭐', en:'Attractions',   zh:'景点'},
-  theatre:     {emoji:'🎭', en:'Theatre',       zh:'剧院'},
-  cinema:      {emoji:'🎬', en:'Cinema',        zh:'电影院'},
-  ice_rink:    {emoji:'⛸️', en:'Ice rink',      zh:'滑冰'},
-  minigolf:    {emoji:'⛳', en:'Minigolf',      zh:'迷你高尔夫'},
-  castle:      {emoji:'🏰', en:'Castles',       zh:'城堡'},
-  windmill:    {emoji:'🌬️', en:'Windmills',     zh:'风车'},
-  escape:      {emoji:'🔓', en:'Escape rooms',  zh:'密室逃脱'},
-  sports:      {emoji:'🏆', en:'Sports centre', zh:'运动中心'},
-  restaurant:  {emoji:'🍽️', en:'Family dining', zh:'亲子餐厅'},
-  monument:    {emoji:'🗿', en:'Monuments',     zh:'古迹'},
-  ship:        {emoji:'⛵', en:'Historic ships',zh:'历史船只'},
-  ruins:       {emoji:'🏺', en:'Ruins',         zh:'遗址'},
-  other:       {emoji:'📍', en:'Other',         zh:'其他'}
+  theme_park:  {emoji:'🎢', en:'Theme parks',   nl:'Pretparken',     zh:'主题乐园'},
+  zoo:         {emoji:'🦒', en:'Zoos',          nl:'Dierentuinen',   zh:'动物园'},
+  aquarium:    {emoji:'🐠', en:'Aquariums',     nl:'Aquaria',        zh:'水族馆'},
+  museum:      {emoji:'🏛️', en:'Museums',       nl:'Musea',          zh:'博物馆'},
+  nature:      {emoji:'🌳', en:'Nature',        nl:'Natuur',         zh:'自然'},
+  beach:       {emoji:'🏖️', en:'Beaches',       nl:'Stranden',       zh:'海滩'},
+  playground:  {emoji:'🎪', en:'Playgrounds',   nl:'Speeltuinen',    zh:'游乐场'},
+  indoor_play: {emoji:'🏠', en:'Indoor play',   nl:'Binnenspeeltuin',zh:'室内游乐'},
+  trampoline:  {emoji:'🤸', en:'Trampoline',    nl:'Trampoline',     zh:'蹦床'},
+  swim:        {emoji:'🏊', en:'Swimming',      nl:'Zwembad',        zh:'游泳'},
+  climbing:    {emoji:'🧗', en:'Climbing',      nl:'Klimpark',       zh:'攀爬'},
+  karting:     {emoji:'🏎️', en:'Karting',       nl:'Kart',           zh:'卡丁车'},
+  farm:         {emoji:'🐑', en:'Farms',         nl:'Kinderboerderij',zh:'农场'},
+  attraction:  {emoji:'⭐', en:'Attractions',   nl:'Attracties',     zh:'景点'},
+  theatre:     {emoji:'🎭', en:'Theatre',       nl:'Theater',        zh:'剧院'},
+  cinema:      {emoji:'🎬', en:'Cinema',        nl:'Bioscoop',       zh:'电影院'},
+  ice_rink:    {emoji:'⛸️', en:'Ice rink',      nl:'IJsbaan',        zh:'滑冰'},
+  minigolf:    {emoji:'⛳', en:'Minigolf',      nl:'Midgetgolf',     zh:'迷你高尔夫'},
+  castle:      {emoji:'🏰', en:'Castles',       nl:'Kastelen',       zh:'城堡'},
+  windmill:    {emoji:'🌬️', en:'Windmills',     nl:'Molens',         zh:'风车'},
+  escape:      {emoji:'🔓', en:'Escape rooms',  nl:'Escape rooms',   zh:'密室逃脱'},
+  sports:      {emoji:'🏆', en:'Sports centre', nl:'Sportcentrum',   zh:'运动中心'},
+  restaurant:  {emoji:'🍽️', en:'Family dining', nl:'Eten',           zh:'亲子餐厅'},
+  monument:    {emoji:'🗿', en:'Monuments',     nl:'Monumenten',     zh:'古迹'},
+  ship:        {emoji:'⛵', en:'Historic ships',nl:'Historische schepen',zh:'历史船只'},
+  ruins:       {emoji:'🏺', en:'Ruins',         nl:'Ruïnes',         zh:'遗址'},
+  other:       {emoji:'📍', en:'Other',         nl:'Overig',         zh:'其他'}
 };
 
 // Richer emoji mapping using venue name keywords
@@ -1318,7 +1321,8 @@ const VENUES = STATIC_NL_VENUES.map(v=>{
 
 // ===== State =====
 const FAV_KEY = 'ke_favs_nl';
-const LANG_KEY = 'ke_lang';
+const LANG_KEY = 'ke_lang_nl';
+const LANGS = ['en','nl','zh'];  // cycle: en → nl → zh → en
 const state = {
   activeCats: new Set(),  // empty = all
   search: '',
@@ -1328,66 +1332,55 @@ const state = {
   markers: new Map(),
   favs: new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')),
   favsOnly: false,
-  lang: localStorage.getItem(LANG_KEY) || 'en',
+  lang: localStorage.getItem(LANG_KEY) || (navigator.language.startsWith('nl') ? 'nl' : navigator.language.startsWith('zh') ? 'zh' : 'en'),
 };
 
 // ===== i18n =====
 const I18N = {
   en: {
-    in_view: 'in view',
-    favs: '♡ Favs',
-    filters: '⚙ Category',
-    sort: '↕ Sort',
-    category: 'Category',
-    clear: 'Clear',
-    show_results: 'Show results',
-    near_me: 'Near me',
-    map: '🗺 Map',
-    list: '☰ List',
-    directions: '🗺 Directions',
-    website: '🌐 Website',
-    rating: 'Rating',
-    address: 'Address',
-    city: 'City',
-    hours: 'Hours',
-    reviews: 'reviews',
+    in_view: 'in view', favs: '♡ Favs', filters: '⚙ Category', sort: '↕ Sort',
+    category: 'Category', clear: 'Clear', show_results: 'Show results',
+    near_me: 'Near me', map: '🗺 Map', list: '☰ List',
+    directions: '🗺 Directions', website: '🌐 Website',
+    rating: 'Rating', address: 'Address', city: 'City', hours: 'Hours', reviews: 'reviews',
     empty: 'No venues in this area. Try moving the map or clearing filters.',
-    search_ph: 'Search / 搜索…',
+    search_ph: 'Search places or cities…',
+    lang_next: 'NL',
+  },
+  nl: {
+    in_view: 'in beeld', favs: '♡ Favorieten', filters: '⚙ Categorie', sort: '↕ Sorteren',
+    category: 'Categorie', clear: 'Wissen', show_results: 'Toon resultaten',
+    near_me: 'In de buurt', map: '🗺 Kaart', list: '☰ Lijst',
+    directions: '🗺 Route', website: '🌐 Website',
+    rating: 'Beoordeling', address: 'Adres', city: 'Plaats', hours: 'Openingstijden', reviews: 'recensies',
+    empty: 'Geen locaties in dit gebied. Verplaats de kaart of wis de filters.',
+    search_ph: 'Zoek locatie of plaats…',
+    lang_next: '中',
   },
   zh: {
-    in_view: '可见',
-    favs: '♡ 收藏',
-    filters: '⚙ 品类',
-    sort: '↕ 排序',
-    category: '品类',
-    clear: '清空',
-    show_results: '显示结果',
-    near_me: '我附近',
-    map: '🗺 地图',
-    list: '☰ 列表',
-    directions: '🗺 导航',
-    website: '🌐 官网',
-    rating: '评分',
-    address: '地址',
-    city: '城市',
-    hours: '开放时间',
-    reviews: '评价',
+    in_view: '可见', favs: '♡ 收藏', filters: '⚙ 品类', sort: '↕ 排序',
+    category: '品类', clear: '清空', show_results: '显示结果',
+    near_me: '我附近', map: '🗺 地图', list: '☰ 列表',
+    directions: '🗺 导航', website: '🌐 官网',
+    rating: '评分', address: '地址', city: '城市', hours: '开放时间', reviews: '评价',
     empty: '当前视口内没有场所。拖动地图或清空筛选。',
-    search_ph: 'Search / 搜索…',
+    search_ph: '搜索场所或城市…',
+    lang_next: 'EN',
   }
 };
 function t(k){return I18N[state.lang][k] || k;}
 
 function toggleLang(){
-  state.lang = state.lang === 'en' ? 'zh' : 'en';
+  const idx = LANGS.indexOf(state.lang);
+  state.lang = LANGS[(idx+1) % LANGS.length];
   localStorage.setItem(LANG_KEY, state.lang);
   applyLang();
   renderList();
   buildCatGrid();
 }
 function applyLang(){
-  // Update header button
-  document.getElementById('lang-btn').textContent = state.lang === 'en' ? '中' : 'EN';
+  // Header button shows NEXT language
+  document.getElementById('lang-btn').textContent = t('lang_next');
   // Update chips
   document.getElementById('favs-chip').innerHTML = t('favs');
   document.querySelector('.actions .chip:nth-child(2)').innerHTML = t('filters');
@@ -1498,8 +1491,9 @@ function renderList(){
   }
   el.innerHTML = list.slice(0,200).map(v=>{
     const isFav = state.favs.has(v.id);
+    // NL venues: original name is already Dutch → use for en & nl; zh uses nameZh
     const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
-    const secondary = state.lang==='zh' && v.zh ? v.name : v.zh;
+    const secondary = state.lang==='zh' ? v.name : (v.zh || '');
     const catLabel = CATS[v.cat]?.[state.lang] || v.cat;
     return `
     <div class="venue-card" data-id="${v.id}" onclick="openDetail(VENUES.find(x=>x.id===${v.id}))">
