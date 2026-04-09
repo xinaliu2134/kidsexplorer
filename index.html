@@ -27,6 +27,13 @@ html,body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-syst
 a{color:inherit;text-decoration:none}
 .container{max-width:1100px;margin:0 auto;padding:0 24px}
 
+.geo-banner{position:sticky;top:0;z-index:100;background:var(--terracotta);color:#fff;padding:14px 24px;text-align:center;font-size:14px;font-weight:500;display:none;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;animation:slideDown .4s ease}
+.geo-banner.show{display:flex}
+.geo-banner a{background:#fff;color:var(--terracotta);padding:7px 16px;border-radius:999px;font-weight:700;font-size:13px}
+.geo-banner a:hover{background:#fef6f2}
+.geo-banner button{background:none;border:1px solid rgba(255,255,255,.5);color:#fff;padding:7px 14px;border-radius:999px;font-weight:500;font-size:12px;cursor:pointer}
+.geo-banner button:hover{border-color:#fff}
+@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
 nav{padding:28px 0;border-bottom:1px solid var(--border)}
 nav .inner{max-width:1100px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between}
 .brand{font-family:'Source Serif 4',serif;font-size:24px;font-weight:600;letter-spacing:-.5px}
@@ -72,6 +79,12 @@ footer a{color:var(--terracotta);font-weight:500}
 </style>
 </head>
 <body data-lang="en">
+
+<div class="geo-banner" id="geo-banner">
+  <span id="geo-text"></span>
+  <a id="geo-link" href="#"></a>
+  <button onclick="dismissBanner()">✕</button>
+</div>
 
 <nav>
   <div class="inner">
@@ -161,6 +174,53 @@ function setLang(l) {
 }
 
 render();
+
+// ===== IP Geolocation Banner =====
+// Map country code → slug
+const CC_TO_SLUG = {
+  NL:'nl', BE:'be', DE:'de', FR:'fr', GB:'uk', UK:'uk', IE:'ie',
+  ES:'es', PT:'pt', IT:'it', CH:'ch', AT:'at', GR:'gr'
+};
+
+async function detectCountry() {
+  // Dismissed recently?
+  if (localStorage.getItem('ke_banner_dismissed')) return;
+  // Timezone fallback (instant, no network)
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  const TZ_TO_CC = {
+    'Europe/Amsterdam':'NL','Europe/Brussels':'BE','Europe/Berlin':'DE','Europe/Paris':'FR',
+    'Europe/London':'GB','Europe/Dublin':'IE','Europe/Madrid':'ES','Europe/Lisbon':'PT',
+    'Europe/Rome':'IT','Europe/Zurich':'CH','Europe/Vienna':'AT','Europe/Athens':'GR'
+  };
+  let cc = TZ_TO_CC[tz];
+  // Try IP lookup for more accuracy
+  try {
+    const r = await fetch('https://ipapi.co/json/', {cache:'no-store'});
+    if (r.ok) {
+      const d = await r.json();
+      if (d.country_code) cc = d.country_code;
+    }
+  } catch(e) {}
+  if (!cc) return;
+  const slug = CC_TO_SLUG[cc];
+  if (!slug) return;
+  const country = COUNTRIES.find(c => c.slug === slug);
+  if (!country) return;
+  // Show banner
+  const lang = document.body.dataset.lang;
+  document.getElementById('geo-text').textContent = lang === 'zh'
+    ? `📍 检测到您在${country.zh}，直接打开本国地图？`
+    : `📍 Looks like you're in ${country.en}. Jump straight to the map?`;
+  const link = document.getElementById('geo-link');
+  link.textContent = lang === 'zh' ? `打开 ${country.flag} ${country.zh} →` : `Open ${country.flag} ${country.en} →`;
+  link.href = `/${slug}/`;
+  document.getElementById('geo-banner').classList.add('show');
+}
+function dismissBanner() {
+  document.getElementById('geo-banner').classList.remove('show');
+  localStorage.setItem('ke_banner_dismissed', '1');
+}
+detectCountry();
 </script>
 </body>
 </html>

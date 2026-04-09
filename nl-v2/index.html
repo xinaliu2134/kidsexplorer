@@ -52,6 +52,19 @@ input{font-family:inherit;border:none;outline:none;background:none;color:inherit
 .leaflet-popup-content-wrapper{border-radius:14px}
 .leaflet-popup-content{margin:14px 16px;font-family:'Inter',sans-serif;font-size:13px}
 
+/* ===== Map/List Toggle (mobile) ===== */
+.view-toggle{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--header-h) + 12px);z-index:600;display:flex;background:#fff;border:1px solid var(--border);border-radius:999px;box-shadow:var(--shadow);padding:3px}
+.view-toggle button{padding:8px 18px;font-size:13px;font-weight:600;border-radius:999px;color:var(--text-soft)}
+.view-toggle button.active{background:var(--text);color:#fff}
+.view-toggle button:not(.active):hover{color:var(--text)}
+body[data-view="list"] #map{display:none}
+body[data-view="list"] .drawer{transform:translateY(0)!important;top:calc(var(--header-h) + 58px);border-radius:20px 20px 0 0;max-height:calc(100vh - var(--header-h) - 58px);height:calc(100vh - var(--header-h) - 58px)}
+body[data-view="list"] .drawer-handle{display:none}
+body[data-view="list"] .fab-stack{display:none}
+@media (min-width:1024px){
+  .view-toggle{display:none} /* desktop shows both */
+}
+
 /* ===== Floating Action Buttons ===== */
 .fab-stack{position:fixed;right:14px;top:calc(var(--header-h) + 14px);z-index:500;display:flex;flex-direction:column;gap:10px}
 .fab{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s}
@@ -198,6 +211,12 @@ input{font-family:inherit;border:none;outline:none;background:none;color:inherit
 
 <!-- Map -->
 <div id="map"></div>
+
+<!-- View Toggle (mobile only) -->
+<div class="view-toggle">
+  <button id="tog-map" class="active" onclick="setView('map')">🗺 Map</button>
+  <button id="tog-list" onclick="setView('list')">☰ List</button>
+</div>
 
 <!-- Floating Actions -->
 <div class="fab-stack">
@@ -1389,6 +1408,17 @@ document.getElementById('search').addEventListener('input', e=>{
 function openCountryPicker(){
   window.location.href = '/';
 }
+
+// ===== Map/List view toggle (mobile) =====
+function setView(v){
+  document.body.dataset.view = v;
+  document.getElementById('tog-map').classList.toggle('active', v==='map');
+  document.getElementById('tog-list').classList.toggle('active', v==='list');
+  if(v==='map'){
+    setTimeout(()=>map.invalidateSize(), 50);
+  }
+}
+document.body.dataset.view = 'map';
 
 // ===== Sort toggle =====
 function toggleSort(){
