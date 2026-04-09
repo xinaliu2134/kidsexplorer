@@ -219,7 +219,7 @@ body[data-view="list"] .fab-stack{display:none}
     <input id="search" placeholder="Search / 搜索…">
   </div>
   <button class="hdr-btn" id="lang-btn" onclick="toggleLang()" title="Language">中</button>
-  <button class="hdr-btn" onclick="openFilter()" title="Category">⚙️</button>
+  <button class="hdr-btn" onclick="openFilter()" title="Category">🏷️</button>
 </header>
 
 <!-- Map -->
@@ -245,7 +245,7 @@ body[data-view="list"] .fab-stack{display:none}
     <div class="count"><span id="count">0</span> <small id="count-label">in view</small></div>
     <div class="actions">
       <button class="chip" id="favs-chip" onclick="toggleFavsOnly()">♡ Favs</button>
-      <button class="chip" onclick="openFilter()">⚙ Category</button>
+      <button class="chip" onclick="openFilter()">🏷 Category</button>
       <button class="chip" onclick="toggleSort()">↕ Sort</button>
     </div>
   </div>
@@ -1338,7 +1338,7 @@ const state = {
 // ===== i18n =====
 const I18N = {
   en: {
-    in_view: 'in view', favs: '♡ Favs', filters: '⚙ Category', sort: '↕ Sort',
+    in_view: 'in view', favs: '♡ Favs', filters: '🏷 Category', sort: '↕ Sort',
     category: 'Category', clear: 'Clear', show_results: 'Show results',
     near_me: 'Near me', map: '🗺 Map', list: '☰ List',
     directions: '🗺 Directions', website: '🌐 Website',
@@ -1348,7 +1348,7 @@ const I18N = {
     lang_next: 'NL',
   },
   nl: {
-    in_view: 'in beeld', favs: '♡ Favorieten', filters: '⚙ Categorie', sort: '↕ Sorteren',
+    in_view: 'in beeld', favs: '♡ Favorieten', filters: '🏷 Categorie', sort: '↕ Sorteren',
     category: 'Categorie', clear: 'Wissen', show_results: 'Toon resultaten',
     near_me: 'In de buurt', map: '🗺 Kaart', list: '☰ Lijst',
     directions: '🗺 Route', website: '🌐 Website',
@@ -1358,7 +1358,7 @@ const I18N = {
     lang_next: '中',
   },
   zh: {
-    in_view: '可见', favs: '♡ 收藏', filters: '⚙ 品类', sort: '↕ 排序',
+    in_view: '可见', favs: '♡ 收藏', filters: '🏷 品类', sort: '↕ 排序',
     category: '品类', clear: '清空', show_results: '显示结果',
     near_me: '我附近', map: '🗺 地图', list: '☰ 列表',
     directions: '🗺 导航', website: '🌐 官网',
