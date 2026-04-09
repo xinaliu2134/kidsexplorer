@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>United Kingdom Kids Explorer · KidsExplorer.eu</title>
+<meta name="description" content="Family-friendly venues across United Kingdom on one interactive map. Multilingual. Free.">
+<link rel="canonical" href="https://kidsexplorer.eu/uk/">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Original Holland Kids palette (restored from v1) */
+  --bg:#F2F4F8;
+  --surface:#FFFFFF;
+  --border:#CBD5E1;
+  --border-strong:#94A3B8;
+  --text:#1A2B4A;
+  --text-soft:#5A6A84;
+  --text-mute:#9AA5B8;
+  --brand:#E05A1E;
+  --brand-dark:#B84515;
+  --brand-light:#FFF0E9;
+  --teal:#0EA5A0;
+  --navy:#1A2B4A;
+  --shadow:0 1px 3px rgba(26,43,74,.12), 0 0 0 1px rgba(26,43,74,.04);
+  --shadow-lg:0 8px 24px rgba(26,43,74,.20), 0 0 0 1px rgba(26,43,74,.08);
+  --radius:14px;
+  --header-h:56px;
+  --safe-bottom:env(safe-area-inset-bottom,0);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input{font-family:inherit;border:none;outline:none;background:none;color:inherit}
+
+/* ===== Top Header ===== */
+.hdr{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);z-index:900;display:flex;align-items:center;gap:10px;padding:0 14px}
+.hdr-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;letter-spacing:-.3px;color:var(--brand);white-space:nowrap}
+.hdr-brand .logo{font-size:20px}
+.hdr-country{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--bg);border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:600;cursor:pointer}
+.hdr-country:hover{border-color:var(--brand)}
+.hdr-country .flag{font-size:16px}
+.hdr-search{flex:1;display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:999px;cursor:text;min-width:0}
+.hdr-search input{flex:1;font-size:14px;min-width:0}
+.hdr-search .icon{color:var(--text-mute);flex-shrink:0}
+.hdr-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--bg);border:1px solid var(--border);font-size:16px;flex-shrink:0}
+.hdr-btn:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ===== Map ===== */
+#map{position:fixed;top:var(--header-h);left:0;right:0;bottom:0;z-index:1}
+.leaflet-popup-content-wrapper{border-radius:14px}
+.leaflet-popup-content{margin:14px 16px;font-family:'Inter',sans-serif;font-size:13px}
+
+/* ===== Map/List Toggle (mobile) ===== */
+.view-toggle{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--header-h) + 12px);z-index:600;display:flex;background:#fff;border:1px solid var(--border);border-radius:999px;box-shadow:var(--shadow);padding:3px}
+.view-toggle button{padding:8px 18px;font-size:13px;font-weight:600;border-radius:999px;color:var(--text-soft)}
+.view-toggle button.active{background:var(--text);color:#fff}
+.view-toggle button:not(.active):hover{color:var(--text)}
+body[data-view="list"] #map{display:none}
+body[data-view="list"] .drawer{transform:translateY(0)!important;top:calc(var(--header-h) + 58px);border-radius:20px 20px 0 0;max-height:calc(100vh - var(--header-h) - 58px);height:calc(100vh - var(--header-h) - 58px)}
+body[data-view="list"] .drawer-handle{display:none}
+body[data-view="list"] .fab-stack{display:none}
+@media (min-width:1024px){
+  .view-toggle{display:none} /* desktop shows both */
+}
+
+/* ===== Floating Action Buttons ===== */
+.fab-stack{position:fixed;right:14px;top:calc(var(--header-h) + 14px);z-index:500;display:flex;flex-direction:column;gap:10px}
+.fab{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s}
+.fab:hover{border-color:var(--brand);color:var(--brand);transform:scale(1.05)}
+.fab.near{background:var(--brand);color:#fff;border-color:var(--brand);width:auto;padding:0 18px;border-radius:22px;font-size:13px;font-weight:600;gap:6px}
+.fab.near:hover{background:var(--brand-dark);color:#fff}
+
+/* ===== Bottom Drawer (List) ===== */
+.drawer{position:fixed;left:0;right:0;bottom:0;z-index:700;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:80vh;display:flex;flex-direction:column}
+.drawer[data-state="peek"]{transform:translateY(calc(100% - 72px))}
+.drawer[data-state="half"]{transform:translateY(calc(100% - 48vh))}
+.drawer[data-state="full"]{transform:translateY(8vh)}
+.drawer-handle{flex-shrink:0;padding:8px 0 4px;text-align:center;cursor:grab;touch-action:none}
+.drawer-handle::before{content:'';display:inline-block;width:40px;height:4px;background:var(--border-strong);border-radius:2px}
+.drawer-hdr{flex-shrink:0;padding:6px 18px 12px;display:flex;align-items:center;justify-content:space-between}
+.drawer-hdr .count{font-weight:700;font-size:14px}
+.drawer-hdr .count small{font-weight:500;color:var(--text-mute);font-size:12px;margin-left:4px}
+.drawer-hdr .actions{display:flex;gap:6px}
+.drawer-hdr .chip{padding:6px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.drawer-hdr .chip:hover{border-color:var(--brand);color:var(--brand)}
+.drawer-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 18px calc(20px + var(--safe-bottom))}
+.venue-card{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.venue-card:last-child{border-bottom:none}
+.venue-card:hover{background:#fafaf7}
+.venue-card:hover .venue-name{color:var(--brand)}
+.venue-thumb{width:56px;height:56px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;position:relative;overflow:hidden}
+.venue-thumb::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.2),transparent)}
+.venue-info{flex:1;min-width:0}
+.venue-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-zh{font-size:12px;color:var(--text-mute);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft)}
+.venue-meta .rating{color:var(--brand);font-weight:600}
+.venue-meta .dot{color:var(--text-mute)}
+.empty{padding:40px 20px;text-align:center;color:var(--text-mute);font-size:14px}
+
+/* ===== Detail Overlay (bottom sheet, half-screen) ===== */
+.overlay{position:fixed;left:0;right:0;bottom:0;z-index:900;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);max-height:50vh;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.overlay.open{transform:translateY(0)}
+.overlay-hdr{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;padding:18px 18px 12px;gap:10px}
+.overlay-title{flex:1;min-width:0}
+.overlay-title h3{font-size:18px;font-weight:700;line-height:1.2;margin-bottom:4px}
+.overlay-title .zh{font-size:13px;color:var(--text-mute)}
+.overlay-close{width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-soft)}
+.overlay-body{flex:1;overflow-y:auto;padding:0 18px 20px}
+.detail-row{display:flex;gap:10px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--text-soft)}
+.detail-row .lbl{min-width:70px;font-weight:600;color:var(--text)}
+.overlay-actions{flex-shrink:0;padding:12px 18px calc(12px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:8px}
+.overlay-actions .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+.overlay-actions .btn-primary{background:var(--brand);color:#fff}
+.overlay-actions .btn-primary:hover{background:var(--brand-dark)}
+.overlay-actions .btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.overlay-actions .btn-secondary:hover{border-color:var(--brand);color:var(--brand)}
+.overlay-fav{width:44px;height:44px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:all .15s}
+.overlay-fav:hover{border-color:var(--brand)}
+.overlay-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.card-fav{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.9);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text-mute);z-index:2;transition:all .15s}
+.card-fav:hover{color:var(--brand);border-color:var(--brand)}
+.card-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.venue-thumb{position:relative}
+
+/* ===== Filter Drawer (slides from right) ===== */
+.filter-drawer{position:fixed;top:var(--header-h);right:0;bottom:0;width:min(360px,92vw);background:#fff;border-left:1px solid var(--border);box-shadow:-10px 0 40px rgba(0,0,0,.12);z-index:950;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;pointer-events:none}
+.filter-drawer.open{pointer-events:auto}
+.filter-drawer.open{transform:translateX(0)}
+.filter-hdr{flex-shrink:0;padding:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.filter-hdr h3{font-size:18px;font-weight:700}
+.filter-body{flex:1;overflow-y:auto;padding:20px}
+.filter-section{margin-bottom:24px}
+.filter-section h4{font-size:12px;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.cat-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:500;color:var(--text)}
+.cat-btn.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.cat-btn:not(.active):hover{border-color:var(--brand);color:var(--brand)}
+.cat-btn .emoji{font-size:16px}
+.cat-btn .count{margin-left:auto;font-size:11px;opacity:.75}
+.filter-footer{flex-shrink:0;padding:16px 20px calc(16px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:10px}
+.filter-footer .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600}
+.filter-footer .btn-clear{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.filter-footer .btn-apply{background:var(--brand);color:#fff}
+
+/* Gradient covers for thumbnails */
+.cat-theme_park{background:linear-gradient(135deg,#ff9a56,#ff6b9d)}
+.cat-zoo{background:linear-gradient(135deg,#22c55e,#059669)}
+.cat-aquarium{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-museum{background:linear-gradient(135deg,#8b5cf6,#4f46e5)}
+.cat-nature{background:linear-gradient(135deg,#84cc16,#15803d)}
+.cat-beach{background:linear-gradient(135deg,#38bdf8,#0ea5e9)}
+.cat-playground{background:linear-gradient(135deg,#fbbf24,#f97316)}
+.cat-indoor_play{background:linear-gradient(135deg,#a855f7,#7e22ce)}
+.cat-trampoline{background:linear-gradient(135deg,#ec4899,#be185d)}
+.cat-swim{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-climbing{background:linear-gradient(135deg,#f59e0b,#b45309)}
+.cat-karting{background:linear-gradient(135deg,#ef4444,#991b1b)}
+.cat-farm{background:linear-gradient(135deg,#a3e635,#65a30d)}
+.cat-attraction{background:linear-gradient(135deg,#fb923c,#c2410c)}
+.cat-theatre{background:linear-gradient(135deg,#d946ef,#86198f)}
+.cat-cinema{background:linear-gradient(135deg,#64748b,#334155)}
+.cat-ice_rink{background:linear-gradient(135deg,#60a5fa,#1d4ed8)}
+.cat-minigolf{background:linear-gradient(135deg,#10b981,#047857)}
+.cat-other{background:linear-gradient(135deg,#94a3b8,#475569)}
+.cat-castle{background:linear-gradient(135deg,#a78bfa,#6d28d9)}
+.cat-windmill{background:linear-gradient(135deg,#bae6fd,#0284c7)}
+.cat-escape{background:linear-gradient(135deg,#fdba74,#c2410c)}
+.cat-sports{background:linear-gradient(135deg,#fde047,#ca8a04)}
+.cat-restaurant{background:linear-gradient(135deg,#f87171,#b91c1c)}
+.cat-monument{background:linear-gradient(135deg,#d6d3d1,#57534e)}
+.cat-ship{background:linear-gradient(135deg,#67e8f9,#0e7490)}
+.cat-ruins{background:linear-gradient(135deg,#fde68a,#92400e)}
+
+/* Marker icons */
+.venue-marker{width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.leaflet-marker-icon.selected .venue-marker{transform:scale(1.2);border-width:4px}
+
+/* Cluster */
+.marker-cluster-small{background:rgba(201,100,66,.25)}
+.marker-cluster-small div{background:rgba(201,100,66,.8)}
+.marker-cluster-medium{background:rgba(201,100,66,.35)}
+.marker-cluster-medium div{background:rgba(201,100,66,.9)}
+.marker-cluster-large{background:rgba(201,100,66,.45)}
+.marker-cluster-large div{background:var(--brand)}
+.marker-cluster div{color:#fff;font-weight:700}
+
+@media (max-width:640px){
+  .hdr-brand span:not(.logo){display:none}
+  .drawer-hdr{padding:6px 14px 10px}
+  .drawer-body{padding:0 14px calc(20px + var(--safe-bottom))}
+  .cat-grid{grid-template-columns:1fr}
+}
+@media (min-width:1024px){
+  /* Desktop: drawer becomes sidebar */
+  .drawer{top:var(--header-h);right:auto;left:0;width:420px;max-width:420px;max-height:none;height:calc(100vh - var(--header-h));border-radius:0;border-right:1px solid var(--border);border-top:none;transform:translateX(0) !important;box-shadow:4px 0 24px rgba(0,0,0,.06)}
+  .drawer-handle{display:none}
+  #map{left:420px}
+  .overlay{left:auto;right:20px;bottom:20px;width:400px;max-width:calc(100vw - 440px);max-height:70vh;border-radius:20px;border:1px solid var(--border)}
+  .fab-stack{top:calc(var(--header-h) + 14px);right:14px}
+}
+</style>
+</head>
+<body>
+
+<!-- Top Header -->
+<header class="hdr">
+  <a href="/" class="hdr-brand"><span class="logo">🌍</span><span>KidsExplorer</span></a>
+  <button class="hdr-country" onclick="openCountryPicker()">
+    <span class="flag">🇬🇧</span><span>UK</span><span style="opacity:.5">▾</span>
+  </button>
+  <div class="hdr-search">
+    <span class="icon">🔍</span>
+    <input id="search" placeholder="Search / 搜索…">
+  </div>
+  <button class="hdr-btn" id="lang-btn" onclick="toggleLang()" title="Language">中</button>
+  <button class="hdr-btn" onclick="openFilter()" title="Category">🏷️</button>
+</header>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- View Toggle (mobile only) -->
+<div class="view-toggle">
+  <button id="tog-map" class="active" onclick="setView('map')">🗺 Map</button>
+  <button id="tog-list" onclick="setView('list')">☰ List</button>
+</div>
+
+<!-- Floating Actions -->
+<div class="fab-stack">
+  <button class="fab near" onclick="locateMe()"><span>📍</span><span>Near me</span></button>
+  <button class="fab" onclick="zoomIn()">+</button>
+  <button class="fab" onclick="zoomOut()">−</button>
+</div>
+
+<!-- Bottom Drawer: Venue list -->
+<section class="drawer" id="drawer" data-state="peek">
+  <div class="drawer-handle" onclick="toggleDrawer()"></div>
+  <div class="drawer-hdr">
+    <div class="count"><span id="count">0</span> <small id="count-label">in view</small></div>
+    <div class="actions">
+      <button class="chip" id="favs-chip" onclick="toggleFavsOnly()">♡ Favs</button>
+      <button class="chip" onclick="openFilter()">🏷 Category</button>
+      <button class="chip" onclick="toggleSort()">↕ Sort</button>
+    </div>
+  </div>
+  <div class="drawer-body" id="list"></div>
+</section>
+
+<!-- Detail Overlay -->
+<aside class="overlay" id="overlay">
+  <div class="overlay-hdr">
+    <div class="overlay-title">
+      <h3 id="ov-name"></h3>
+      <div class="zh" id="ov-zh"></div>
+    </div>
+    <button class="overlay-close" onclick="closeOverlay()">×</button>
+  </div>
+  <div class="overlay-body" id="ov-body"></div>
+  <div class="overlay-actions">
+    <button class="overlay-fav" id="ov-fav" onclick="toggleFav()" title="Save to favorites">♡</button>
+    <a class="btn btn-secondary" id="ov-directions" target="_blank">🗺 Directions</a>
+    <a class="btn btn-primary" id="ov-website" target="_blank">🌐 Website</a>
+  </div>
+</aside>
+
+<!-- Filter Drawer -->
+<aside class="filter-drawer" id="filter">
+  <div class="filter-hdr">
+    <h3>Category</h3>
+    <button class="overlay-close" onclick="closeFilter()">×</button>
+  </div>
+  <div class="filter-body">
+    <div class="filter-section">
+      <h4>Category</h4>
+      <div class="cat-grid" id="cat-grid"></div>
+    </div>
+  </div>
+  <div class="filter-footer">
+    <button class="btn btn-clear" onclick="clearFilter()">Clear</button>
+    <button class="btn btn-apply" onclick="closeFilter()">Show results</button>
+  </div>
+</aside>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+const STATIC_UK_VENUES = [
+  // THEME PARKS (~20)
+  { type:'node',id:2001,lat:52.988265,lon:-1.888342, tags:{nameZh:'奥尔顿塔',name:'Alton Towers',tourism:'theme_park',website:'https://www.altontowers.com','addr:city':'Staffordshire',opening_hours:'Mo-Su 10:00-17:00 (seasonal)',rating:'4.2',reviews:'42318'}},
+  { type:'node',id:2002,lat:51.403319,lon:-0.515018, tags:{nameZh:'索普公园',name:'Thorpe Park',tourism:'theme_park',website:'https://www.thorpepark.com','addr:city':'Surrey',opening_hours:'Mo-Su 10:00-17:00 (seasonal)',rating:'4.1',reviews:'28431'}},
+  { type:'node',id:2003,lat:51.463400,lon:-0.650436, tags:{nameZh:'乐高乐园温莎',name:'Legoland Windsor',tourism:'theme_park',website:'https://www.legoland.co.uk','addr:city':'Windsor',opening_hours:'Mo-Su 10:00-17:00 (seasonal)',rating:'4.2',reviews:'38247'}},
+  { type:'node',id:2004,lat:51.349515,lon:-0.317273, tags:{nameZh:'切辛顿冒险世界',name:'Chessington World of Adventures',tourism:'theme_park',website:'https://www.chessington.com','addr:city':'Surrey',opening_hours:'Mo-Su 10:00-17:00 (seasonal)',rating:'4.1',reviews:'21438'}},
+  { type:'node',id:2005,lat:50.949396,lon:-1.549777, tags:{nameZh:'保尔顿公园（小猪佩奇）',name:'Paultons Park (Peppa Pig World)',tourism:'theme_park',website:'https://paultonspark.co.uk','addr:city':'Hampshire',opening_hours:'Mo-Su 10:00-17:30 (seasonal)',rating:'4.5',reviews:'24218'}},
+  { type:'node',id:2006,lat:54.209614,lon:-0.806495, tags:{nameZh:'弗拉明戈乐园',name:'Flamingo Land',tourism:'theme_park',website:'https://www.flamingoland.co.uk','addr:city':'North Yorkshire',opening_hours:'Mo-Su 10:00-17:00 (seasonal)',rating:'4.1',reviews:'12847'}},
+  { type:'node',id:2007,lat:52.611139,lon:-1.715571, tags:{nameZh:'德雷顿庄园',name:'Drayton Manor',tourism:'theme_park',website:'https://www.draytonmanor.co.uk','addr:city':'Staffordshire',opening_hours:'Mo-Su 10:00-17:00 (seasonal)',rating:'4.2',reviews:'18247'}},
+  { type:'node',id:2008,lat:53.790694,lon:-3.055467, tags:{nameZh:'布莱克浦欢乐海滩',name:'Blackpool Pleasure Beach',tourism:'theme_park',website:'https://www.blackpoolpleasurebeach.com','addr:city':'Blackpool',opening_hours:'Mo-Su 10:00-17:00 (seasonal)',rating:'4.3',reviews:'32841'}},
+  { type:'node',id:2009,lat:53.406024,lon:-2.617900, tags:{nameZh:'格利夫顿冒险乐园',name:'Gulliver\'s World Warrington',tourism:'theme_park',website:'https://www.gulliversworldresort.co.uk','addr:city':'Warrington',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+  { type:'node',id:2010,lat:51.532712,lon:0.717746, tags:{nameZh:'冒险岛',name:'Adventure Island Southend',tourism:'theme_park',website:'https://www.adventureisland.co.uk','addr:city':'Southend-on-Sea',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:2011,lat:52.3714,lon:-1.4731, tags:{nameZh:'格利夫顿水世界',name:'Gulliver\'s Kingdom Matlock Bath',tourism:'theme_park',website:'https://www.gulliverskingdomresort.co.uk','addr:city':'Matlock Bath',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+  { type:'node',id:2012,lat:53.501001,lon:-1.037042, tags:{nameZh:'约克郡野生动物公园',name:'Yorkshire Wildlife Park',tourism:'theme_park',website:'https://www.yorkshirewildlifepark.com','addr:city':'Doncaster',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2013,lat:52.653773,lon:-1.132283, tags:{nameZh:'国家太空中心',name:'National Space Centre',tourism:'museum',website:'https://spacecentre.co.uk','addr:city':'Leicester',opening_hours:'Tu-Su 10:00-16:00'}},
+  { type:'node',id:2014,lat:51.191379,lon:-2.263286, tags:{nameZh:'朗利特野生动物园',name:'Longleat Safari Park',tourism:'theme_park',website:'https://www.longleat.co.uk','addr:city':'Wiltshire',opening_hours:'Mo-Su 10:00-17:00 (seasonal)',rating:'4.4',reviews:'21438'}},
+  { type:'node',id:2015,lat:53.226273,lon:-2.885310, tags:{nameZh:'切斯特动物园花园',name:'Chester Zoo Gardens',tourism:'theme_park',website:'https://www.chesterzoo.org','addr:city':'Chester',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'48247'}},
+  { type:'node',id:2016,lat:51.522923,lon:-0.154852, tags:{nameZh:'伦敦杜莎夫人蜡像馆',name:'Madame Tussauds London',tourism:'theme_park',website:'https://www.madametussauds.com/london','addr:city':'London',opening_hours:'Mo-Su 10:00-16:00',rating:'4.2',reviews:'62841'}},
+  { type:'node',id:2017,lat:55.095436,lon:-1.584426, tags:{nameZh:'冒险体验',name:'Adventure Experience Northumberland',tourism:'theme_park','addr:city':'Northumberland',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+  { type:'node',id:2018,lat:50.361285,lon:-4.744397, tags:{nameZh:'康沃尔伊甸园',name:'Eden Project',tourism:'theme_park',website:'https://www.edenproject.com','addr:city':'Cornwall',opening_hours:'Mo-Su 09:30-18:00',rating:'4.5',reviews:'32847'}},
+  { type:'node',id:2019,lat:51.502827,lon:-0.117412, tags:{nameZh:'伦敦眼',name:'London Eye',tourism:'attraction',website:'https://www.londoneye.com','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'142847'}},
+  { type:'node',id:2020,lat:51.5015,lon:-0.1204, tags:{nameZh:'伦敦海洋生活水族馆',name:'SEA LIFE London Aquarium',tourism:'aquarium',website:'https://www.visitsealife.com/london','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00',rating:'4.1',reviews:'24218'}},
+
+  // ZOOS / AQUARIUMS (~15)
+  { type:'node',id:2030,lat:51.534806,lon:-0.154807, tags:{nameZh:'伦敦动物园',name:'ZSL London Zoo',tourism:'zoo',website:'https://www.zsl.org/zsl-london-zoo','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'42318'}},
+  { type:'node',id:2031,lat:53.226273,lon:-2.885310, tags:{nameZh:'切斯特动物园',name:'Chester Zoo',tourism:'zoo',website:'https://www.chesterzoo.org','addr:city':'Chester',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'48247'}},
+  { type:'node',id:2032,lat:55.9420,lon:-3.2681, tags:{nameZh:'爱丁堡动物园',name:'Edinburgh Zoo',tourism:'zoo',website:'https://www.edinburghzoo.org.uk','addr:city':'Edinburgh',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'18247'}},
+  { type:'node',id:2033,lat:51.5740,lon:-0.4880, tags:{nameZh:'惠普斯奈德动物园',name:'ZSL Whipsnade Zoo',tourism:'zoo',website:'https://www.zsl.org/zsl-whipsnade-zoo','addr:city':'Bedfordshire',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2034,lat:51.860768,lon:0.831336, tags:{nameZh:'科尔切斯特动物园',name:'Colchester Zoo',tourism:'zoo',website:'https://www.colchester-zoo.com','addr:city':'Colchester',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:2035,lat:53.812881,lon:-3.054905, tags:{nameZh:'布莱克浦海洋生活',name:'SEA LIFE Blackpool',tourism:'aquarium',website:'https://www.visitsealife.com/blackpool','addr:city':'Blackpool',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2036,lat:50.819597,lon:-0.135973, tags:{nameZh:'布莱顿海洋生活',name:'SEA LIFE Brighton',tourism:'aquarium',website:'https://www.visitsealife.com/brighton','addr:city':'Brighton',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2037,lat:53.442544,lon:-2.809572, tags:{nameZh:'诺斯利野生动物园',name:'Knowsley Safari',tourism:'zoo',website:'https://www.knowsleysafariexperience.co.uk','addr:city':'Liverpool',opening_hours:'Mo-Su 10:00-16:00'}},
+  { type:'node',id:2038,lat:52.478737,lon:-1.913546, tags:{nameZh:'国家海洋生活伯明翰',name:'National SEA LIFE Centre Birmingham',tourism:'aquarium',website:'https://www.visitsealife.com/birmingham','addr:city':'Birmingham',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2039,lat:51.531491,lon:-2.614973, tags:{nameZh:'布里斯托尔动物园',name:'Bristol Zoo Project',tourism:'zoo',website:'https://www.bristolzoo.org.uk','addr:city':'Bristol',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2040,lat:53.4015,lon:-1.4670, tags:{nameZh:'约克郡野生动物公园',name:'Yorkshire Wildlife Park',tourism:'zoo',website:'https://www.yorkshirewildlifepark.com','addr:city':'Doncaster',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2041,lat:51.485966,lon:-3.177611, tags:{nameZh:'卡迪夫国家博物馆水族馆',name:'National Museum Cardiff Aquarium',tourism:'aquarium','addr:city':'Cardiff',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:2042,lat:53.467788,lon:-2.340959, tags:{nameZh:'曼彻斯特海洋生活',name:'SEA LIFE Manchester',tourism:'aquarium',website:'https://www.visitsealife.com/manchester','addr:city':'Manchester',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2043,lat:56.005844,lon:-4.591098, tags:{nameZh:'格拉斯哥海洋生活',name:'SEA LIFE Loch Lomond',tourism:'aquarium',website:'https://www.visitsealife.com/loch-lomond','addr:city':'Glasgow',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2044,lat:54.4355,lon:-1.3050, tags:{nameZh:'北约克郡野生动物农场',name:'Flamingo Land Zoo',tourism:'zoo','addr:city':'North Yorkshire',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+
+  // MUSEUMS (~30)
+  { type:'node',id:2060,lat:51.4967,lon:-0.1764, tags:{nameZh:'自然历史博物馆',name:'Natural History Museum',tourism:'museum',website:'https://www.nhm.ac.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-17:50',rating:'4.7',reviews:'142847'}},
+  { type:'node',id:2061,lat:51.4978,lon:-0.1745, tags:{nameZh:'科学博物馆',name:'Science Museum',tourism:'museum',website:'https://www.sciencemuseum.org.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'82431'}},
+  { type:'node',id:2062,lat:51.496511,lon:-0.176002, tags:{nameZh:'V&A童年博物馆',name:'Young V&A (Museum of Childhood)',tourism:'museum',website:'https://www.vam.ac.uk/young','addr:city':'London',opening_hours:'Mo-Su 10:00-17:45'}},
+  { type:'node',id:2063,lat:53.960496,lon:-1.096110, tags:{nameZh:'国家铁路博物馆约克',name:'National Railway Museum York',tourism:'museum',website:'https://www.railwaymuseum.org.uk','addr:city':'York',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:2064,lat:54.969251,lon:-1.624807, tags:{nameZh:'发现博物馆',name:'Discovery Museum Newcastle',tourism:'museum',website:'https://discoverymuseum.org.uk','addr:city':'Newcastle',opening_hours:'Mo-Su 10:00-16:00'}},
+  { type:'node',id:2065,lat:53.720087,lon:-1.854961, tags:{nameZh:'尤里卡儿童博物馆',name:'Eureka! The National Children\'s Museum',tourism:'museum',website:'https://www.eureka.org.uk','addr:city':'Halifax',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:2066,lat:51.5194,lon:-0.1270, tags:{nameZh:'大英博物馆',name:'British Museum',tourism:'museum',website:'https://www.britishmuseum.org','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'218247'}},
+  { type:'node',id:2067,lat:51.508217,lon:-0.076188, tags:{nameZh:'伦敦塔',name:'Tower of London',tourism:'museum',website:'https://www.hrp.org.uk/tower-of-london','addr:city':'London',opening_hours:'Tu-Sa 09:00-17:30, Su-Mo 10:00-17:30',rating:'4.6',reviews:'124218'}},
+  { type:'node',id:2068,lat:51.5014,lon:-0.1419, tags:{nameZh:'白金汉宫',name:'Buckingham Palace',tourism:'museum',website:'https://www.rct.uk/visit/buckingham-palace','addr:city':'London',opening_hours:'Jul-Sep 09:30-19:30 (seasonal)'}},
+  { type:'node',id:2069,lat:53.477259,lon:-2.254701, tags:{nameZh:'科学与工业博物馆',name:'Science and Industry Museum Manchester',tourism:'museum',website:'https://www.scienceandindustrymuseum.org.uk','addr:city':'Manchester',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:2070,lat:53.409834,lon:-2.981802, tags:{nameZh:'利物浦世界博物馆',name:'World Museum Liverpool',tourism:'museum',website:'https://www.liverpoolmuseums.org.uk','addr:city':'Liverpool',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2071,lat:51.505975,lon:-0.086700, tags:{nameZh:'伦敦桥体验',name:'The London Bridge Experience',tourism:'museum','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2072,lat:51.4774,lon:-0.0014, tags:{nameZh:'格林威治天文台',name:'Royal Observatory Greenwich',tourism:'museum',website:'https://www.rmg.co.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2073,lat:52.482572,lon:-1.886801, tags:{nameZh:'伯明翰科学与发现中心',name:'Thinktank Birmingham Science Museum',tourism:'museum',website:'https://www.birminghammuseums.org.uk/thinktank','addr:city':'Birmingham',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2074,lat:51.450363,lon:-2.600511, tags:{nameZh:'布里斯托尔科学中心',name:'We The Curious Bristol',tourism:'museum',website:'https://www.wethecurious.org','addr:city':'Bristol',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:2075,lat:51.758626,lon:-1.255619, tags:{nameZh:'牛津自然历史博物馆',name:'Oxford University Museum of Natural History',tourism:'museum',website:'https://www.oumnh.ox.ac.uk','addr:city':'Oxford',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2076,lat:52.199930,lon:0.119897, tags:{nameZh:'剑桥菲茨威廉博物馆',name:'Fitzwilliam Museum Cambridge',tourism:'museum',website:'https://www.fitzmuseum.cam.ac.uk','addr:city':'Cambridge',opening_hours:'Tu-Sa 10:00-17:00, Su 12:00-17:00'}},
+  { type:'node',id:2077,lat:51.506543,lon:-0.081152, tags:{nameZh:'HMS贝尔法斯特号',name:'HMS Belfast',tourism:'museum',website:'https://www.iwm.org.uk/visits/hms-belfast','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2078,lat:55.947071,lon:-3.189335, tags:{nameZh:'爱丁堡国家博物馆',name:'National Museum of Scotland',tourism:'museum',website:'https://www.nms.ac.uk','addr:city':'Edinburgh',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'42318'}},
+  { type:'node',id:2079,lat:53.399275,lon:-2.992067, tags:{nameZh:'利物浦甲壳虫乐队博物馆',name:'The Beatles Story Liverpool',tourism:'museum',website:'https://www.beatlesstory.com','addr:city':'Liverpool',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2080,lat:51.480776,lon:-0.005123, tags:{nameZh:'国家海事博物馆',name:'National Maritime Museum',tourism:'museum',website:'https://www.rmg.co.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2081,lat:52.196386,lon:-2.222227, tags:{nameZh:'伍斯特博物馆',name:'Worcester City Art Gallery & Museum',tourism:'museum','addr:city':'Worcester',opening_hours:'Tu-Sa 10:30-16:30'}},
+  { type:'node',id:2082,lat:51.518873,lon:-0.097239, tags:{nameZh:'伦敦博物馆',name:'Museum of London',tourism:'museum',website:'https://www.museumoflondon.org.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2083,lat:53.791832,lon:-1.532263, tags:{nameZh:'利兹皇家军械博物馆',name:'Royal Armouries Museum Leeds',tourism:'museum',website:'https://royalarmouries.org','addr:city':'Leeds',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2084,lat:51.482933,lon:-0.009614, tags:{nameZh:'卡蒂萨克号帆船',name:'Cutty Sark',tourism:'museum',website:'https://www.rmg.co.uk/cutty-sark','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2085,lat:53.401212,lon:-2.993220, tags:{nameZh:'利物浦国际奴隶制博物馆',name:'International Slavery Museum',tourism:'museum',website:'https://www.liverpoolmuseums.org.uk','addr:city':'Liverpool',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2086,lat:51.5089,lon:-0.1283, tags:{nameZh:'国家美术馆',name:'National Gallery',tourism:'museum',website:'https://www.nationalgallery.org.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2087,lat:51.507429,lon:-0.099342, tags:{nameZh:'泰特现代美术馆',name:'Tate Modern',tourism:'museum',website:'https://www.tate.org.uk/visit/tate-modern','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2088,lat:51.403684,lon:-0.337696, tags:{nameZh:'汉普顿宫',name:'Hampton Court Palace',tourism:'museum',website:'https://www.hrp.org.uk/hampton-court-palace','addr:city':'London',opening_hours:'Mo-Su 10:00-16:30'}},
+
+  // CHINESE RESTAURANTS (~40)
+  // London Chinatown (Gerrard St)
+  { type:'node',id:2100,lat:51.5114,lon:-0.1308, tags:{nameZh:'四季中餐厅',name:'Four Seasons Chinatown',amenity:'chinese_restaurant','addr:city':'London','addr:street':'12 Gerrard Street'}},
+  { type:'node',id:2101,lat:51.5112,lon:-0.1302, tags:{nameZh:'金龙轩',name:'Golden Dragon',amenity:'chinese_restaurant','addr:city':'London','addr:street':'28-29 Gerrard Street'}},
+  { type:'node',id:2102,lat:51.5116,lon:-0.1312, tags:{nameZh:'文兴酒家',name:'New World Chinese Restaurant',amenity:'chinese_restaurant','addr:city':'London','addr:street':'1 Gerrard Place'}},
+  { type:'node',id:2103,lat:51.5110,lon:-0.1295, tags:{nameZh:'旺记',name:'Wong Kei',amenity:'chinese_restaurant','addr:city':'London','addr:street':'41-43 Wardour Street'}},
+  { type:'node',id:2104,lat:51.5118,lon:-0.1320, tags:{nameZh:'皇朝酒家',name:'Imperial China',amenity:'chinese_restaurant','addr:city':'London','addr:street':'25a Lisle Street'}},
+  { type:'node',id:2105,lat:51.5108,lon:-0.1288, tags:{nameZh:'美丽华',name:'Plum Valley',amenity:'chinese_restaurant','addr:city':'London','addr:street':'20 Gerrard Street'}},
+  { type:'node',id:2106,lat:51.5120,lon:-0.1316, tags:{nameZh:'鹿鼎记',name:'Dumplings Legend',amenity:'chinese_restaurant','addr:city':'London','addr:street':'15-16 Gerrard Street'}},
+  { type:'node',id:2107,lat:51.5122,lon:-0.1325, tags:{nameZh:'巴蜀风味',name:'BaZi Sichuan',amenity:'chinese_restaurant','addr:city':'London','addr:street':'Wardour Street'}},
+  { type:'node',id:2108,lat:51.5106,lon:-0.1280, tags:{nameZh:'海底捞伦敦',name:'Haidilao London',amenity:'chinese_restaurant',website:'https://www.haidilao.com','addr:city':'London','addr:street':'Shaftesbury Avenue'}},
+  { type:'node',id:2109,lat:51.5100,lon:-0.1275, tags:{nameZh:'川味居伦敦',name:'Sichuan Folk London',amenity:'chinese_restaurant','addr:city':'London','addr:street':'Hanway Place'}},
+  // Manchester Chinatown
+  { type:'node',id:2110,lat:53.4769,lon:-2.2401, tags:{nameZh:'杨记',name:'Yang Sing Manchester',amenity:'chinese_restaurant',website:'https://www.yangsing.com','addr:city':'Manchester','addr:street':'34 Princess Street'}},
+  { type:'node',id:2111,lat:53.4773,lon:-2.2395, tags:{nameZh:'红辣椒曼彻斯特',name:'Red Chilli Manchester',amenity:'chinese_restaurant','addr:city':'Manchester','addr:street':'70-72 Portland Street'}},
+  { type:'node',id:2112,lat:53.4775,lon:-2.2410, tags:{nameZh:'翡翠中餐厅',name:'Jade Garden Manchester',amenity:'chinese_restaurant','addr:city':'Manchester','addr:street':'52 George Street'}},
+  { type:'node',id:2113,lat:53.4765,lon:-2.2388, tags:{nameZh:'海皇曼彻斯特',name:'Ocean Treasure Manchester',amenity:'chinese_restaurant','addr:city':'Manchester','addr:street':'Faulkner Street'}},
+  // Liverpool Chinatown (oldest in Europe)
+  { type:'node',id:2114,lat:53.3990,lon:-2.9770, tags:{nameZh:'利物浦宝华',name:'Tao Restaurant Liverpool',amenity:'chinese_restaurant','addr:city':'Liverpool','addr:street':'5-7 Berry Street'}},
+  { type:'node',id:2115,lat:53.3988,lon:-2.9780, tags:{nameZh:'乐天利物浦',name:'Lotte Bubble Tea Liverpool',amenity:'chinese_restaurant','addr:city':'Liverpool','addr:street':'Nelson Street'}},
+  { type:'node',id:2116,lat:53.3985,lon:-2.9775, tags:{nameZh:'金满楼利物浦',name:'Mei Mei Chinese Liverpool',amenity:'chinese_restaurant','addr:city':'Liverpool','addr:street':'9 Berry Street'}},
+  // Birmingham
+  { type:'node',id:2117,lat:52.4774,lon:-1.8983, tags:{nameZh:'伯明翰中华楼',name:'Chung Ying Birmingham',amenity:'chinese_restaurant',website:'https://www.chungying.co.uk','addr:city':'Birmingham','addr:street':'16-18 Wrottesley Street'}},
+  { type:'node',id:2118,lat:52.4770,lon:-1.8975, tags:{nameZh:'明怡伯明翰',name:'Min Yee Chinese Birmingham',amenity:'chinese_restaurant','addr:city':'Birmingham','addr:street':'Hurst Street'}},
+  // Edinburgh
+  { type:'node',id:2119,lat:55.9558,lon:-3.1820, tags:{nameZh:'爱丁堡龙宫',name:'Loon Fung Edinburgh',amenity:'chinese_restaurant','addr:city':'Edinburgh','addr:street':'Grindlay Street'}},
+  { type:'node',id:2120,lat:55.9562,lon:-3.1830, tags:{nameZh:'爱丁堡功夫',name:'Ting Thai Caravan Edinburgh',amenity:'chinese_restaurant','addr:city':'Edinburgh','addr:street':'Bread Street'}},
+  // Glasgow
+  { type:'node',id:2121,lat:55.8592,lon:-4.2558, tags:{nameZh:'格拉斯哥兰州拉面',name:'Lychee Oriental Glasgow',amenity:'chinese_restaurant','addr:city':'Glasgow','addr:street':'Mitchell Street'}},
+  { type:'node',id:2122,lat:55.8595,lon:-4.2565, tags:{nameZh:'格拉斯哥中华楼',name:'China Buffet King Glasgow',amenity:'chinese_restaurant','addr:city':'Glasgow','addr:street':'Renfield Street'}},
+  // Leeds
+  { type:'node',id:2123,lat:53.7965,lon:-1.5476, tags:{nameZh:'利兹华人饭店',name:'Sichuan House Leeds',amenity:'chinese_restaurant','addr:city':'Leeds','addr:street':'The Headrow'}},
+  // Sheffield
+  { type:'node',id:2124,lat:53.3813,lon:-1.4706, tags:{nameZh:'谢菲尔德龙门',name:'Loong Moon Sheffield',amenity:'chinese_restaurant','addr:city':'Sheffield','addr:street':'London Road'}},
+  // Bristol
+  { type:'node',id:2125,lat:51.4539,lon:-2.5943, tags:{nameZh:'布里斯托尔翠园',name:'Mayflower Chinese Bristol',amenity:'chinese_restaurant','addr:city':'Bristol','addr:street':'Baldwin Street'}},
+  // Cardiff
+  { type:'node',id:2126,lat:51.4836,lon:-3.1777, tags:{nameZh:'卡迪夫唐人街',name:'Happy Gathering Cardiff',amenity:'chinese_restaurant','addr:city':'Cardiff','addr:street':'Tudor Street'}},
+  // Newcastle
+  { type:'node',id:2127,lat:54.9740,lon:-1.6101, tags:{nameZh:'纽卡斯尔龙宫',name:'Lam\'s Chinese Newcastle',amenity:'chinese_restaurant','addr:city':'Newcastle','addr:street':'Stowell Street'}},
+  { type:'node',id:2128,lat:54.9745,lon:-1.6110, tags:{nameZh:'纽卡唐人街红辣椒',name:'King Neptune Newcastle',amenity:'chinese_restaurant','addr:city':'Newcastle','addr:street':'Stowell Street'}},
+  // Nottingham
+  { type:'node',id:2129,lat:52.9536,lon:-1.1507, tags:{nameZh:'诺丁汉中华楼',name:'Wok & Go Nottingham',amenity:'chinese_restaurant','addr:city':'Nottingham','addr:street':'Goosegate'}},
+  // Belfast
+  { type:'node',id:2130,lat:54.5960,lon:-5.9340, tags:{nameZh:'贝尔法斯特中餐厅',name:'Zen Belfast',amenity:'chinese_restaurant','addr:city':'Belfast','addr:street':'Adelaide Street'}},
+  // London extra
+  { type:'node',id:2131,lat:51.5160,lon:-0.1340, tags:{nameZh:'兰州拉面伦敦',name:'Lanzhou Noodle Bar London',amenity:'chinese_restaurant','addr:city':'London','addr:street':'Cranbourne Street'}},
+  { type:'node',id:2132,lat:51.5145,lon:-0.1355, tags:{nameZh:'鼎泰丰伦敦',name:'Din Tai Fung London',amenity:'chinese_restaurant',website:'https://www.dintaifung.co.uk','addr:city':'London','addr:street':'Shaftesbury Avenue'}},
+  { type:'node',id:2133,lat:51.5025,lon:-0.1180, tags:{nameZh:'文华东方烤鸭',name:'Min Jiang London',amenity:'chinese_restaurant','addr:city':'London','addr:street':'Kensington High Street'}},
+  { type:'node',id:2134,lat:51.5088,lon:-0.1322, tags:{nameZh:'蜀香门第',name:'Master Wei Xi\'an London',amenity:'chinese_restaurant','addr:city':'London','addr:street':'Bloomsbury Way'}},
+  { type:'node',id:2135,lat:51.5050,lon:-0.0950, tags:{nameZh:'川外川伦敦',name:'Sichuan Mansion London',amenity:'chinese_restaurant','addr:city':'London','addr:street':'Borough High Street'}},
+  { type:'node',id:2136,lat:53.4778,lon:-2.2405, tags:{nameZh:'曼彻斯特锦里',name:'Jing Li Manchester',amenity:'chinese_restaurant','addr:city':'Manchester','addr:street':'George Street'}},
+  { type:'node',id:2137,lat:53.3992,lon:-2.9785, tags:{nameZh:'利物浦龙凤',name:'Dragon Phoenix Liverpool',amenity:'chinese_restaurant','addr:city':'Liverpool','addr:street':'Upper Duke Street'}},
+  { type:'node',id:2138,lat:52.4768,lon:-1.8970, tags:{nameZh:'伯明翰四川人家',name:'Sichuan Moon Birmingham',amenity:'chinese_restaurant','addr:city':'Birmingham','addr:street':'Wrottesley Street'}},
+  { type:'node',id:2139,lat:53.8000,lon:-1.5480, tags:{nameZh:'利兹金凤凰',name:'Golden Phoenix Leeds',amenity:'chinese_restaurant','addr:city':'Leeds','addr:street':'Vicar Lane'}},
+
+  // BUFFETS (~20)
+  { type:'node',id:2150,lat:51.5130,lon:-0.1300, tags:{nameZh:'伦敦亚洲自助',name:'Cosmo London',amenity:'buffet_restaurant',website:'https://www.cosmo-restaurants.co.uk','addr:city':'London','addr:street':'Shaftesbury Avenue'}},
+  { type:'node',id:2151,lat:53.4780,lon:-2.2380, tags:{nameZh:'曼彻斯特亚洲自助',name:'Cosmo Manchester',amenity:'buffet_restaurant','addr:city':'Manchester','addr:street':'Deansgate'}},
+  { type:'node',id:2152,lat:52.4760,lon:-1.8980, tags:{nameZh:'伯明翰自助餐',name:'Red Hot World Buffet Birmingham',amenity:'buffet_restaurant','addr:city':'Birmingham','addr:street':'Broad Street'}},
+  { type:'node',id:2153,lat:53.4050,lon:-2.9820, tags:{nameZh:'利物浦自助餐',name:'Cosmo Liverpool',amenity:'buffet_restaurant','addr:city':'Liverpool','addr:street':'Hanover Street'}},
+  { type:'node',id:2154,lat:53.7975,lon:-1.5490, tags:{nameZh:'利兹自助餐',name:'Cosmo Leeds',amenity:'buffet_restaurant','addr:city':'Leeds','addr:street':'The Headrow'}},
+  { type:'node',id:2155,lat:55.9540,lon:-3.1870, tags:{nameZh:'爱丁堡自助',name:'Cosmo Edinburgh',amenity:'buffet_restaurant','addr:city':'Edinburgh','addr:street':'Fountainbridge'}},
+  { type:'node',id:2156,lat:51.4550,lon:-2.5950, tags:{nameZh:'布里斯托尔自助',name:'Cosmo Bristol',amenity:'buffet_restaurant','addr:city':'Bristol','addr:street':'Anchor Road'}},
+  { type:'node',id:2157,lat:53.3820,lon:-1.4720, tags:{nameZh:'谢菲尔德自助',name:'Cosmo Sheffield',amenity:'buffet_restaurant','addr:city':'Sheffield','addr:street':'Pinstone Street'}},
+  { type:'node',id:2158,lat:54.9730,lon:-1.6120, tags:{nameZh:'纽卡斯尔自助',name:'Cosmo Newcastle',amenity:'buffet_restaurant','addr:city':'Newcastle','addr:street':'The Gate'}},
+  { type:'node',id:2159,lat:52.9540,lon:-1.1500, tags:{nameZh:'诺丁汉自助',name:'Cosmo Nottingham',amenity:'buffet_restaurant','addr:city':'Nottingham','addr:street':'Market Street'}},
+  { type:'node',id:2160,lat:51.4840,lon:-3.1760, tags:{nameZh:'卡迪夫自助',name:'Cosmo Cardiff',amenity:'buffet_restaurant','addr:city':'Cardiff','addr:street':'St Mary Street'}},
+  { type:'node',id:2161,lat:55.8600,lon:-4.2550, tags:{nameZh:'格拉斯哥自助',name:'Cosmo Glasgow',amenity:'buffet_restaurant','addr:city':'Glasgow','addr:street':'Buchanan Street'}},
+  { type:'node',id:2162,lat:53.2290,lon:-2.8860, tags:{nameZh:'切斯特自助',name:'Chinese Buffet Chester',amenity:'buffet_restaurant','addr:city':'Chester','addr:street':'Foregate Street'}},
+  { type:'node',id:2163,lat:50.7200,lon:-1.8790, tags:{nameZh:'伯恩茅斯自助',name:'Cosmo Bournemouth',amenity:'buffet_restaurant','addr:city':'Bournemouth','addr:street':'Exeter Road'}},
+  { type:'node',id:2164,lat:51.5090,lon:-0.1260, tags:{nameZh:'伦敦中华自助',name:'Chinese Buffet King London',amenity:'buffet_restaurant','addr:city':'London','addr:street':'Charing Cross Road'}},
+  { type:'node',id:2165,lat:53.4770,lon:-2.2420, tags:{nameZh:'曼彻斯特铁板烧',name:'Sakura Teppanyaki Manchester',amenity:'buffet_restaurant','addr:city':'Manchester','addr:street':'Princess Street'}},
+  { type:'node',id:2166,lat:51.5135,lon:-0.0880, tags:{nameZh:'伦敦东区自助',name:'Wing\'s Buffet London',amenity:'buffet_restaurant','addr:city':'London','addr:street':'Tower Bridge Road'}},
+  { type:'node',id:2167,lat:54.5970,lon:-5.9350, tags:{nameZh:'贝尔法斯特亚洲自助',name:'Oriental Express Belfast',amenity:'buffet_restaurant','addr:city':'Belfast','addr:street':'Dublin Road'}},
+  { type:'node',id:2168,lat:53.7540,lon:-2.7100, tags:{nameZh:'布莱克浦自助',name:'China City Blackpool',amenity:'buffet_restaurant','addr:city':'Blackpool','addr:street':'Topping Street'}},
+  { type:'node',id:2169,lat:52.6300,lon:-1.1300, tags:{nameZh:'莱斯特自助',name:'Cosmo Leicester',amenity:'buffet_restaurant','addr:city':'Leicester','addr:street':'Highcross Street'}},
+
+  // INDOOR PLAY (~25)
+  { type:'node',id:2180,lat:51.514615,lon:-0.035056, tags:{nameZh:'伦敦KidZania',name:'KidZania London',leisure:'indoor_playground',website:'https://kidzania.co.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:2181,lat:53.467422,lon:-2.341526, tags:{nameZh:'曼彻斯特室内游乐',name:'Legoland Discovery Centre Manchester',leisure:'indoor_playground',website:'https://www.legolanddiscoverycentre.com/manchester','addr:city':'Manchester',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2182,lat:52.479095,lon:-1.915126, tags:{nameZh:'伯明翰乐高发现中心',name:'Legoland Discovery Centre Birmingham',leisure:'indoor_playground',website:'https://www.legolanddiscoverycentre.com/birmingham','addr:city':'Birmingham',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2183,lat:55.956752,lon:-3.184963, tags:{nameZh:'爱丁堡室内游乐',name:'Edinburgh Soft Play',leisure:'indoor_playground','addr:city':'Edinburgh',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:2184,lat:53.397541,lon:-2.991644, tags:{nameZh:'利物浦室内游乐',name:'Jump Arena Liverpool',leisure:'indoor_playground','addr:city':'Liverpool',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2185,lat:51.526912,lon:-2.589626, tags:{nameZh:'布里斯托尔室内游乐',name:'Jump Bristol',leisure:'indoor_playground','addr:city':'Bristol',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:2186,lat:53.826360,lon:-1.459230, tags:{nameZh:'利兹室内游乐',name:'Ninja Warrior Adventure Leeds',leisure:'indoor_playground','addr:city':'Leeds',opening_hours:'Mo-Su 09:30-19:00'}},
+  { type:'node',id:2187,lat:53.355017,lon:-1.482544, tags:{nameZh:'谢菲尔德室内游乐',name:'Inflata Nation Sheffield',leisure:'indoor_playground','addr:city':'Sheffield',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2188,lat:55.861155,lon:-4.250169, tags:{nameZh:'格拉斯哥室内游乐',name:'Scrambles Glasgow',leisure:'indoor_playground','addr:city':'Glasgow',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:2189,lat:51.465326,lon:-3.195548, tags:{nameZh:'卡迪夫室内游乐',name:'Ninja Warrior Cardiff',leisure:'indoor_playground','addr:city':'Cardiff',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2190,lat:54.5970,lon:-5.9330, tags:{nameZh:'贝尔法斯特室内游乐',name:'W5 Interactive Belfast',leisure:'indoor_playground',website:'https://w5online.co.uk','addr:city':'Belfast',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2191,lat:54.970643,lon:-1.620220, tags:{nameZh:'纽卡斯尔蹦床公园',name:'Flip Out Newcastle',leisure:'indoor_playground','addr:city':'Newcastle',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2192,lat:52.986006,lon:-1.159576, tags:{nameZh:'诺丁汉蹦床公园',name:'Oxygen Freejumping Nottingham',leisure:'indoor_playground','addr:city':'Nottingham',opening_hours:'Mo-Su 09:00-21:00'}},
+  { type:'node',id:2193,lat:51.503295,lon:-0.000058, tags:{nameZh:'伦敦O2蹦床',name:'Bounce London O2',leisure:'indoor_playground','addr:city':'London',opening_hours:'Mo-Su 10:00-21:00'}},
+  { type:'node',id:2194,lat:53.794061,lon:-3.057571, tags:{nameZh:'布莱克浦室内游乐',name:'Sandcastle Waterpark Blackpool',leisure:'indoor_playground',website:'https://www.sandcastle-waterpark.co.uk','addr:city':'Blackpool',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2195,lat:50.818025,lon:-0.136639, tags:{nameZh:'布莱顿室内游乐',name:'Brighton Palace Pier Arcade',leisure:'indoor_playground','addr:city':'Brighton',opening_hours:'Mo-Su 10:00-21:00'}},
+  { type:'node',id:2196,lat:52.620341,lon:-1.141283, tags:{nameZh:'莱斯特蹦床公园',name:'Air Extreme Leicester',leisure:'indoor_playground','addr:city':'Leicester',opening_hours:'Mo-Su 09:00-21:00'}},
+  { type:'node',id:2197,lat:53.226273,lon:-2.885310, tags:{nameZh:'切斯特室内游乐',name:'Fun4All Chester',leisure:'indoor_playground','addr:city':'Chester',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:2198,lat:51.760571,lon:-1.257111, tags:{nameZh:'牛津室内游乐',name:'Oxford Soft Play',leisure:'indoor_playground','addr:city':'Oxford',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:2199,lat:51.381891,lon:-2.360290, tags:{nameZh:'巴斯室内游乐',name:'Jump Nation Bath',leisure:'indoor_playground','addr:city':'Bath',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2200,lat:53.9600,lon:-1.0870, tags:{nameZh:'约克室内游乐',name:'York Bounce',leisure:'indoor_playground','addr:city':'York',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2201,lat:52.190298,lon:0.137335, tags:{nameZh:'剑桥室内游乐',name:'Cambridge Leisure Park Play',leisure:'indoor_playground','addr:city':'Cambridge',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:2202,lat:53.738720,lon:-0.330486, tags:{nameZh:'赫尔室内游乐',name:'The Deep Hull Aquarium',tourism:'aquarium',website:'https://www.thedeep.co.uk','addr:city':'Hull',opening_hours:'Mo-Su 10:00-17:00'}},
+
+  // BEACHES (~20)
+  { type:'node',id:2210,lat:50.2700,lon:-5.0540, tags:{nameZh:'纽奎海滩',name:'Fistral Beach Newquay',natural:'beach','addr:city':'Cornwall'}},
+  { type:'node',id:2211,lat:50.8190,lon:-0.1370, tags:{nameZh:'布莱顿海滩',name:'Brighton Beach',natural:'beach','addr:city':'Brighton'}},
+  { type:'node',id:2212,lat:50.7170,lon:-1.8720, tags:{nameZh:'伯恩茅斯海滩',name:'Bournemouth Beach',natural:'beach','addr:city':'Bournemouth'}},
+  { type:'node',id:2213,lat:54.2830,lon:-0.3960, tags:{nameZh:'斯卡伯勒海滩',name:'Scarborough Beach',natural:'beach','addr:city':'Scarborough'}},
+  { type:'node',id:2214,lat:51.6760,lon:-4.6900, tags:{nameZh:'滕比海滩',name:'Tenby Beach Pembrokeshire',natural:'beach','addr:city':'Pembrokeshire'}},
+  { type:'node',id:2215,lat:50.1180,lon:-5.5370, tags:{nameZh:'圣艾夫斯海滩',name:'St Ives Beach Cornwall',natural:'beach','addr:city':'Cornwall'}},
+  { type:'node',id:2216,lat:53.7920,lon:-3.0540, tags:{nameZh:'布莱克浦海滩',name:'Blackpool Beach',natural:'beach','addr:city':'Blackpool'}},
+  { type:'node',id:2217,lat:50.7400,lon:-1.0740, tags:{nameZh:'海莱岛海滩',name:'Hayling Island Beach',natural:'beach','addr:city':'Hampshire'}},
+  { type:'node',id:2218,lat:50.6100,lon:-2.4500, tags:{nameZh:'韦茅斯海滩',name:'Weymouth Beach',natural:'beach','addr:city':'Dorset'}},
+  { type:'node',id:2219,lat:50.3400,lon:-4.1400, tags:{nameZh:'普利茅斯海滩',name:'Plymouth Hoe Beach',natural:'beach','addr:city':'Plymouth'}},
+  { type:'node',id:2220,lat:55.0530,lon:-1.4270, tags:{nameZh:'泰恩河畔海滩',name:'Tynemouth Longsands Beach',natural:'beach','addr:city':'Tynemouth'}},
+  { type:'node',id:2221,lat:53.3250,lon:-3.1010, tags:{nameZh:'西柯比海滩',name:'West Kirby Beach',natural:'beach','addr:city':'Merseyside'}},
+  { type:'node',id:2222,lat:52.9400,lon:1.3000, tags:{nameZh:'诺福克海滩',name:'Holkham Beach Norfolk',natural:'beach','addr:city':'Norfolk'}},
+  { type:'node',id:2223,lat:50.3500,lon:-5.1500, tags:{nameZh:'帕德斯托海滩',name:'Padstow Beach Cornwall',natural:'beach','addr:city':'Cornwall'}},
+  { type:'node',id:2224,lat:51.3900,lon:1.3900, tags:{nameZh:'马尔盖特海滩',name:'Margate Beach Kent',natural:'beach','addr:city':'Kent'}},
+  { type:'node',id:2225,lat:50.2330,lon:-5.2700, tags:{nameZh:'康沃尔波尔齐斯海滩',name:'Porthcurno Beach Cornwall',natural:'beach','addr:city':'Cornwall'}},
+  { type:'node',id:2226,lat:56.4600,lon:-5.3900, tags:{nameZh:'苏格兰奥班海滩',name:'Oban Beach Scotland',natural:'beach','addr:city':'Oban'}},
+  { type:'node',id:2227,lat:57.8700,lon:-5.0200, tags:{nameZh:'苏格兰高地海滩',name:'Balnakeil Beach Highlands',natural:'beach','addr:city':'Highlands'}},
+  { type:'node',id:2228,lat:51.6200,lon:-3.9100, tags:{nameZh:'威尔士罗西利海滩',name:'Rhossili Bay Wales',natural:'beach','addr:city':'Wales'}},
+  { type:'node',id:2229,lat:55.1310,lon:-1.6120, tags:{nameZh:'诺森伯兰海滩',name:'Bamburgh Beach Northumberland',natural:'beach','addr:city':'Northumberland'}},
+
+  // HISTORIC (~30)
+  { type:'node',id:2240,lat:51.5081,lon:-0.0759, tags:{nameZh:'伦敦塔',name:'Tower of London',historic:'castle',website:'https://www.hrp.org.uk/tower-of-london','addr:city':'London',opening_hours:'Tu-Sa 09:00-17:30'}},
+  { type:'node',id:2241,lat:51.5014,lon:-0.1419, tags:{nameZh:'白金汉宫',name:'Buckingham Palace',historic:'castle',website:'https://www.rct.uk','addr:city':'London',opening_hours:'Jul-Sep (seasonal)'}},
+  { type:'node',id:2242,lat:51.1789,lon:-1.8262, tags:{nameZh:'巨石阵',name:'Stonehenge',historic:'monument',website:'https://www.english-heritage.org.uk/visit/places/stonehenge','addr:city':'Wiltshire',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:2243,lat:55.9486,lon:-3.1999, tags:{nameZh:'爱丁堡城堡',name:'Edinburgh Castle',historic:'castle',website:'https://www.edinburghcastle.scot','addr:city':'Edinburgh',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:2244,lat:52.2815,lon:-1.5849, tags:{nameZh:'华威城堡',name:'Warwick Castle',historic:'castle',website:'https://www.warwick-castle.com','addr:city':'Warwick',opening_hours:'Mo-Su 10:00-16:00'}},
+  { type:'node',id:2245,lat:51.4485,lon:-0.3414, tags:{nameZh:'汉普顿宫',name:'Hampton Court Palace',historic:'castle',website:'https://www.hrp.org.uk/hampton-court-palace','addr:city':'London',opening_hours:'Mo-Su 10:00-16:30'}},
+  { type:'node',id:2246,lat:51.4839,lon:-0.6046, tags:{nameZh:'温莎城堡',name:'Windsor Castle',historic:'castle',website:'https://www.rct.uk/visit/windsor-castle','addr:city':'Windsor',opening_hours:'Mo-Su 10:00-16:15'}},
+  { type:'node',id:2247,lat:53.9596,lon:-1.0867, tags:{nameZh:'约克大教堂',name:'York Minster',historic:'monument',website:'https://yorkminster.org','addr:city':'York',opening_hours:'Mo-Sa 09:30-16:00, Su 12:30-15:00'}},
+  { type:'node',id:2248,lat:51.3812,lon:-2.3590, tags:{nameZh:'巴斯罗马浴场',name:'Roman Baths',historic:'ruins',website:'https://www.romanbaths.co.uk','addr:city':'Bath',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:2249,lat:51.2802,lon:1.0800, tags:{nameZh:'坎特伯雷大教堂',name:'Canterbury Cathedral',historic:'monument',website:'https://www.canterbury-cathedral.org','addr:city':'Canterbury',opening_hours:'Mo-Sa 09:00-17:00, Su 12:30-14:30'}},
+  { type:'node',id:2250,lat:55.9533,lon:-3.1883, tags:{nameZh:'爱丁堡皇家英里',name:'Royal Mile Edinburgh',historic:'monument','addr:city':'Edinburgh'}},
+  { type:'node',id:2251,lat:54.4066,lon:-2.9175, tags:{nameZh:'温德米尔湖区',name:'Windermere Lake District',historic:'monument','addr:city':'Lake District'}},
+  { type:'node',id:2252,lat:52.1917,lon:-1.7083, tags:{nameZh:'莎士比亚故居',name:'Shakespeare\'s Birthplace',historic:'monument',website:'https://www.shakespeare.org.uk','addr:city':'Stratford-upon-Avon',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2253,lat:55.0080,lon:-1.4310, tags:{nameZh:'安尼克城堡',name:'Alnwick Castle',historic:'castle',website:'https://www.alnwickcastle.com','addr:city':'Northumberland',opening_hours:'Mo-Su 10:00-17:30 (seasonal)'}},
+  { type:'node',id:2254,lat:55.6713,lon:-2.0035, tags:{nameZh:'巴姆堡城堡',name:'Bamburgh Castle',historic:'castle',website:'https://www.bamburghcastle.com','addr:city':'Northumberland',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+  { type:'node',id:2255,lat:51.7520,lon:-1.2577, tags:{nameZh:'牛津大学',name:'University of Oxford',historic:'monument','addr:city':'Oxford'}},
+  { type:'node',id:2256,lat:51.5099,lon:-0.1341, tags:{nameZh:'特拉法加广场',name:'Trafalgar Square',historic:'monument','addr:city':'London'}},
+  { type:'node',id:2257,lat:51.5007,lon:-0.1246, tags:{nameZh:'大本钟',name:'Big Ben',historic:'monument','addr:city':'London'}},
+  { type:'node',id:2258,lat:51.5138,lon:-0.0984, tags:{nameZh:'圣保罗大教堂',name:'St Paul\'s Cathedral',historic:'monument',website:'https://www.stpauls.co.uk','addr:city':'London',opening_hours:'Mo-Sa 08:30-16:30'}},
+  { type:'node',id:2259,lat:52.2046,lon:0.1180, tags:{nameZh:'剑桥大学',name:'University of Cambridge',historic:'monument','addr:city':'Cambridge'}},
+  { type:'node',id:2260,lat:55.0486,lon:-1.6897, tags:{nameZh:'哈德良长城',name:'Hadrian\'s Wall',historic:'ruins','addr:city':'Northumberland'}},
+  { type:'node',id:2261,lat:51.5018,lon:-0.0032, tags:{nameZh:'格林威治皇家天文台',name:'Royal Observatory',historic:'monument',website:'https://www.rmg.co.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2262,lat:51.4768,lon:-3.1680, tags:{nameZh:'卡迪夫城堡',name:'Cardiff Castle',historic:'castle',website:'https://www.cardiffcastle.com','addr:city':'Cardiff',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:2263,lat:54.6000,lon:-5.9200, tags:{nameZh:'贝尔法斯特泰坦尼克号',name:'Titanic Belfast',historic:'monument',website:'https://www.titanicbelfast.com','addr:city':'Belfast',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2264,lat:55.8555,lon:-4.2900, tags:{nameZh:'格拉斯哥大教堂',name:'Glasgow Cathedral',historic:'monument','addr:city':'Glasgow',opening_hours:'Mo-Su 09:30-17:30'}},
+  { type:'node',id:2265,lat:51.3780,lon:-2.3560, tags:{nameZh:'巴斯皇家新月',name:'Royal Crescent Bath',historic:'monument','addr:city':'Bath'}},
+  { type:'node',id:2266,lat:54.9740,lon:-1.6120, tags:{nameZh:'纽卡斯尔城堡',name:'Newcastle Castle',historic:'castle','addr:city':'Newcastle',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2267,lat:52.3557,lon:-1.1743, tags:{nameZh:'凯尼尔沃思城堡',name:'Kenilworth Castle',historic:'castle',website:'https://www.english-heritage.org.uk','addr:city':'Warwickshire',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+  { type:'node',id:2268,lat:53.0556,lon:-2.3880, tags:{nameZh:'比斯顿城堡',name:'Beeston Castle',historic:'castle','addr:city':'Cheshire',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+
+  // NATURE (~20)
+  { type:'node',id:2270,lat:54.478530,lon:-3.065533, tags:{nameZh:'湖区国家公园',name:'Lake District National Park',leisure:'nature_reserve','addr:city':'Lake District'}},
+  { type:'node',id:2271,lat:53.315827,lon:-1.727034, tags:{nameZh:'峰区国家公园',name:'Peak District National Park',leisure:'nature_reserve','addr:city':'Peak District'}},
+  { type:'node',id:2272,lat:52.913940,lon:-3.834597, tags:{nameZh:'斯诺登尼亚',name:'Snowdonia National Park',leisure:'nature_reserve','addr:city':'Wales'}},
+  { type:'node',id:2273,lat:56.800000,lon:-5.000000, tags:{nameZh:'苏格兰高地',name:'Scottish Highlands',leisure:'nature_reserve','addr:city':'Scotland'}},
+  { type:'node',id:2274,lat:50.855727,lon:-1.595684, tags:{nameZh:'新森林',name:'New Forest National Park',leisure:'nature_reserve','addr:city':'Hampshire'}},
+  { type:'node',id:2275,lat:51.8500,lon:-1.6000, tags:{nameZh:'科茨沃尔德',name:'Cotswolds Area of Outstanding Natural Beauty',leisure:'nature_reserve','addr:city':'Cotswolds'}},
+  { type:'node',id:2276,lat:50.327039,lon:-4.763083, tags:{nameZh:'康沃尔海岸',name:'Cornwall Coast Path',leisure:'nature_reserve','addr:city':'Cornwall'}},
+  { type:'node',id:2277,lat:56.816955,lon:-5.113167, tags:{nameZh:'本尼维斯山',name:'Ben Nevis',leisure:'nature_reserve','addr:city':'Fort William'}},
+  { type:'node',id:2278,lat:57.274122,lon:-4.484968, tags:{nameZh:'尼斯湖',name:'Loch Ness',leisure:'nature_reserve','addr:city':'Inverness'}},
+  { type:'node',id:2279,lat:52.699595,lon:-3.908800, tags:{nameZh:'卡德尔伊德里斯山',name:'Cadair Idris',leisure:'nature_reserve','addr:city':'Wales'}},
+  { type:'node',id:2280,lat:54.294561,lon:-1.983421, tags:{nameZh:'约克郡山谷',name:'Yorkshire Dales National Park',leisure:'nature_reserve','addr:city':'Yorkshire'}},
+  { type:'node',id:2281,lat:55.186089,lon:-3.689635, tags:{nameZh:'苏格兰低地森林',name:'Galloway Forest Park',leisure:'nature_reserve','addr:city':'Scotland'}},
+  { type:'node',id:2282,lat:51.133841,lon:-3.603995, tags:{nameZh:'埃克斯摩尔',name:'Exmoor National Park',leisure:'nature_reserve','addr:city':'Somerset'}},
+  { type:'node',id:2283,lat:55.285763,lon:-2.117160, tags:{nameZh:'诺森伯兰国家公园',name:'Northumberland National Park',leisure:'nature_reserve','addr:city':'Northumberland'}},
+  { type:'node',id:2284,lat:50.963432,lon:-0.880676, tags:{nameZh:'南唐斯',name:'South Downs National Park',leisure:'nature_reserve','addr:city':'Sussex'}},
+  { type:'node',id:2285,lat:50.6500,lon:-3.4500, tags:{nameZh:'达特穆尔',name:'Dartmoor National Park',leisure:'nature_reserve','addr:city':'Devon'}},
+  { type:'node',id:2286,lat:52.713046,lon:1.574510, tags:{nameZh:'诺福克湿地',name:'Norfolk Broads National Park',leisure:'nature_reserve','addr:city':'Norfolk'}},
+  { type:'node',id:2287,lat:51.556515,lon:-0.631420, tags:{nameZh:'比肯斯菲尔德',name:'Burnham Beeches',leisure:'nature_reserve','addr:city':'Buckinghamshire'}},
+  { type:'node',id:2288,lat:52.7600,lon:-2.3200, tags:{nameZh:'什罗普郡山丘',name:'Shropshire Hills',leisure:'nature_reserve','addr:city':'Shropshire'}},
+
+  // PLAYGROUNDS, POOLS, FARMS (~80+)
+  // Children's Farms
+  { type:'node',id:2300,lat:51.5500,lon:-0.1500, tags:{nameZh:'伦敦肯特什镇城市农场',name:'Kentish Town City Farm',tourism:'children_farm','addr:city':'London'}},
+  { type:'node',id:2301,lat:51.5340,lon:-0.0580, tags:{nameZh:'伦敦哈克尼城市农场',name:'Hackney City Farm',tourism:'children_farm','addr:city':'London'}},
+  { type:'node',id:2302,lat:51.4710,lon:-0.0700, tags:{nameZh:'萨里码头农场',name:'Surrey Docks Farm',tourism:'children_farm','addr:city':'London'}},
+  { type:'node',id:2303,lat:53.4780,lon:-2.2350, tags:{nameZh:'曼彻斯特儿童农场',name:'Wythenshawe Community Farm',tourism:'children_farm','addr:city':'Manchester'}},
+  { type:'node',id:2304,lat:52.4580,lon:-1.7000, tags:{nameZh:'伯明翰儿童农场',name:'Ash End Farm Birmingham',tourism:'children_farm','addr:city':'Birmingham'}},
+  { type:'node',id:2305,lat:53.9580,lon:-1.0900, tags:{nameZh:'约克儿童农场',name:'Piglets Adventure Farm York',tourism:'children_farm','addr:city':'York'}},
+  { type:'node',id:2306,lat:51.3800,lon:-2.3500, tags:{nameZh:'巴斯儿童农场',name:'Bath City Farm',tourism:'children_farm','addr:city':'Bath'}},
+  { type:'node',id:2307,lat:55.9600,lon:-3.1700, tags:{nameZh:'爱丁堡戈雷桥农场',name:'Gorgie City Farm Edinburgh',tourism:'children_farm','addr:city':'Edinburgh'}},
+  { type:'node',id:2308,lat:51.4540,lon:-2.5900, tags:{nameZh:'布里斯托尔温瑟姆农场',name:'Windmill Hill City Farm Bristol',tourism:'children_farm','addr:city':'Bristol'}},
+  { type:'node',id:2309,lat:53.4050,lon:-2.9820, tags:{nameZh:'利物浦儿童农场',name:'Acorn Farm Liverpool',tourism:'children_farm','addr:city':'Liverpool'}},
+
+  // Swimming Pools
+  { type:'node',id:2320,lat:51.504854,lon:-0.168370, tags:{nameZh:'伦敦海德公园游泳湖',name:'Serpentine Lido',leisure:'swimming_pool','addr:city':'London'}},
+  { type:'node',id:2321,lat:53.469529,lon:-2.235467, tags:{nameZh:'曼彻斯特水上乐园',name:'Manchester Aquatics Centre',leisure:'swimming_pool','addr:city':'Manchester'}},
+  { type:'node',id:2322,lat:55.939036,lon:-3.172800, tags:{nameZh:'爱丁堡皇家英联邦泳池',name:'Royal Commonwealth Pool Edinburgh',leisure:'swimming_pool','addr:city':'Edinburgh'}},
+  { type:'node',id:2323,lat:51.442087,lon:-2.600873, tags:{nameZh:'布里斯托尔莱兹泳池',name:'Bristol South Swimming Pool',leisure:'swimming_pool','addr:city':'Bristol'}},
+  { type:'node',id:2324,lat:53.805907,lon:-1.549865, tags:{nameZh:'利兹国际泳池',name:'Leeds International Pool',leisure:'swimming_pool','addr:city':'Leeds'}},
+  { type:'node',id:2325,lat:52.514862,lon:-1.789426, tags:{nameZh:'伯明翰游泳中心',name:'Gosta Green Swimming Pool Birmingham',leisure:'swimming_pool','addr:city':'Birmingham'}},
+
+  // Playgrounds
+  { type:'node',id:2340,lat:51.509051,lon:-0.188120, tags:{nameZh:'戴安娜王妃纪念游乐场',name:'Diana Memorial Playground',leisure:'playground',website:'https://www.royalparks.org.uk','addr:city':'London'}},
+  { type:'node',id:2341,lat:51.530107,lon:-0.153769, tags:{nameZh:'摄政公园游乐场',name:'Regent\'s Park Playground',leisure:'playground','addr:city':'London'}},
+  { type:'node',id:2342,lat:51.481740,lon:0.001015, tags:{nameZh:'格林威治公园游乐场',name:'Greenwich Park Playground',leisure:'playground','addr:city':'London'}},
+  { type:'node',id:2343,lat:53.426519,lon:-2.185459, tags:{nameZh:'曼彻斯特海顿公园游乐场',name:'Heaton Park Playground Manchester',leisure:'playground','addr:city':'Manchester'}},
+  { type:'node',id:2344,lat:55.953522,lon:-3.190035, tags:{nameZh:'爱丁堡王子街花园游乐场',name:'Princes Street Gardens Playground Edinburgh',leisure:'playground','addr:city':'Edinburgh'}},
+  { type:'node',id:2345,lat:53.383186,lon:-2.940960, tags:{nameZh:'利物浦赛夫顿公园游乐场',name:'Sefton Park Playground Liverpool',leisure:'playground','addr:city':'Liverpool'}},
+  { type:'node',id:2346,lat:51.454097,lon:-2.607182, tags:{nameZh:'布里斯托尔布兰登山公园游乐场',name:'Brandon Hill Playground Bristol',leisure:'playground','addr:city':'Bristol'}},
+  { type:'node',id:2347,lat:52.451606,lon:-1.902646, tags:{nameZh:'伯明翰坎农山公园游乐场',name:'Cannon Hill Park Playground Birmingham',leisure:'playground','addr:city':'Birmingham'}},
+  { type:'node',id:2348,lat:53.839351,lon:-1.497842, tags:{nameZh:'利兹朗德海公园游乐场',name:'Roundhay Park Playground Leeds',leisure:'playground','addr:city':'Leeds'}},
+  { type:'node',id:2349,lat:53.371967,lon:-1.498009, tags:{nameZh:'谢菲尔德植物园游乐场',name:'Sheffield Botanical Gardens Playground',leisure:'playground','addr:city':'Sheffield'}},
+  { type:'node',id:2350,lat:51.758626,lon:-1.255619, tags:{nameZh:'牛津大学公园游乐场',name:'University Parks Playground Oxford',leisure:'playground','addr:city':'Oxford'}},
+  { type:'node',id:2351,lat:52.213068,lon:0.124558, tags:{nameZh:'剑桥公园游乐场',name:'Jesus Green Playground Cambridge',leisure:'playground','addr:city':'Cambridge'}},
+  { type:'node',id:2352,lat:53.961786,lon:-1.088957, tags:{nameZh:'约克博物馆花园游乐场',name:'Museum Gardens Playground York',leisure:'playground','addr:city':'York'}},
+  { type:'node',id:2353,lat:51.386538,lon:-2.375593, tags:{nameZh:'巴斯皇家维多利亚公园游乐场',name:'Royal Victoria Park Playground Bath',leisure:'playground','addr:city':'Bath'}},
+  { type:'node',id:2354,lat:50.839367,lon:-0.144796, tags:{nameZh:'布莱顿公园游乐场',name:'Preston Park Playground Brighton',leisure:'playground','addr:city':'Brighton'}},
+  { type:'node',id:2355,lat:51.462145,lon:-3.172609, tags:{nameZh:'卡迪夫比特公园游乐场',name:'Bute Park Playground Cardiff',leisure:'playground','addr:city':'Cardiff'}},
+  { type:'node',id:2356,lat:55.869256,lon:-4.287291, tags:{nameZh:'格拉斯哥凯尔文格罗夫公园游乐场',name:'Kelvingrove Park Playground Glasgow',leisure:'playground','addr:city':'Glasgow'}},
+  { type:'node',id:2357,lat:54.581288,lon:-5.927959, tags:{nameZh:'贝尔法斯特植物园游乐场',name:'Botanic Gardens Playground Belfast',leisure:'playground','addr:city':'Belfast'}},
+  { type:'node',id:2358,lat:54.984758,lon:-1.615550, tags:{nameZh:'纽卡斯尔展览公园游乐场',name:'Exhibition Park Playground Newcastle',leisure:'playground','addr:city':'Newcastle'}},
+  { type:'node',id:2359,lat:52.962897,lon:-1.157193, tags:{nameZh:'诺丁汉阿伯顿公园游乐场',name:'Arboretum Playground Nottingham',leisure:'playground','addr:city':'Nottingham'}},
+  { type:'node',id:2360,lat:53.812153,lon:-3.027331, tags:{nameZh:'布莱克浦斯坦利公园游乐场',name:'Stanley Park Playground Blackpool',leisure:'playground','addr:city':'Blackpool'}},
+  { type:'node',id:2361,lat:52.644369,lon:-1.128559, tags:{nameZh:'莱斯特阿比公园游乐场',name:'Abbey Park Playground Leicester',leisure:'playground','addr:city':'Leicester'}},
+  { type:'node',id:2362,lat:50.717236,lon:-1.876294, tags:{nameZh:'伯恩茅斯花园游乐场',name:'Lower Gardens Playground Bournemouth',leisure:'playground','addr:city':'Bournemouth'}},
+  { type:'node',id:2363,lat:53.190137,lon:-2.881375, tags:{nameZh:'切斯特格罗夫公园游乐场',name:'Grosvenor Park Playground Chester',leisure:'playground','addr:city':'Chester'}},
+  { type:'node',id:2364,lat:56.124031,lon:-3.948002, tags:{nameZh:'斯特灵城堡游乐场',name:'Stirling Castle Playground',leisure:'playground','addr:city':'Stirling'}},
+
+  // More attractions for count
+  { type:'node',id:2370,lat:51.502827,lon:-0.117412, tags:{nameZh:'伦敦眼',name:'London Eye',tourism:'attraction',website:'https://www.londoneye.com','addr:city':'London'}},
+  { type:'node',id:2371,lat:51.505516,lon:-0.075367, tags:{nameZh:'伦敦塔桥',name:'Tower Bridge London',tourism:'attraction','addr:city':'London'}},
+  { type:'node',id:2372,lat:53.463070,lon:-2.291348, tags:{nameZh:'老特拉福德球场',name:'Old Trafford Stadium Tour',tourism:'attraction',website:'https://www.manutd.com','addr:city':'Manchester'}},
+  { type:'node',id:2373,lat:53.4308,lon:-2.9608, tags:{nameZh:'安菲尔德球场',name:'Anfield Stadium Tour',tourism:'attraction',website:'https://www.liverpoolfc.com','addr:city':'Liverpool'}},
+  { type:'node',id:2374,lat:53.466042,lon:-2.233726, tags:{nameZh:'曼彻斯特博物馆',name:'Manchester Museum',tourism:'museum',website:'https://www.museum.manchester.ac.uk','addr:city':'Manchester',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:2375,lat:51.502600,lon:-0.119219, tags:{nameZh:'伦敦地牢',name:'London Dungeon',tourism:'attraction',website:'https://www.thedungeons.com/london','addr:city':'London'}},
+  { type:'node',id:2376,lat:51.502113,lon:0.003723, tags:{nameZh:'O2体验馆',name:'Up at The O2',tourism:'attraction',website:'https://www.theo2.co.uk','addr:city':'London'}},
+  { type:'node',id:2377,lat:51.482933,lon:-0.009614, tags:{nameZh:'国家海事博物馆格林威治',name:'Cutty Sark Gardens',tourism:'attraction','addr:city':'London'}},
+  { type:'node',id:2378,lat:51.750426,lon:-1.255422, tags:{nameZh:'牛津基督教堂学院',name:'Christ Church Oxford',tourism:'attraction','addr:city':'Oxford'}},
+  { type:'node',id:2379,lat:52.2044,lon:0.1150, tags:{nameZh:'剑桥国王学院',name:'King\'s College Cambridge',tourism:'attraction','addr:city':'Cambridge'}},
+  { type:'node',id:2380,lat:51.521566,lon:-0.277029, tags:{nameZh:'伦敦蹦床公园',name:'Oxygen Freejumping London',leisure:'indoor_playground',website:'https://www.oxygenfreejumping.co.uk','addr:city':'London',opening_hours:'Mo-Su 09:00-21:00'}},
+  { type:'node',id:2381,lat:53.480116,lon:-2.225597, tags:{nameZh:'曼彻斯特蹦床公园',name:'Oxygen Freejumping Manchester',leisure:'indoor_playground',website:'https://www.oxygenfreejumping.co.uk','addr:city':'Manchester',opening_hours:'Mo-Su 09:00-21:00'}},
+  { type:'node',id:2382,lat:55.966705,lon:-3.174768, tags:{nameZh:'爱丁堡蹦床公园',name:'Ryze Adventure Park Edinburgh',leisure:'indoor_playground',website:'https://www.ryzeadventurepark.co.uk','addr:city':'Edinburgh',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2383,lat:53.794414,lon:-1.548621, tags:{nameZh:'利兹蹦床公园',name:'AirHop Trampoline Park Leeds',leisure:'indoor_playground','addr:city':'Leeds',opening_hours:'Mo-Su 09:00-21:00'}},
+  { type:'node',id:2384,lat:52.558870,lon:-1.826821, tags:{nameZh:'伯明翰蹦床公园',name:'Jump Nation Birmingham',leisure:'indoor_playground','addr:city':'Birmingham',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2385,lat:51.5200,lon:-0.1300, tags:{nameZh:'伦敦卡丁车',name:'TeamSport Go Karting London',leisure:'sports_centre',website:'https://www.team-sport.co.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-23:00'}},
+  { type:'node',id:2386,lat:53.4700,lon:-2.2500, tags:{nameZh:'曼彻斯特卡丁车',name:'TeamSport Go Karting Manchester',leisure:'sports_centre',website:'https://www.team-sport.co.uk','addr:city':'Manchester',opening_hours:'Mo-Su 10:00-23:00'}},
+  { type:'node',id:2387,lat:52.4800,lon:-1.8900, tags:{nameZh:'伯明翰卡丁车',name:'TeamSport Go Karting Birmingham',leisure:'sports_centre','addr:city':'Birmingham',opening_hours:'Mo-Su 10:00-23:00'}},
+  { type:'node',id:2388,lat:53.7900,lon:-1.5400, tags:{nameZh:'利兹卡丁车',name:'TeamSport Go Karting Leeds',leisure:'sports_centre','addr:city':'Leeds',opening_hours:'Mo-Su 10:00-23:00'}},
+  { type:'node',id:2389,lat:51.409166,lon:-0.304356, tags:{nameZh:'伦敦密室逃脱',name:'Escape Hunt London',tourism:'attraction',website:'https://www.escapehunt.com/uk/london','addr:city':'London',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:2390,lat:53.485313,lon:-2.243462, tags:{nameZh:'曼彻斯特密室逃脱',name:'Escape Hunt Manchester',tourism:'attraction',website:'https://www.escapehunt.com/uk/manchester','addr:city':'Manchester',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:2391,lat:55.945909,lon:-3.206678, tags:{nameZh:'爱丁堡密室逃脱',name:'Escape Edinburgh',tourism:'attraction','addr:city':'Edinburgh',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:2392,lat:51.458536,lon:-2.585664, tags:{nameZh:'布里斯托尔密室逃脱',name:'Escape Hunt Bristol',tourism:'attraction','addr:city':'Bristol',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:2393,lat:51.521943,lon:-0.082341, tags:{nameZh:'伦敦荧光迷你高尔夫',name:'Junkyard Golf London',leisure:'miniature_golf',website:'https://www.junkyardgolfclub.co.uk','addr:city':'London',opening_hours:'Mo-Su 11:00-23:00'}},
+  { type:'node',id:2394,lat:53.473621,lon:-2.248047, tags:{nameZh:'曼彻斯特荧光迷你高尔夫',name:'Junkyard Golf Manchester',leisure:'miniature_golf',website:'https://www.junkyardgolfclub.co.uk','addr:city':'Manchester',opening_hours:'Mo-Su 11:00-23:00'}},
+  { type:'node',id:2395,lat:53.372496,lon:-2.884182, tags:{nameZh:'利物浦迷你高尔夫',name:'Ghetto Golf Liverpool',leisure:'miniature_golf','addr:city':'Liverpool',opening_hours:'Mo-Su 11:00-23:00'}},
+  { type:'node',id:2396,lat:52.416564,lon:-1.882222, tags:{nameZh:'伯明翰迷你高尔夫',name:'Ghetto Golf Birmingham',leisure:'miniature_golf','addr:city':'Birmingham',opening_hours:'Mo-Su 11:00-23:00'}},
+  { type:'node',id:2397,lat:51.5100,lon:-0.1500, tags:{nameZh:'伦敦攀岩中心',name:'The Climbing Hangar London',leisure:'sports_centre',website:'https://www.theclimbinghangar.com','addr:city':'London',opening_hours:'Mo-Fr 06:30-22:00; Sa-Su 09:00-20:00'}},
+  { type:'node',id:2398,lat:53.5000,lon:-2.2600, tags:{nameZh:'曼彻斯特攀岩中心',name:'The Climbing Hangar Manchester',leisure:'sports_centre','addr:city':'Manchester',opening_hours:'Mo-Fr 06:30-22:00; Sa-Su 09:00-20:00'}},
+  { type:'node',id:2399,lat:51.436827,lon:-2.604597, tags:{nameZh:'布里斯托尔攀爬冒险',name:'Go Ape Bristol',tourism:'theme_park',website:'https://www.goape.co.uk','addr:city':'Bristol',opening_hours:'Mo-Su 09:00-17:00 (seasonal)'}},
+
+  // ── LONDON MUSEUMS ──
+  { type:'node',id:2500,lat:51.4966,lon:-0.1722, tags:{nameZh:'维多利亚和阿尔伯特博物馆',name:'V&A Museum',tourism:'museum',website:'https://www.vam.ac.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-17:45',rating:'4.7',reviews:'52841'}},
+  { type:'node',id:2501,lat:51.496511,lon:-0.176002, tags:{nameZh:'V&A儿童博物馆',name:'Young V&A (Museum of Childhood)',tourism:'museum',website:'https://www.vam.ac.uk/young','addr:city':'London',opening_hours:'Mo-Su 10:00-17:45'}},
+  { type:'node',id:2502,lat:51.499915,lon:-0.200157, tags:{nameZh:'设计博物馆',name:'Design Museum',tourism:'museum',website:'https://designmuseum.org','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'12438'}},
+  { type:'node',id:2503,lat:51.495931,lon:-0.108599, tags:{nameZh:'帝国战争博物馆',name:'Imperial War Museum London',tourism:'museum',website:'https://www.iwm.org.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'18247'}},
+  { type:'node',id:2504,lat:51.442180,lon:-0.061324, tags:{nameZh:'霍尼曼博物馆',name:'Horniman Museum & Gardens',tourism:'museum',website:'https://www.horniman.ac.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-17:30',rating:'4.6',reviews:'9841'}},
+  { type:'node',id:2505,lat:51.5194,lon:-0.1270, tags:{nameZh:'大英博物馆',name:'British Museum',tourism:'museum',website:'https://www.britishmuseum.org','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00',rating:'4.7',reviews:'142841'}},
+  { type:'node',id:2506,lat:51.5076,lon:-0.0994, tags:{nameZh:'泰特现代美术馆',name:'Tate Modern',tourism:'museum',website:'https://www.tate.org.uk/visit/tate-modern','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'82841'}},
+  { type:'node',id:2507,lat:51.5089,lon:-0.1283, tags:{nameZh:'国家美术馆',name:'National Gallery',tourism:'museum',website:'https://www.nationalgallery.org.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'62841'}},
+  { type:'node',id:2508,lat:51.502835,lon:-0.118593, tags:{nameZh:'伦敦动物学会水族馆',name:'ZSL London Aquarium',tourism:'aquarium',website:'https://www.zsl.org','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2509,lat:51.497398,lon:-0.174673, tags:{nameZh:'科学博物馆',name:'Science Museum',tourism:'museum',website:'https://www.sciencemuseum.org.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'62841'}},
+  { type:'node',id:2510,lat:51.4967,lon:-0.1764, tags:{nameZh:'自然历史博物馆',name:'Natural History Museum',tourism:'museum',website:'https://www.nhm.ac.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-17:50',rating:'4.7',reviews:'102841'}},
+  { type:'node',id:2511,lat:51.523594,lon:-0.116323, tags:{nameZh:'查尔斯·狄更斯博物馆',name:'Charles Dickens Museum',tourism:'museum',website:'https://dickensmuseum.com','addr:city':'London',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:2512,lat:51.511984,lon:-0.121227, tags:{nameZh:'伦敦交通博物馆',name:'London Transport Museum',tourism:'museum',website:'https://www.ltmuseum.co.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'12847'}},
+  { type:'node',id:2513,lat:51.507634,lon:-0.023869, tags:{nameZh:'伦敦博物馆码头区',name:'Museum of London Docklands',tourism:'museum',website:'https://www.museumoflondon.org.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2514,lat:51.499282,lon:-0.242653, tags:{nameZh:'汉姆宫',name:'Ham House & Garden',tourism:'museum',website:'https://www.nationaltrust.org.uk/ham-house','addr:city':'London',opening_hours:'Mo-Su 10:00-16:00'}},
+  { type:'node',id:2515,lat:51.480776,lon:-0.005123, tags:{nameZh:'国家海事博物馆',name:'National Maritime Museum',tourism:'museum',website:'https://www.rmg.co.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'18247'}},
+  { type:'node',id:2516,lat:51.529912,lon:-0.127692, tags:{nameZh:'大英图书馆',name:'British Library',tourism:'museum',website:'https://www.bl.uk','addr:city':'London',opening_hours:'Mo-Sa 09:30-18:00'}},
+  { type:'node',id:2517,lat:51.517517,lon:-0.153044, tags:{nameZh:'华莱士收藏馆',name:'Wallace Collection',tourism:'museum',website:'https://www.wallacecollection.org','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2518,lat:51.518873,lon:-0.097239, tags:{nameZh:'伦敦博物馆',name:'Museum of London',tourism:'museum',website:'https://www.museumoflondon.org.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2519,lat:51.514467,lon:-0.087621, tags:{nameZh:'银行博物馆',name:'Bank of England Museum',tourism:'museum',website:'https://www.bankofengland.co.uk/museum','addr:city':'London',opening_hours:'Mo-Fr 10:00-17:00'}},
+
+  // ── LONDON PLAYGROUNDS & PARKS ──
+  { type:'node',id:2520,lat:51.476136,lon:-0.161162, tags:{nameZh:'海德公园冒险游乐场',name:'Hyde Park Adventure Playground',leisure:'playground','addr:city':'London'}},
+  { type:'node',id:2521,lat:51.476136,lon:-0.161162, tags:{nameZh:'巴特西公园冒险游乐场',name:'Battersea Park Adventure Playground',leisure:'playground','addr:city':'London'}},
+  { type:'node',id:2522,lat:51.481185,lon:-0.156566, tags:{nameZh:'巴特西公园儿童动物园',name:'Battersea Park Children\'s Zoo',tourism:'zoo',website:'https://www.batterseaparkzoo.co.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2523,lat:51.564149,lon:-0.167172, tags:{nameZh:'汉普斯特德荒野游乐场',name:'Hampstead Heath Playground',leisure:'playground','addr:city':'London'}},
+  { type:'node',id:2524,lat:51.537145,lon:-0.157169, tags:{nameZh:'普里姆罗斯山游乐场',name:'Primrose Hill Playground',leisure:'playground','addr:city':'London'}},
+  { type:'node',id:2525,lat:51.456565,lon:-0.171204, tags:{nameZh:'旺兹沃斯公园游乐场',name:'Wandsworth Common Playground',leisure:'playground','addr:city':'London'}},
+  { type:'node',id:2526,lat:51.456449,lon:-0.060056, tags:{nameZh:'佩卡姆黑麦公园',name:'Peckham Rye Park Playground',leisure:'playground','addr:city':'London'}},
+  { type:'node',id:2527,lat:51.565421,lon:-0.104540, tags:{nameZh:'芬斯伯里公园游乐场',name:'Finsbury Park Playground',leisure:'playground','addr:city':'London'}},
+  { type:'node',id:2528,lat:51.488022,lon:-0.239292, tags:{nameZh:'荷兰公园冒险游乐场',name:'Holland Park Adventure Playground',leisure:'playground','addr:city':'London'}},
+  { type:'node',id:2529,lat:51.483294,lon:-0.109112, tags:{nameZh:'肯宁顿公园游乐场',name:'Kennington Park Playground',leisure:'playground','addr:city':'London'}},
+
+  // ── LONDON INDOOR PLAY ──
+  { type:'node',id:2530,lat:51.539026,lon:-0.000172, tags:{nameZh:'发现儿童故事中心',name:'Discover Children\'s Story Centre',leisure:'indoor_playground',website:'https://www.discover.org.uk.com','addr:city':'London',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:2531,lat:51.514615,lon:-0.035056, tags:{nameZh:'加拿利码头室内游乐场',name:'KidZania London',leisure:'indoor_playground',website:'https://kidzania.co.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-19:00',rating:'4.3',reviews:'8247'}},
+  { type:'node',id:2532,lat:51.474187,lon:-0.183526, tags:{nameZh:'格拉姆斯比室内游乐场',name:'Gambado Chelsea',leisure:'indoor_playground',website:'https://www.gambado.com','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2533,lat:51.4630,lon:-0.1150, tags:{nameZh:'布里克斯顿室内攀岩',name:'The Arch Climbing Wall Bermondsey',leisure:'sports_centre','addr:city':'London',opening_hours:'Mo-Fr 07:00-22:00; Sa-Su 09:00-20:00'}},
+  { type:'node',id:2534,lat:51.544825,lon:-0.025153, tags:{nameZh:'贝斯纳尔绿室内游乐场',name:'Flip Out London E9',leisure:'indoor_playground','addr:city':'London',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2535,lat:51.487326,lon:-0.167943, tags:{nameZh:'切尔西室内游泳池',name:'Chelsea Sports Centre',leisure:'swimming_pool','addr:city':'London',opening_hours:'Mo-Fr 06:30-22:00; Sa-Su 08:00-20:00'}},
+  { type:'node',id:2536,lat:51.559921,lon:-0.087098, tags:{nameZh:'克利索尔德公园溅水乐园',name:'Clissold Park Paddling Pool',leisure:'swimming_pool','addr:city':'London'}},
+  { type:'node',id:2537,lat:51.505316,lon:-0.222986, tags:{nameZh:'谢泼德布什室内游乐场',name:'Kidspace Shepherd\'s Bush',leisure:'indoor_playground','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2538,lat:51.5380,lon:-0.0950, tags:{nameZh:'伦敦攀岩中心城堡',name:'Castle Climbing Centre',leisure:'sports_centre',website:'https://www.castle-climbing.co.uk','addr:city':'London',opening_hours:'Mo-Fr 10:00-22:00; Sa-Su 09:00-19:00'}},
+  { type:'node',id:2539,lat:51.494164,lon:0.063245, tags:{nameZh:'格林威治休闲中心',name:'Greenwich Leisure Centre',leisure:'swimming_pool','addr:city':'London',opening_hours:'Mo-Fr 06:00-22:00; Sa-Su 08:00-20:00'}},
+
+  // ── LONDON CHINATOWN & CHINESE RESTAURANTS ──
+  { type:'node',id:2540,lat:51.5113,lon:-0.1312, tags:{nameZh:'四季烤鸭 唐人街',name:'Four Seasons Chinatown',amenity:'restaurant',cuisine:'chinese',website:'https://www.fs-restaurants.co.uk','addr:city':'London',opening_hours:'Mo-Su 12:00-23:00',rating:'4.3',reviews:'4218'}},
+  { type:'node',id:2541,lat:51.5115,lon:-0.1300, tags:{nameZh:'文兴酒家',name:'Joy King Lau',amenity:'restaurant',cuisine:'chinese','addr:city':'London',opening_hours:'Mo-Su 11:00-23:30',rating:'4.1',reviews:'3841'}},
+  { type:'node',id:2542,lat:51.5110,lon:-0.1318, tags:{nameZh:'旺记',name:'Wong Kei',amenity:'restaurant',cuisine:'chinese','addr:city':'London',opening_hours:'Mo-Su 11:30-23:00',rating:'4.0',reviews:'8247'}},
+  { type:'node',id:2543,lat:51.5108,lon:-0.1305, tags:{nameZh:'金龙轩',name:'Golden Dragon',amenity:'restaurant',cuisine:'chinese','addr:city':'London',opening_hours:'Mo-Su 12:00-23:30'}},
+  { type:'node',id:2544,lat:51.5117,lon:-0.1295, tags:{nameZh:'新世界酒楼',name:'New World Chinese Restaurant',amenity:'restaurant',cuisine:'chinese','addr:city':'London',opening_hours:'Mo-Su 11:00-23:00',rating:'4.0',reviews:'3218'}},
+  { type:'node',id:2545,lat:51.5107,lon:-0.1316, tags:{nameZh:'丽都酒楼 唐人街',name:'Lee Ho Fook',amenity:'restaurant',cuisine:'chinese','addr:city':'London',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:2546,lat:51.5119,lon:-0.1290, tags:{nameZh:'鼎泰丰伦敦',name:'Din Tai Fung London',amenity:'restaurant',cuisine:'chinese',website:'https://www.dintaifung.co.uk','addr:city':'London',opening_hours:'Mo-Su 11:30-22:00',rating:'4.4',reviews:'6841'}},
+  { type:'node',id:2547,lat:51.5055,lon:-0.0190, tags:{nameZh:'皇朝 金丝雀码头',name:'Royal China Canary Wharf',amenity:'restaurant',cuisine:'chinese',website:'https://www.royalchinagroup.co.uk','addr:city':'London',opening_hours:'Mo-Su 12:00-23:00',rating:'4.2',reviews:'3247'}},
+  { type:'node',id:2548,lat:51.5060,lon:-0.0220, tags:{nameZh:'龙凤行 金丝雀码头',name:'Lotus Chinese Canary Wharf',amenity:'restaurant',cuisine:'chinese','addr:city':'London',opening_hours:'Mo-Su 12:00-22:30'}},
+  { type:'node',id:2549,lat:51.5112,lon:-0.1308, tags:{nameZh:'巴山蜀水',name:'Barshu Restaurant',amenity:'restaurant',cuisine:'chinese',website:'https://www.barshurestaurant.co.uk','addr:city':'London',opening_hours:'Mo-Su 12:00-22:30',rating:'4.3',reviews:'2847'}},
+  { type:'node',id:2550,lat:51.5118,lon:-0.1287, tags:{nameZh:'锦里',name:'Jinli Chinatown',amenity:'restaurant',cuisine:'chinese','addr:city':'London',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:2551,lat:51.5105,lon:-0.1325, tags:{nameZh:'百合香',name:'Baozi Inn',amenity:'restaurant',cuisine:'chinese','addr:city':'London',opening_hours:'Mo-Su 11:30-22:00',rating:'4.2',reviews:'1841'}},
+  { type:'node',id:2552,lat:51.5065,lon:-0.0185, tags:{nameZh:'翠亨邨 金丝雀码头',name:'Yi-Ban Canary Wharf',amenity:'restaurant',cuisine:'chinese','addr:city':'London',opening_hours:'Mo-Su 12:00-22:30'}},
+
+  // ── MANCHESTER AREA ──
+  { type:'node',id:2560,lat:53.477495,lon:-2.257105, tags:{nameZh:'曼彻斯特科学工业博物馆',name:'Science & Industry Museum',tourism:'museum',website:'https://www.scienceandindustrymuseum.org.uk','addr:city':'Manchester',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'12841'}},
+  { type:'node',id:2561,lat:53.485762,lon:-2.242112, tags:{nameZh:'曼彻斯特足球博物馆',name:'National Football Museum',tourism:'museum',website:'https://www.nationalfootballmuseum.com','addr:city':'Manchester',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'8247'}},
+  { type:'node',id:2562,lat:53.469706,lon:-2.299058, tags:{nameZh:'索尔福德码头帝国战争博物馆',name:'Imperial War Museum North',tourism:'museum',website:'https://www.iwm.org.uk/visits/iwm-north','addr:city':'Manchester',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'6841'}},
+  { type:'node',id:2563,lat:53.4710,lon:-2.2970, tags:{nameZh:'洛瑞艺术中心',name:'The Lowry',tourism:'museum',website:'https://thelowry.com','addr:city':'Manchester',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'5247'}},
+  { type:'node',id:2564,lat:53.4600,lon:-2.2310, tags:{nameZh:'曼彻斯特攀岩墙',name:'Depot Climbing Manchester',leisure:'sports_centre','addr:city':'Manchester',opening_hours:'Mo-Fr 07:00-22:00; Sa-Su 09:00-20:00'}},
+  { type:'node',id:2565,lat:53.453711,lon:-2.257395, tags:{nameZh:'曼彻斯特室内游乐中心',name:'Fun Shack Manchester',leisure:'indoor_playground','addr:city':'Manchester',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2566,lat:53.536496,lon:-2.256285, tags:{nameZh:'希顿公园动物中心',name:'Heaton Park Animal Centre',tourism:'zoo','addr:city':'Manchester'}},
+  { type:'node',id:2567,lat:53.543951,lon:-2.119229, tags:{nameZh:'罗奇代尔室内游乐场',name:'KidsPlay Rochdale',leisure:'indoor_playground','addr:city':'Rochdale',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2568,lat:53.577378,lon:-2.431462, tags:{nameZh:'博尔顿博物馆',name:'Bolton Museum & Aquarium',tourism:'museum','addr:city':'Bolton',opening_hours:'Tu-Sa 10:00-17:00'}},
+  { type:'node',id:2569,lat:53.408607,lon:-2.162022, tags:{nameZh:'斯托克波特帽子博物馆',name:'Hat Works Museum Stockport',tourism:'museum','addr:city':'Stockport',opening_hours:'Tu-Sa 10:00-17:00'}},
+  { type:'node',id:2570,lat:53.4950,lon:-2.3500, tags:{nameZh:'索尔福德中餐馆',name:'Tai Pan Chinese Restaurant Salford',amenity:'restaurant',cuisine:'chinese','addr:city':'Salford',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:2571,lat:53.4780,lon:-2.2420, tags:{nameZh:'杨子中餐馆',name:'Yang Sing Manchester',amenity:'restaurant',cuisine:'chinese',website:'https://www.yangsing.com','addr:city':'Manchester',opening_hours:'Mo-Su 12:00-23:00',rating:'4.1',reviews:'3841'}},
+  { type:'node',id:2572,lat:53.4820,lon:-2.2340, tags:{nameZh:'红辣椒中餐',name:'Red Chilli Manchester',amenity:'restaurant',cuisine:'chinese','addr:city':'Manchester',opening_hours:'Mo-Su 12:00-23:00',rating:'4.2',reviews:'2841'}},
+  { type:'node',id:2573,lat:53.4750,lon:-2.2420, tags:{nameZh:'好望角中餐馆',name:'Happy Seasons Manchester',amenity:'restaurant',cuisine:'chinese','addr:city':'Manchester',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:2574,lat:53.525905,lon:-2.281624, tags:{nameZh:'普雷斯特维奇森林公园',name:'Prestwich Forest Park',leisure:'playground','addr:city':'Prestwich'}},
+  { type:'node',id:2575,lat:53.436910,lon:-2.138094, tags:{nameZh:'里迪什山谷公园',name:'Reddish Vale Country Park',leisure:'playground','addr:city':'Stockport'}},
+
+  // ── SCOTLAND: EDINBURGH ──
+  { type:'node',id:2580,lat:55.9474,lon:-3.1892, tags:{nameZh:'爱丁堡国家博物馆',name:'National Museum of Scotland',tourism:'museum',website:'https://www.nms.ac.uk','addr:city':'Edinburgh',opening_hours:'Mo-Su 10:00-17:00',rating:'4.7',reviews:'42847'}},
+  { type:'node',id:2581,lat:55.948687,lon:-3.200417, tags:{nameZh:'爱丁堡城堡',name:'Edinburgh Castle',tourism:'attraction',website:'https://www.edinburghcastle.scot','addr:city':'Edinburgh',opening_hours:'Mo-Su 09:30-17:00',rating:'4.5',reviews:'62841'}},
+  { type:'node',id:2582,lat:55.950529,lon:-3.174418, tags:{nameZh:'爱丁堡动态地球',name:'Dynamic Earth Edinburgh',tourism:'museum',website:'https://www.dynamicearth.co.uk','addr:city':'Edinburgh',opening_hours:'Mo-Su 10:00-17:30',rating:'4.4',reviews:'8247'}},
+  { type:'node',id:2583,lat:55.949029,lon:-3.195604, tags:{nameZh:'爱丁堡相机暗箱',name:'Camera Obscura Edinburgh',tourism:'museum',website:'https://www.camera-obscura.co.uk','addr:city':'Edinburgh',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'12847'}},
+  { type:'node',id:2584,lat:55.965285,lon:-3.208859, tags:{nameZh:'爱丁堡皇家植物园',name:'Royal Botanic Garden Edinburgh',tourism:'attraction',website:'https://www.rbge.org.uk','addr:city':'Edinburgh',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'8841'}},
+  { type:'node',id:2585,lat:55.950885,lon:-3.195612, tags:{nameZh:'苏格兰国家画廊',name:'Scottish National Gallery',tourism:'museum',website:'https://www.nationalgalleries.org','addr:city':'Edinburgh',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2586,lat:55.942373,lon:-3.148765, tags:{nameZh:'爱丁堡互动中心',name:'Edinburgh Interactive Centre',leisure:'indoor_playground','addr:city':'Edinburgh',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2587,lat:55.952140,lon:-3.178925, tags:{nameZh:'爱丁堡杜纳公园',name:'Dunbar\'s Close Garden Edinburgh',leisure:'playground','addr:city':'Edinburgh'}},
+  { type:'node',id:2588,lat:55.923057,lon:-3.194684, tags:{nameZh:'爱丁堡布莱德山',name:'Blackford Hill Edinburgh',tourism:'attraction','addr:city':'Edinburgh'}},
+  { type:'node',id:2589,lat:55.949961,lon:-3.190446, tags:{nameZh:'玛丽金巷',name:'The Real Mary King\'s Close',tourism:'attraction',website:'https://www.realmarykingsclose.com','addr:city':'Edinburgh',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'6841'}},
+
+  // ── SCOTLAND: GLASGOW ──
+  { type:'node',id:2590,lat:55.868583,lon:-4.290628, tags:{nameZh:'凯尔文格罗夫艺术馆',name:'Kelvingrove Art Gallery & Museum',tourism:'museum',website:'https://www.glasgowlife.org.uk/museums','addr:city':'Glasgow',opening_hours:'Mo-Th,Sa 10:00-17:00; Fr,Su 11:00-17:00',rating:'4.7',reviews:'32841'}},
+  { type:'node',id:2591,lat:55.858695,lon:-4.294466, tags:{nameZh:'格拉斯哥科学中心',name:'Glasgow Science Centre',tourism:'museum',website:'https://www.glasgowsciencecentre.org','addr:city':'Glasgow',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'8247'}},
+  { type:'node',id:2592,lat:55.865231,lon:-4.306168, tags:{nameZh:'河畔博物馆',name:'Riverside Museum Glasgow',tourism:'museum',website:'https://www.glasgowlife.org.uk/museums','addr:city':'Glasgow',opening_hours:'Mo-Th,Sa 10:00-17:00; Fr,Su 11:00-17:00',rating:'4.6',reviews:'12847'}},
+  { type:'node',id:2593,lat:55.879886,lon:-4.292019, tags:{nameZh:'格拉斯哥植物园',name:'Glasgow Botanic Gardens',tourism:'attraction','addr:city':'Glasgow',opening_hours:'Mo-Su 07:00-dusk'}},
+  { type:'node',id:2594,lat:55.856705,lon:-4.252785, tags:{nameZh:'格拉斯哥蹦床公园',name:'Flip Out Glasgow',leisure:'indoor_playground','addr:city':'Glasgow',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2595,lat:55.847725,lon:-4.234414, tags:{nameZh:'格拉斯哥绿地公园',name:'Glasgow Green Playground',leisure:'playground','addr:city':'Glasgow'}},
+  { type:'node',id:2596,lat:55.8700,lon:-4.2750, tags:{nameZh:'格拉斯哥中餐 翠园',name:'Lychee Oriental Glasgow',amenity:'restaurant',cuisine:'chinese','addr:city':'Glasgow',opening_hours:'Mo-Su 12:00-22:30'}},
+
+  // ── SCOTLAND: HIGHLANDS ──
+  { type:'node',id:2600,lat:57.337370,lon:-4.477875, tags:{nameZh:'尼斯湖游客中心',name:'Loch Ness Centre & Exhibition',tourism:'museum',website:'https://www.lochness.com','addr:city':'Drumnadrochit',opening_hours:'Mo-Su 10:00-17:00',rating:'4.1',reviews:'4841'}},
+  { type:'node',id:2601,lat:56.875819,lon:-5.435234, tags:{nameZh:'格伦芬南高架桥',name:'Glenfinnan Viaduct Viewpoint',tourism:'attraction','addr:city':'Glenfinnan'}},
+  { type:'node',id:2602,lat:56.670463,lon:-5.079759, tags:{nameZh:'格伦科游客中心',name:'Glencoe Visitor Centre',tourism:'museum',website:'https://www.nts.org.uk','addr:city':'Glencoe',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2603,lat:57.5940,lon:-4.4280, tags:{nameZh:'高地野生动物公园',name:'Highland Wildlife Park',tourism:'zoo',website:'https://www.highlandwildlifepark.org.uk','addr:city':'Kincraig',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'6841'}},
+  { type:'node',id:2604,lat:56.4090,lon:-5.4790, tags:{nameZh:'奥本海洋生物中心',name:'Scottish Sea Life Sanctuary Oban',tourism:'aquarium','addr:city':'Oban',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2605,lat:57.153246,lon:-2.085020, tags:{nameZh:'阿伯丁科学中心',name:'Aberdeen Science Centre',tourism:'museum',website:'https://www.aberdeensciencecentre.org','addr:city':'Aberdeen',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2606,lat:56.343665,lon:-2.799845, tags:{nameZh:'圣安德鲁斯水族馆',name:'St Andrews Aquarium',tourism:'aquarium',website:'https://www.standrewsaquarium.co.uk','addr:city':'St Andrews',opening_hours:'Mo-Su 10:00-17:00'}},
+
+  // ── WALES: SNOWDONIA & NORTH ──
+  { type:'node',id:2610,lat:53.112061,lon:-4.126184, tags:{nameZh:'斯诺登山齿轮铁路',name:'Snowdon Mountain Railway',tourism:'attraction',website:'https://www.snowdonrailway.co.uk','addr:city':'Llanberis',opening_hours:'Mo-Su 09:00-17:00 (seasonal)',rating:'4.3',reviews:'8247'}},
+  { type:'node',id:2611,lat:53.168706,lon:-4.064005, tags:{nameZh:'Zip世界 彭林',name:'Zip World Penrhyn Quarry',tourism:'attraction',website:'https://www.zipworld.co.uk','addr:city':'Bethesda',opening_hours:'Mo-Su 09:00-17:00 (seasonal)',rating:'4.5',reviews:'12847'}},
+  { type:'node',id:2612,lat:53.100730,lon:-3.784078, tags:{nameZh:'Zip世界 弗林特',name:'Zip World Fforest',tourism:'attraction',website:'https://www.zipworld.co.uk','addr:city':'Betws-y-Coed',opening_hours:'Mo-Su 09:00-17:00 (seasonal)'}},
+  { type:'node',id:2613,lat:53.139345,lon:-4.276846, tags:{nameZh:'卡那封城堡',name:'Caernarfon Castle',tourism:'attraction',website:'https://cadw.gov.wales','addr:city':'Caernarfon',opening_hours:'Mo-Su 09:30-17:00',rating:'4.6',reviews:'8841'}},
+  { type:'node',id:2614,lat:53.295219,lon:-3.748195, tags:{nameZh:'科尔温湾威尔士山动物园',name:'Welsh Mountain Zoo',tourism:'zoo',website:'https://www.welshmountainzoo.org','addr:city':'Colwyn Bay',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'4218'}},
+  { type:'node',id:2615,lat:53.180916,lon:-4.194723, tags:{nameZh:'格林德宫游乐园',name:'GreenWood Family Park',tourism:'theme_park',website:'https://www.greenwoodfamilypark.co.uk','addr:city':'Y Felinheli',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+
+  // ── WALES: PEMBROKESHIRE ──
+  { type:'node',id:2620,lat:51.672555,lon:-4.694584, tags:{nameZh:'丹比城堡及游乐场',name:'Tenby Castle & Playground',tourism:'attraction','addr:city':'Tenby'}},
+  { type:'node',id:2621,lat:51.747234,lon:-4.735001, tags:{nameZh:'福利农场公园',name:'Folly Farm Adventure Park & Zoo',tourism:'theme_park',website:'https://www.folly-farm.co.uk','addr:city':'Pembrokeshire',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'12847'}},
+  { type:'node',id:2622,lat:51.781179,lon:-4.800097, tags:{nameZh:'蓝色泻湖水上乐园',name:'Blue Lagoon Water Park',leisure:'swimming_pool',website:'https://www.bluelagoonwaterpark.co.uk','addr:city':'Pembrokeshire',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2623,lat:51.882030,lon:-5.268429, tags:{nameZh:'圣大卫主教座堂',name:'St Davids Cathedral',tourism:'attraction','addr:city':'St Davids'}},
+
+  // ── WALES: CARDIFF ──
+  { type:'node',id:2630,lat:51.482332,lon:-3.181171, tags:{nameZh:'卡迪夫城堡',name:'Cardiff Castle',tourism:'attraction',website:'https://www.cardiffcastle.com','addr:city':'Cardiff',opening_hours:'Mo-Su 09:00-17:00',rating:'4.5',reviews:'18247'}},
+  { type:'node',id:2631,lat:51.462678,lon:-3.167873, tags:{nameZh:'卡迪夫湾Techniquest',name:'Techniquest Cardiff Bay',tourism:'museum',website:'https://www.techniquest.org','addr:city':'Cardiff',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'4841'}},
+  { type:'node',id:2632,lat:51.446747,lon:-3.166344, tags:{nameZh:'卡迪夫湾海滨',name:'Cardiff Bay Barrage & Playground',leisure:'playground','addr:city':'Cardiff'}},
+  { type:'node',id:2633,lat:51.485966,lon:-3.177611, tags:{nameZh:'卡迪夫国家博物馆',name:'National Museum Cardiff',tourism:'museum',website:'https://museum.wales/cardiff','addr:city':'Cardiff',opening_hours:'Tu-Su 10:00-17:00',rating:'4.6',reviews:'8841'}},
+  { type:'node',id:2634,lat:51.511249,lon:-3.159711, tags:{nameZh:'卡迪夫丛林室内游乐场',name:'Jungle Cardiff Indoor Play',leisure:'indoor_playground','addr:city':'Cardiff',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2635,lat:51.4950,lon:-3.2200, tags:{nameZh:'卡迪夫中餐 翠亨邨',name:'Happy Gathering Cardiff',amenity:'restaurant',cuisine:'chinese','addr:city':'Cardiff',opening_hours:'Mo-Su 12:00-23:00'}},
+
+  // ── SEASIDE: WHITBY ──
+  { type:'node',id:2640,lat:54.487584,lon:-0.606573, tags:{nameZh:'惠特比修道院',name:'Whitby Abbey',tourism:'attraction',website:'https://www.english-heritage.org.uk','addr:city':'Whitby',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'8841'}},
+  { type:'node',id:2641,lat:54.488943,lon:-0.609842, tags:{nameZh:'惠特比199阶台阶',name:'Whitby 199 Steps',tourism:'attraction','addr:city':'Whitby'}},
+  { type:'node',id:2642,lat:54.4890,lon:-0.6120, tags:{nameZh:'惠特比沙滩',name:'Whitby Beach',leisure:'playground','addr:city':'Whitby'}},
+
+  // ── SEASIDE: BLACKPOOL ──
+  { type:'node',id:2645,lat:53.8159,lon:-3.0553, tags:{nameZh:'布莱克浦塔',name:'Blackpool Tower',tourism:'attraction',website:'https://www.theblackpooltower.com','addr:city':'Blackpool',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'28841'}},
+  { type:'node',id:2646,lat:53.794061,lon:-3.057571, tags:{nameZh:'布莱克浦沙堡水上乐园',name:'Sandcastle Waterpark Blackpool',leisure:'swimming_pool',website:'https://www.sandcastle-waterpark.co.uk','addr:city':'Blackpool',opening_hours:'Mo-Su 10:00-17:00',rating:'4.2',reviews:'8247'}},
+  { type:'node',id:2647,lat:53.812881,lon:-3.054905, tags:{nameZh:'布莱克浦海洋世界',name:'SEA LIFE Blackpool',tourism:'aquarium',website:'https://www.visitsealife.com/blackpool','addr:city':'Blackpool',opening_hours:'Mo-Su 10:00-17:00'}},
+
+  // ── SEASIDE: BOURNEMOUTH ──
+  { type:'node',id:2650,lat:50.715923,lon:-1.876735, tags:{nameZh:'伯恩茅斯海洋馆',name:'Bournemouth Oceanarium',tourism:'aquarium',website:'https://www.oceanarium.co.uk','addr:city':'Bournemouth',opening_hours:'Mo-Su 10:00-17:00',rating:'4.2',reviews:'4218'}},
+  { type:'node',id:2651,lat:50.7160,lon:-1.8760, tags:{nameZh:'伯恩茅斯海滩游乐场',name:'Bournemouth Beach Playground',leisure:'playground','addr:city':'Bournemouth'}},
+  { type:'node',id:2652,lat:50.718244,lon:-1.876782, tags:{nameZh:'伯恩茅斯花园迷你高尔夫',name:'Bournemouth Gardens Mini Golf',leisure:'miniature_golf','addr:city':'Bournemouth',opening_hours:'Mo-Su 10:00-18:00'}},
+
+  // ── SEASIDE: TORQUAY ──
+  { type:'node',id:2655,lat:50.458166,lon:-3.524241, tags:{nameZh:'活力水族馆',name:'Living Coasts Torquay',tourism:'aquarium','addr:city':'Torquay',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2656,lat:50.468204,lon:-3.548895, tags:{nameZh:'凯茨公园游乐场',name:'Cary Park Playground Torquay',leisure:'playground','addr:city':'Torquay'}},
+  { type:'node',id:2657,lat:50.425975,lon:-3.579624, tags:{nameZh:'佩恩顿动物园',name:'Paignton Zoo',tourism:'zoo',website:'https://www.paigntonzoo.org.uk','addr:city':'Paignton',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'12847'}},
+
+  // ── SEASIDE: MARGATE ──
+  { type:'node',id:2660,lat:51.385159,lon:1.377240, tags:{nameZh:'梦幻乐园 马盖特',name:'Dreamland Margate',tourism:'theme_park',website:'https://www.dreamland.co.uk','addr:city':'Margate',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.0',reviews:'8247'}},
+  { type:'node',id:2661,lat:51.391266,lon:1.382086, tags:{nameZh:'特纳当代美术馆',name:'Turner Contemporary Margate',tourism:'museum',website:'https://turnercontemporary.org','addr:city':'Margate',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:2662,lat:51.333789,lon:1.419182, tags:{nameZh:'拉姆斯盖特海滩',name:'Ramsgate Beach & Playground',leisure:'playground','addr:city':'Ramsgate'}},
+
+  // ── BIRMINGHAM CHINESE RESTAURANTS ──
+  { type:'node',id:2670,lat:52.4770,lon:-1.8940, tags:{nameZh:'明厨 伯明翰',name:'Ming Moon Birmingham',amenity:'restaurant',cuisine:'chinese','addr:city':'Birmingham',opening_hours:'Mo-Su 12:00-23:00',rating:'4.0',reviews:'2841'}},
+  { type:'node',id:2671,lat:52.4750,lon:-1.8910, tags:{nameZh:'楚文轩 伯明翰',name:'Chung Ying Birmingham',amenity:'restaurant',cuisine:'chinese',website:'https://www.chungying.co.uk','addr:city':'Birmingham',opening_hours:'Mo-Su 12:00-23:00',rating:'4.2',reviews:'3218'}},
+  { type:'node',id:2672,lat:52.4760,lon:-1.8930, tags:{nameZh:'翠园 伯明翰中国城',name:'Chung Ying Garden Birmingham',amenity:'restaurant',cuisine:'chinese','addr:city':'Birmingham',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:2673,lat:52.4740,lon:-1.8920, tags:{nameZh:'伯明翰大型中超',name:'Wing Yip Birmingham (Supermarket)',amenity:'restaurant',cuisine:'chinese','addr:city':'Birmingham',opening_hours:'Mo-Sa 09:30-19:00; Su 11:00-17:00'}},
+
+  // ── LEEDS CHINESE RESTAURANTS ──
+  { type:'node',id:2680,lat:53.7970,lon:-1.5440, tags:{nameZh:'利兹红龙中餐',name:'Red Dragon Leeds',amenity:'restaurant',cuisine:'chinese','addr:city':'Leeds',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:2681,lat:53.7980,lon:-1.5400, tags:{nameZh:'利兹好运来',name:'Lucky Dragon Leeds',amenity:'restaurant',cuisine:'chinese','addr:city':'Leeds',opening_hours:'Mo-Su 12:00-22:30'}},
+  { type:'node',id:2682,lat:53.7960,lon:-1.5450, tags:{nameZh:'利兹火锅王',name:'Hotpot King Leeds',amenity:'restaurant',cuisine:'chinese','addr:city':'Leeds',opening_hours:'Mo-Su 11:30-22:30'}},
+
+  // ── SHEFFIELD CHINESE RESTAURANTS ──
+  { type:'node',id:2685,lat:53.3811,lon:-1.4700, tags:{nameZh:'谢菲尔德龙都中餐',name:'Dragon City Sheffield',amenity:'restaurant',cuisine:'chinese','addr:city':'Sheffield',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:2686,lat:53.3830,lon:-1.4680, tags:{nameZh:'谢菲尔德满汉楼',name:'Mandarin Sheffield',amenity:'restaurant',cuisine:'chinese','addr:city':'Sheffield',opening_hours:'Mo-Su 12:00-22:30'}},
+
+  // ── NEWCASTLE CHINESE RESTAURANTS ──
+  { type:'node',id:2690,lat:54.9740,lon:-1.6180, tags:{nameZh:'纽卡斯尔唐人街中餐',name:'King Neptune Newcastle',amenity:'restaurant',cuisine:'chinese','addr:city':'Newcastle',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:2691,lat:54.9750,lon:-1.6160, tags:{nameZh:'龙凤大酒楼 纽卡斯尔',name:'Dragon Palace Newcastle',amenity:'restaurant',cuisine:'chinese','addr:city':'Newcastle',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:2692,lat:54.9730,lon:-1.6190, tags:{nameZh:'纽卡斯尔红星中餐',name:'Red Star Chinese Newcastle',amenity:'restaurant',cuisine:'chinese','addr:city':'Newcastle',opening_hours:'Mo-Su 12:00-22:30'}},
+
+  // ── NOTTINGHAM ──
+  { type:'node',id:2695,lat:52.949498,lon:-1.154680, tags:{nameZh:'诺丁汉城堡博物馆',name:'Nottingham Castle Museum',tourism:'museum',website:'https://www.nottinghamcastle.org.uk','addr:city':'Nottingham',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'4841'}},
+  { type:'node',id:2696,lat:52.9500,lon:-1.1510, tags:{nameZh:'诺丁汉中餐 龙宫',name:'Dragon House Nottingham',amenity:'restaurant',cuisine:'chinese','addr:city':'Nottingham',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:2697,lat:52.949333,lon:-1.152649, tags:{nameZh:'罗宾汉故事馆',name:'Ye Olde Trip to Jerusalem',tourism:'attraction','addr:city':'Nottingham'}},
+
+  // ── LEICESTER ──
+  { type:'node',id:2700,lat:52.628943,lon:-1.127924, tags:{nameZh:'莱斯特新步行街',name:'New Walk Museum Leicester',tourism:'museum','addr:city':'Leicester',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:2701,lat:52.6340,lon:-1.1320, tags:{nameZh:'莱斯特中餐 翠园',name:'Chop Chop Chinese Leicester',amenity:'restaurant',cuisine:'chinese','addr:city':'Leicester',opening_hours:'Mo-Su 12:00-22:30'}},
+  { type:'node',id:2702,lat:52.6350,lon:-1.1340, tags:{nameZh:'莱斯特皇冠中餐',name:'Royal Wok Leicester',amenity:'restaurant',cuisine:'chinese','addr:city':'Leicester',opening_hours:'Mo-Su 12:00-23:00'}},
+
+  // ── MORE LONDON ATTRACTIONS ──
+  { type:'node',id:2710,lat:51.505099,lon:-0.187633, tags:{nameZh:'肯辛顿宫',name:'Kensington Palace',tourism:'attraction',website:'https://www.hrp.org.uk/kensington-palace','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'18247'}},
+  { type:'node',id:2711,lat:51.477362,lon:-0.000846, tags:{nameZh:'格林威治皇家天文台',name:'Royal Observatory Greenwich',tourism:'museum',website:'https://www.rmg.co.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'12847'}},
+  { type:'node',id:2712,lat:51.508217,lon:-0.076188, tags:{nameZh:'伦敦塔',name:'Tower of London',tourism:'attraction',website:'https://www.hrp.org.uk/tower-of-london','addr:city':'London',opening_hours:'Tu-Sa 09:00-17:30; Su-Mo 10:00-17:30',rating:'4.6',reviews:'102841'}},
+  { type:'node',id:2713,lat:51.511695,lon:-0.117442, tags:{nameZh:'萨默塞特宫',name:'Somerset House',tourism:'attraction',website:'https://www.somersethouse.org.uk','addr:city':'London',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2714,lat:51.524283,lon:-0.119908, tags:{nameZh:'柯勒姆少女花园游乐场',name:'Coram\'s Fields',leisure:'playground',website:'https://www.coramsfields.org','addr:city':'London',opening_hours:'Mo-Su 09:00-dusk'}},
+  { type:'node',id:2715,lat:51.501582,lon:-0.119468, tags:{nameZh:'杜莎夫人蜡像馆少年',name:'Shrek\'s Adventure London',tourism:'attraction',website:'https://www.shreksadventure.com','addr:city':'London',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2716,lat:51.502932,lon:0.003184, tags:{nameZh:'O2场馆',name:'The O2 Arena',tourism:'attraction',website:'https://www.theo2.co.uk','addr:city':'London'}},
+  { type:'node',id:2717,lat:51.544960,lon:-0.017177, tags:{nameZh:'奥林匹克公园冒险游乐场',name:'Queen Elizabeth Olympic Park Playground',leisure:'playground','addr:city':'London'}},
+  { type:'node',id:2718,lat:51.500835,lon:-0.143005, tags:{nameZh:'白金汉宫',name:'Buckingham Palace',tourism:'attraction',website:'https://www.rct.uk','addr:city':'London',opening_hours:'Mo-Su 09:30-17:30 (seasonal)',rating:'4.5',reviews:'82841'}},
+
+  // ── TRAMPOLINE PARKS ACROSS UK ──
+  { type:'node',id:2720,lat:51.443892,lon:-2.496167, tags:{nameZh:'布里斯托尔蹦床公园',name:'Flip Out Bristol',leisure:'indoor_playground','addr:city':'Bristol',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2721,lat:53.401694,lon:-2.975461, tags:{nameZh:'利物浦蹦床公园',name:'Flip Out Liverpool',leisure:'indoor_playground','addr:city':'Liverpool',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2722,lat:54.970643,lon:-1.620220, tags:{nameZh:'纽卡斯尔蹦床公园',name:'Flip Out Newcastle',leisure:'indoor_playground','addr:city':'Newcastle',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2723,lat:52.928933,lon:-1.127324, tags:{nameZh:'诺丁汉蹦床公园',name:'Flip Out Nottingham',leisure:'indoor_playground','addr:city':'Nottingham',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2724,lat:51.462349,lon:-0.963168, tags:{nameZh:'雷丁蹦床公园',name:'Flip Out Reading',leisure:'indoor_playground','addr:city':'Reading',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2725,lat:50.847249,lon:-1.090467, tags:{nameZh:'南安普敦蹦床公园',name:'Flip Out Southampton',leisure:'indoor_playground','addr:city':'Southampton',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2726,lat:53.226273,lon:-2.885310, tags:{nameZh:'切斯特蹦床公园',name:'AirHop Chester',leisure:'indoor_playground','addr:city':'Chester',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2727,lat:52.400739,lon:-1.513547, tags:{nameZh:'考文垂蹦床公园',name:'AirHop Coventry',leisure:'indoor_playground','addr:city':'Coventry',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2728,lat:51.867813,lon:-2.227729, tags:{nameZh:'格洛斯特蹦床公园',name:'Jump In Gloucester',leisure:'indoor_playground','addr:city':'Gloucester',opening_hours:'Mo-Su 10:00-20:00'}},
+
+  // ── CLIMBING CENTRES ──
+  { type:'node',id:2730,lat:53.8100,lon:-1.5300, tags:{nameZh:'利兹攀岩中心',name:'Clip \'n Climb Leeds',leisure:'sports_centre','addr:city':'Leeds',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2731,lat:55.9600,lon:-3.1700, tags:{nameZh:'爱丁堡攀岩中心',name:'Edinburgh International Climbing Arena',leisure:'sports_centre',website:'https://www.edinburghleisure.co.uk','addr:city':'Edinburgh',opening_hours:'Mo-Fr 10:00-22:00; Sa-Su 09:00-20:00'}},
+  { type:'node',id:2732,lat:52.4800,lon:-1.9000, tags:{nameZh:'伯明翰攀岩中心',name:'Clip \'n Climb Birmingham',leisure:'sports_centre','addr:city':'Birmingham',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2733,lat:53.4100,lon:-2.9800, tags:{nameZh:'利物浦攀岩中心',name:'Clip \'n Climb Liverpool',leisure:'sports_centre','addr:city':'Liverpool',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2734,lat:51.4500,lon:-2.5800, tags:{nameZh:'布里斯托尔攀岩墙',name:'Redpoint Climbing Bristol',leisure:'sports_centre','addr:city':'Bristol',opening_hours:'Mo-Fr 07:00-22:00; Sa-Su 09:00-20:00'}},
+  { type:'node',id:2735,lat:50.8200,lon:-0.1400, tags:{nameZh:'布莱顿攀岩中心',name:'Boulder Brighton',leisure:'sports_centre','addr:city':'Brighton',opening_hours:'Mo-Fr 07:00-22:00; Sa-Su 09:00-20:00'}},
+
+  // ── SWIMMING POOLS ──
+  { type:'node',id:2740,lat:53.398191,lon:-2.925462, tags:{nameZh:'利物浦水上世界',name:'Liverpool Aquatic Centre',leisure:'swimming_pool','addr:city':'Liverpool',opening_hours:'Mo-Fr 06:00-22:00; Sa-Su 08:00-18:00'}},
+  { type:'node',id:2741,lat:54.975515,lon:-1.580311, tags:{nameZh:'纽卡斯尔游泳中心',name:'City Pool Newcastle',leisure:'swimming_pool','addr:city':'Newcastle',opening_hours:'Mo-Fr 06:30-21:00; Sa-Su 08:00-18:00'}},
+  { type:'node',id:2742,lat:52.954920,lon:-1.138447, tags:{nameZh:'诺丁汉维多利亚泳池',name:'Victoria Leisure Centre Nottingham',leisure:'swimming_pool','addr:city':'Nottingham',opening_hours:'Mo-Fr 06:30-21:00; Sa-Su 08:00-18:00'}},
+  { type:'node',id:2743,lat:51.464984,lon:-0.984217, tags:{nameZh:'雷丁河畔泳池',name:'Rivermead Leisure Complex Reading',leisure:'swimming_pool','addr:city':'Reading',opening_hours:'Mo-Fr 06:30-22:00; Sa-Su 07:00-20:00'}},
+  { type:'node',id:2744,lat:53.381947,lon:-1.461968, tags:{nameZh:'谢菲尔德朋兹福治泳池',name:'Ponds Forge Sheffield',leisure:'swimming_pool',website:'https://www.sheffieldcitytrust.org','addr:city':'Sheffield',opening_hours:'Mo-Fr 06:00-22:00; Sa-Su 07:00-19:00'}},
+  { type:'node',id:2745,lat:51.413517,lon:-2.584773, tags:{nameZh:'布里斯托尔南泳池',name:'Hengrove Park Leisure Centre Bristol',leisure:'swimming_pool','addr:city':'Bristol',opening_hours:'Mo-Fr 06:30-21:00; Sa-Su 08:00-18:00'}},
+  { type:'node',id:2746,lat:51.449736,lon:-3.181092, tags:{nameZh:'卡迪夫国际泳池',name:'Cardiff International Pool',leisure:'swimming_pool','addr:city':'Cardiff',opening_hours:'Mo-Fr 06:00-22:00; Sa-Su 08:00-18:00'}},
+
+  // ── MORE MUSEUMS ACROSS UK ──
+  { type:'node',id:2750,lat:53.409834,lon:-2.981802, tags:{nameZh:'利物浦世界博物馆',name:'World Museum Liverpool',tourism:'museum',website:'https://www.liverpoolmuseums.org.uk','addr:city':'Liverpool',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'8841'}},
+  { type:'node',id:2751,lat:53.401338,lon:-2.992750, tags:{nameZh:'默西赛德海事博物馆',name:'Merseyside Maritime Museum',tourism:'museum','addr:city':'Liverpool',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2752,lat:53.403478,lon:-2.993655, tags:{nameZh:'泰特利物浦美术馆',name:'Tate Liverpool',tourism:'museum',website:'https://www.tate.org.uk/visit/tate-liverpool','addr:city':'Liverpool',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2753,lat:50.366703,lon:-4.130834, tags:{nameZh:'普利茅斯国家海洋水族馆',name:'National Marine Aquarium Plymouth',tourism:'aquarium',website:'https://www.national-aquarium.co.uk','addr:city':'Plymouth',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'8247'}},
+  { type:'node',id:2754,lat:54.969251,lon:-1.624807, tags:{nameZh:'纽卡斯尔发现博物馆',name:'Discovery Museum Newcastle',tourism:'museum',website:'https://discoverymuseum.org.uk','addr:city':'Newcastle',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2755,lat:54.967052,lon:-1.620994, tags:{nameZh:'纽卡斯尔生命科学中心',name:'Life Science Centre Newcastle',tourism:'museum',website:'https://www.life.org.uk','addr:city':'Newcastle',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'6841'}},
+  { type:'node',id:2756,lat:53.791832,lon:-1.532263, tags:{nameZh:'利兹皇家军械博物馆',name:'Royal Armouries Museum Leeds',tourism:'museum',website:'https://royalarmouries.org','addr:city':'Leeds',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'12841'}},
+  { type:'node',id:2757,lat:51.447617,lon:-2.598347, tags:{nameZh:'布里斯托尔MShed博物馆',name:'M Shed Bristol',tourism:'museum',website:'https://www.bristolmuseums.org.uk','addr:city':'Bristol',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'4841'}},
+  { type:'node',id:2758,lat:51.450875,lon:-2.599203, tags:{nameZh:'布里斯托尔水族馆',name:'Bristol Aquarium',tourism:'aquarium',website:'https://www.bristolaquarium.co.uk','addr:city':'Bristol',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2759,lat:53.957393,lon:-1.080294, tags:{nameZh:'约克维京中心',name:'Jorvik Viking Centre York',tourism:'museum',website:'https://www.jorvikvikingcentre.co.uk','addr:city':'York',opening_hours:'Mo-Su 10:00-17:00',rating:'4.2',reviews:'8247'}},
+  { type:'node',id:2760,lat:53.960496,lon:-1.096110, tags:{nameZh:'约克国家铁路博物馆',name:'National Railway Museum York',tourism:'museum',website:'https://www.railwaymuseum.org.uk','addr:city':'York',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'32841'}},
+  { type:'node',id:2761,lat:53.227587,lon:-1.611390, tags:{nameZh:'查茨沃斯庄园',name:'Chatsworth House',tourism:'attraction',website:'https://www.chatsworth.org','addr:city':'Bakewell',opening_hours:'Mo-Su 10:00-17:00 (seasonal)',rating:'4.6',reviews:'18247'}},
+
+  // ── MORE INDOOR PLAY CENTRES ──
+  { type:'node',id:2770,lat:53.800380,lon:-1.543723, tags:{nameZh:'利兹室内游乐场',name:'Arium Play Leeds',leisure:'indoor_playground','addr:city':'Leeds',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2771,lat:54.969640,lon:-1.654541, tags:{nameZh:'纽卡斯尔室内游乐场',name:'Funky Monkeys Newcastle',leisure:'indoor_playground','addr:city':'Newcastle',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2772,lat:53.400822,lon:-1.414329, tags:{nameZh:'谢菲尔德室内游乐场',name:'Monkey Bizness Sheffield',leisure:'indoor_playground','addr:city':'Sheffield',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2773,lat:52.603518,lon:-1.096977, tags:{nameZh:'莱斯特室内游乐场',name:'Tumble Tots Leicester',leisure:'indoor_playground','addr:city':'Leicester',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2774,lat:52.408633,lon:-1.507098, tags:{nameZh:'考文垂室内游乐场',name:'Cool Catz Coventry',leisure:'indoor_playground','addr:city':'Coventry',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2775,lat:50.908177,lon:-1.404158, tags:{nameZh:'南安普敦室内游乐场',name:'Monkey Town Southampton',leisure:'indoor_playground','addr:city':'Southampton',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2776,lat:50.821567,lon:-0.146297, tags:{nameZh:'布莱顿室内游乐场',name:'Yellow Brick Road Brighton',leisure:'indoor_playground','addr:city':'Brighton',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2777,lat:51.455383,lon:-0.977296, tags:{nameZh:'雷丁室内游乐场',name:'Kidz About Reading',leisure:'indoor_playground','addr:city':'Reading',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2778,lat:52.077135,lon:-1.342065, tags:{nameZh:'班伯里室内游乐场',name:'Rugrats & Halfpints Banbury',leisure:'indoor_playground','addr:city':'Banbury',opening_hours:'Mo-Su 10:00-18:00'}},
+
+  // ── FARMS & NATURE ──
+  { type:'node',id:2780,lat:51.181240,lon:-0.843559, tags:{nameZh:'伯德沃尔德农场',name:'Birdworld Farnham',tourism:'zoo',website:'https://www.birdworld.co.uk','addr:city':'Farnham',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2781,lat:51.1700,lon:-0.8600, tags:{nameZh:'水鸟信托中心',name:'WWT Arundel Wetland Centre',tourism:'attraction',website:'https://www.wwt.org.uk','addr:city':'Arundel',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:2782,lat:51.495386,lon:-1.108033, tags:{nameZh:'比尔特农场',name:'Beale Wildlife Park Reading',tourism:'zoo','addr:city':'Reading',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2783,lat:51.7500,lon:-1.2400, tags:{nameZh:'牛津城市农场',name:'Hogacre Common Oxford',tourism:'children_farm','addr:city':'Oxford'}},
+  { type:'node',id:2784,lat:52.2100,lon:0.1200, tags:{nameZh:'剑桥市农场',name:'Cambridge Community Farm',tourism:'children_farm','addr:city':'Cambridge'}},
+  { type:'node',id:2785,lat:53.937817,lon:-0.987340, tags:{nameZh:'约克迷宫',name:'York Maze',tourism:'attraction',website:'https://www.yorkmaze.co.uk','addr:city':'York',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+  { type:'node',id:2786,lat:52.277984,lon:-1.587344, tags:{nameZh:'沃里克城堡',name:'Warwick Castle',tourism:'attraction',website:'https://www.warwick-castle.com','addr:city':'Warwick',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'28847'}},
+
+  // ── ADDITIONAL SEASIDE & COASTAL ──
+  { type:'node',id:2790,lat:53.328183,lon:-3.837551, tags:{nameZh:'兰迪德诺缆车',name:'Great Orme Tramway Llandudno',tourism:'attraction',website:'https://www.greatormetramway.co.uk','addr:city':'Llandudno',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+  { type:'node',id:2791,lat:50.418289,lon:-5.100312, tags:{nameZh:'康沃尔纽奎海滩',name:'Fistral Beach Newquay',leisure:'playground','addr:city':'Newquay'}},
+  { type:'node',id:2792,lat:50.659174,lon:-1.142777, tags:{nameZh:'怀特岛恐龙岛',name:'Dinosaur Isle Museum',tourism:'museum','addr:city':'Isle of Wight',opening_hours:'Mo-Su 10:00-16:00'}},
+  { type:'node',id:2793,lat:50.655774,lon:-1.220085, tags:{nameZh:'怀特岛亚马逊世界',name:'Amazon World Zoo Isle of Wight',tourism:'zoo',website:'https://www.amazonworld.co.uk','addr:city':'Isle of Wight',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2794,lat:50.607245,lon:-2.450167, tags:{nameZh:'韦茅斯海洋生活',name:'SEA LIFE Weymouth',tourism:'aquarium',website:'https://www.visitsealife.com/weymouth','addr:city':'Weymouth',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2795,lat:51.128976,lon:1.322876, tags:{nameZh:'多佛城堡',name:'Dover Castle',tourism:'attraction',website:'https://www.english-heritage.org.uk','addr:city':'Dover',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'12847'}},
+  { type:'node',id:2796,lat:50.795597,lon:-1.108449, tags:{nameZh:'朴茨茅斯斯宾纳克塔',name:'Spinnaker Tower Portsmouth',tourism:'attraction',website:'https://www.spinnakertower.co.uk','addr:city':'Portsmouth',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2797,lat:50.856000,lon:0.596168, tags:{nameZh:'黑斯廷斯蓝礁水族馆',name:'Blue Reef Aquarium Hastings',tourism:'aquarium','addr:city':'Hastings',opening_hours:'Mo-Su 10:00-17:00'}},
+
+  // ── THEME PARKS & ATTRACTIONS (ADDITIONAL) ──
+  { type:'node',id:2800,lat:52.7800,lon:-2.7200, tags:{nameZh:'什罗普郡西部庄园乐园',name:'West Midland Safari Park',tourism:'theme_park',website:'https://www.wmsp.co.uk','addr:city':'Bewdley',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'12841'}},
+  { type:'node',id:2801,lat:53.2260,lon:-3.0920, tags:{nameZh:'圣阿萨夫海洋生活',name:'SEA LIFE Great Yarmouth',tourism:'aquarium','addr:city':'Great Yarmouth',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2802,lat:52.593283,lon:1.735986, tags:{nameZh:'大雅茅斯游乐园',name:'Pleasure Beach Great Yarmouth',tourism:'theme_park',website:'https://pleasure-beach.co.uk','addr:city':'Great Yarmouth',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+  { type:'node',id:2803,lat:51.381033,lon:-2.359554, tags:{nameZh:'巴斯罗马浴场',name:'The Roman Baths',tourism:'museum',website:'https://www.romanbaths.co.uk','addr:city':'Bath',opening_hours:'Mo-Su 09:00-17:00',rating:'4.6',reviews:'42841'}},
+  { type:'node',id:2804,lat:51.1780,lon:-1.8262, tags:{nameZh:'巨石阵',name:'Stonehenge',tourism:'attraction',website:'https://www.english-heritage.org.uk/visit/places/stonehenge','addr:city':'Wiltshire',opening_hours:'Mo-Su 09:30-17:00',rating:'4.3',reviews:'52841'}},
+  { type:'node',id:2805,lat:51.060733,lon:-1.313246, tags:{nameZh:'温切斯特大教堂',name:'Winchester Cathedral',tourism:'attraction','addr:city':'Winchester',opening_hours:'Mo-Sa 09:30-17:00; Su 12:30-15:00'}},
+  { type:'node',id:2806,lat:52.946891,lon:-1.206884, tags:{nameZh:'诺丁汉沃拉顿厅',name:'Wollaton Hall & Deer Park',tourism:'museum',website:'https://www.wollatonhall.org.uk','addr:city':'Nottingham',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2807,lat:51.501130,lon:-0.125869, tags:{nameZh:'大本钟和议会大厦',name:'Houses of Parliament & Big Ben',tourism:'attraction','addr:city':'London'}},
+  { type:'node',id:2808,lat:51.5138,lon:-0.0984, tags:{nameZh:'圣保罗大教堂',name:'St Paul\'s Cathedral',tourism:'attraction',website:'https://www.stpauls.co.uk','addr:city':'London',opening_hours:'Mo-Sa 08:30-16:00',rating:'4.7',reviews:'42841'}},
+  { type:'node',id:2809,lat:51.503130,lon:-0.133165, tags:{nameZh:'圣詹姆斯公园游乐场',name:'St James\'s Park Playground',leisure:'playground','addr:city':'London'}},
+
+  // ── MORE CHINESE RESTAURANTS ACROSS UK ──
+  { type:'node',id:2810,lat:53.4050,lon:-2.9800, tags:{nameZh:'利物浦唐人街金盛',name:'Yuet Ben Liverpool',amenity:'restaurant',cuisine:'chinese','addr:city':'Liverpool',opening_hours:'Mo-Su 12:00-23:00',rating:'4.1',reviews:'1847'}},
+  { type:'node',id:2811,lat:53.4070,lon:-2.9780, tags:{nameZh:'利物浦宝华中餐',name:'Panoramic Chinese Liverpool',amenity:'restaurant',cuisine:'chinese','addr:city':'Liverpool',opening_hours:'Mo-Su 12:00-22:30'}},
+  { type:'node',id:2812,lat:51.4550,lon:-2.5930, tags:{nameZh:'布里斯托尔中餐 彩福',name:'Mayflower Chinese Bristol',amenity:'restaurant',cuisine:'chinese','addr:city':'Bristol',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:2813,lat:50.8250,lon:-0.1420, tags:{nameZh:'布莱顿中餐 翡翠',name:'China Garden Brighton',amenity:'restaurant',cuisine:'chinese','addr:city':'Brighton',opening_hours:'Mo-Su 12:00-22:30'}},
+  { type:'node',id:2814,lat:53.9590,lon:-1.0850, tags:{nameZh:'约克中餐 龙宫',name:'Panda Mami York',amenity:'restaurant',cuisine:'chinese','addr:city':'York',opening_hours:'Mo-Su 12:00-22:00'}},
+  { type:'node',id:2815,lat:51.3800,lon:-2.3600, tags:{nameZh:'巴斯中餐 东方宴',name:'Eastern Eye Bath',amenity:'restaurant',cuisine:'chinese','addr:city':'Bath',opening_hours:'Mo-Su 12:00-22:30'}},
+  { type:'node',id:2816,lat:52.2060,lon:0.1200, tags:{nameZh:'剑桥中餐 七星',name:'Seven Stars Chinese Cambridge',amenity:'restaurant',cuisine:'chinese','addr:city':'Cambridge',opening_hours:'Mo-Su 12:00-22:00'}},
+  { type:'node',id:2817,lat:51.7540,lon:-1.2580, tags:{nameZh:'牛津中餐 上海',name:'Shanghai 30s Oxford',amenity:'restaurant',cuisine:'chinese','addr:city':'Oxford',opening_hours:'Mo-Su 12:00-22:30'}},
+  { type:'node',id:2818,lat:55.8650,lon:-4.2550, tags:{nameZh:'格拉斯哥中餐 金龙',name:'Golden Dragon Glasgow',amenity:'restaurant',cuisine:'chinese','addr:city':'Glasgow',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:2819,lat:55.9500,lon:-3.1850, tags:{nameZh:'爱丁堡中餐 翠亨邨',name:'Ting Thai Caravan Edinburgh',amenity:'restaurant',cuisine:'chinese','addr:city':'Edinburgh',opening_hours:'Mo-Su 12:00-22:00'}},
+];
+
+// ===== Category config =====
+const CATS = {
+  theme_park:  {emoji:'🎢', en:'Theme parks',     zh:'主题乐园'},
+  zoo:         {emoji:'🦒', en:'Zoos',   zh:'动物园'},
+  aquarium:    {emoji:'🐠', en:'Aquariums',        zh:'水族馆'},
+  museum:      {emoji:'🏛️', en:'Museums',          zh:'博物馆'},
+  nature:      {emoji:'🌳', en:'Nature',         zh:'自然'},
+  beach:       {emoji:'🏖️', en:'Beaches',       zh:'海滩'},
+  playground:  {emoji:'🎪', en:'Playgrounds',    zh:'游乐场'},
+  indoor_play: {emoji:'🏠', en:'Indoor play',zh:'室内游乐'},
+  trampoline:  {emoji:'🤸', en:'Trampoline',     zh:'蹦床'},
+  swim:        {emoji:'🏊', en:'Swimming',        zh:'游泳'},
+  climbing:    {emoji:'🧗', en:'Climbing',       zh:'攀爬'},
+  karting:     {emoji:'🏎️', en:'Karting',           zh:'卡丁车'},
+  farm:         {emoji:'🐑', en:'Farms',zh:'农场'},
+  attraction:  {emoji:'⭐', en:'Attractions',     zh:'景点'},
+  theatre:     {emoji:'🎭', en:'Theatre',        zh:'剧院'},
+  cinema:      {emoji:'🎬', en:'Cinema',       zh:'电影院'},
+  ice_rink:    {emoji:'⛸️', en:'Ice rink',        zh:'滑冰'},
+  minigolf:    {emoji:'⛳', en:'Minigolf',     zh:'迷你高尔夫'},
+  castle:      {emoji:'🏰', en:'Castles',       zh:'城堡'},
+  windmill:    {emoji:'🌬️', en:'Windmills',         zh:'风车'},
+  escape:      {emoji:'🔓', en:'Escape rooms',   zh:'密室逃脱'},
+  sports:      {emoji:'🏆', en:'Sports centre',   zh:'运动中心'},
+  restaurant:  {emoji:'🍽️', en:'Family dining',           zh:'亲子餐厅'},
+  monument:    {emoji:'🗿', en:'Monuments',     zh:'古迹'},
+  ship:        {emoji:'⛵', en:'Historic ships',zh:'历史船只'},
+  ruins:       {emoji:'🏺', en:'Ruins',         zh:'遗址'},
+  other:       {emoji:'📍', en:'Other',         zh:'其他'}
+};
+
+// Richer emoji mapping using venue name keywords
+function emojiFor(name, cat){
+  const n = (name||'').toLowerCase();
+  // Zoo subtype refinements
+  if(cat==='zoo'){
+    if(/safari|wild|beekse/.test(n)) return '🦁';
+    if(/dolf|sea|seal|marine/.test(n)) return '🐬';
+    if(/bird|vogel|avifauna/.test(n)) return '🦜';
+    if(/ape|monkey|apen/.test(n)) return '🐒';
+    if(/butterfly|vlinder/.test(n)) return '🦋';
+    if(/reptile|snake|slang/.test(n)) return '🐍';
+    return '🦒';
+  }
+  // Museum subtype
+  if(cat==='museum'){
+    if(/science|nemo|natur/.test(n)) return '🔬';
+    if(/art|van gogh|rijks|kunstmuseum|stedelijk|gemeente/.test(n)) return '🖼️';
+    if(/maritime|ship|scheepvaart|maritiem/.test(n)) return '⚓';
+    if(/railway|spoorweg|train|tram/.test(n)) return '🚂';
+    if(/aviation|air|luchtvaart/.test(n)) return '✈️';
+    if(/corpus|body|anatomie/.test(n)) return '🫀';
+    if(/music|muziek|instrument/.test(n)) return '🎼';
+    if(/toy|speelgoed/.test(n)) return '🧸';
+    if(/history|histori|oorlog|war|museum van de geest/.test(n)) return '📜';
+    return '🏛️';
+  }
+  // Theme park subtype
+  if(cat==='theme_park'){
+    if(/water|waterpark|splash|aqua/.test(n)) return '💦';
+    if(/snow|ski|slope/.test(n)) return '❄️';
+    if(/mini|madurodam|miniatuur/.test(n)) return '🏘️';
+    if(/fairy|sprookje|efteling/.test(n)) return '🏰';
+    return '🎢';
+  }
+  // Nature subtype
+  if(cat==='nature'){
+    if(/forest|bos|wald/.test(n)) return '🌲';
+    if(/heath|heide/.test(n)) return '🌾';
+    if(/dune|duin/.test(n)) return '🏝️';
+    if(/lake|meer|lak/.test(n)) return '🏞️';
+    if(/tulip|tulp|keukenhof/.test(n)) return '🌷';
+    return '🌳';
+  }
+  // Playground subtype
+  if(cat==='playground'){
+    if(/water|splash/.test(n)) return '💦';
+    if(/adventure|avontur/.test(n)) return '🧗';
+    return '🛝';
+  }
+  // Indoor play
+  if(cat==='indoor_play'){
+    if(/monkey/.test(n)) return '🐒';
+    if(/ballorig|ball/.test(n)) return '🎈';
+    if(/jimmy|jimmi/.test(n)) return '🤹';
+    return '🏠';
+  }
+  // Restaurant subtype
+  if(cat==='restaurant'){
+    if(/pannenkoek|pancake/.test(n)) return '🥞';
+    if(/chinese|chinees|china|asia|asian|sushi|wok/.test(n)) return '🥢';
+    if(/pizza|pizzer/.test(n)) return '🍕';
+    if(/ice cream|ijssalon|gelato/.test(n)) return '🍦';
+    if(/buffet/.test(n)) return '🍱';
+    if(/burger|mcdonalds/.test(n)) return '🍔';
+    return '🍽️';
+  }
+  // Theme parks extras
+  if(cat==='theme_park' && /petting|boerderij/.test(n)) return '🐄';
+  // Castle/fort
+  if(cat==='castle'){
+    if(/fort|bourtange/.test(n)) return '⚔️';
+    return '🏰';
+  }
+  // Windmill
+  if(cat==='windmill') return '🌬️';
+  // Sports
+  if(cat==='sports'){
+    if(/klim|climb/.test(n)) return '🧗';
+    if(/bow|boog/.test(n)) return '🏹';
+    return '🏆';
+  }
+  // Farm animals
+  if(cat==='farm'){
+    if(/geiten|goat/.test(n)) return '🐐';
+    if(/paarden|horse/.test(n)) return '🐴';
+    return '🐑';
+  }
+  return CATS[cat]?.emoji || '📍';
+}
+
+function classify(t){
+  if(t.tourism==='theme_park') return 'theme_park';
+  if(t.tourism==='zoo') return 'zoo';
+  if(t.tourism==='children_farm') return 'farm';
+  if(t.tourism==='aquarium') return 'aquarium';
+  if(t.tourism==='museum') return 'museum';
+  if(t.tourism==='attraction' || t.tourism==='visitor_centre') return 'attraction';
+  if(t.leisure==='nature_reserve' || t.leisure==='park') return 'nature';
+  if(t.leisure==='playground') return 'playground';
+  if(t.leisure==='indoor_playground') return 'indoor_play';
+  if(t.leisure==='trampoline_park') return 'trampoline';
+  if(t.leisure==='swimming_pool') return 'swim';
+  if(t.leisure==='climbing_park') return 'climbing';
+  if(t.leisure==='go_kart') return 'karting';
+  if(t.leisure==='miniature_golf') return 'minigolf';
+  if(t.leisure==='ice_rink') return 'ice_rink';
+  if(t.leisure==='sports_centre') return 'sports';
+  if(t.leisure==='escape_room') return 'escape';
+  if(t.amenity==='theatre') return 'theatre';
+  if(t.amenity==='cinema') return 'cinema';
+  if(t.amenity && t.amenity.indexOf('restaurant')>=0) return 'restaurant';
+  if(t.historic==='castle') return 'castle';
+  if(t.historic==='fort') return 'castle';
+  if(t.historic==='windmill' || t.man_made==='windmill') return 'windmill';
+  if(t.historic==='monument' || t.historic==='archaeological_site') return 'monument';
+  if(t.historic==='ship') return 'ship';
+  if(t.historic==='ruins') return 'ruins';
+  if(t.natural==='beach') return 'beach';
+  return 'other';
+}
+
+// ===== Transform data =====
+const VENUES = STATIC_UK_VENUES.map(v=>{
+  const t = v.tags || {};
+  const cat = classify(t);
+  return {
+    id: v.id, lat: v.lat, lon: v.lon,
+    name: t.name || 'Unnamed',
+    zh: t.nameZh || '',
+    cat: cat,
+    emoji: emojiFor(t.name, cat),
+    city: t['addr:city'] || '',
+    street: t['addr:street'] || '',
+    house: t['addr:housenumber'] || '',
+    postcode: t['addr:postcode'] || '',
+    website: t.website || '',
+    hours: t.opening_hours || '',
+    rating: parseFloat(t.rating || '0') || null,
+    reviews: parseInt(t.reviews || '0') || 0,
+  };
+});
+
+// ===== State =====
+const FAV_KEY = 'ke_favs_uk';
+const LANG_KEY = 'ke_lang_uk';
+const LANGS = ['en','zh'];  // cycle: en → nl → zh → en
+const state = {
+  activeCats: new Set(),  // empty = all
+  search: '',
+  sortBy: 'rating',
+  filtered: [],
+  selectedId: null,
+  markers: new Map(),
+  favs: new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')),
+  favsOnly: false,
+  lang: localStorage.getItem(LANG_KEY) || (navigator.language.startsWith('zh') ? 'zh' : 'en'),
+};
+
+// ===== i18n =====
+const I18N = {
+  en: {
+    in_view: 'in view', favs: '♡ Favs', filters: '🏷 Category', sort: '↕ Sort',
+    category: 'Category', clear: 'Clear', show_results: 'Show results',
+    near_me: 'Near me', map: '🗺 Map', list: '☰ List',
+    directions: '🗺 Directions', website: '🌐 Website',
+    rating: 'Rating', address: 'Address', city: 'City', hours: 'Hours', reviews: 'reviews',
+    empty: 'No venues in this area. Try moving the map or clearing filters.',
+    search_ph: 'Search places or cities…',
+    lang_next: 'NL',
+  },
+  zh: {
+    in_view: '可见', favs: '♡ 收藏', filters: '🏷 品类', sort: '↕ 排序',
+    category: '品类', clear: '清空', show_results: '显示结果',
+    near_me: '我附近', map: '🗺 地图', list: '☰ 列表',
+    directions: '🗺 导航', website: '🌐 官网',
+    rating: '评分', address: '地址', city: '城市', hours: '开放时间', reviews: '评价',
+    empty: '当前视口内没有场所。拖动地图或清空筛选。',
+    search_ph: '搜索场所或城市…',
+    lang_next: 'EN',
+  }
+};
+function t(k){return I18N[state.lang][k] || k;}
+
+function toggleLang(){
+  const idx = LANGS.indexOf(state.lang);
+  state.lang = LANGS[(idx+1) % LANGS.length];
+  localStorage.setItem(LANG_KEY, state.lang);
+  applyLang();
+  renderList();
+  buildCatGrid();
+}
+function applyLang(){
+  // Header button shows NEXT language
+  document.getElementById('lang-btn').textContent = t('lang_next');
+  // Update chips
+  document.getElementById('favs-chip').innerHTML = t('favs');
+  document.querySelector('.actions .chip:nth-child(2)').innerHTML = t('filters');
+  document.querySelector('.actions .chip:nth-child(3)').innerHTML = t('sort');
+  // Filter drawer title + section
+  document.querySelector('.filter-hdr h3').textContent = t('category');
+  document.querySelector('.filter-section h4').textContent = t('category');
+  document.querySelector('.btn-clear').textContent = t('clear');
+  document.querySelector('.btn-apply').textContent = t('show_results');
+  // Near me button
+  document.querySelector('.fab.near').innerHTML = `<span>📍</span><span>${t('near_me')}</span>`;
+  // Map/List toggle
+  document.getElementById('tog-map').textContent = t('map');
+  document.getElementById('tog-list').textContent = t('list');
+  // Search placeholder
+  document.getElementById('search').placeholder = t('search_ph');
+  // Count label
+  document.getElementById('count-label').textContent = t('in_view');
+}
+function saveFavs(){localStorage.setItem(FAV_KEY, JSON.stringify([...state.favs]));}
+function toggleFav(){
+  if(state.selectedId == null) return;
+  if(state.favs.has(state.selectedId)) state.favs.delete(state.selectedId);
+  else state.favs.add(state.selectedId);
+  saveFavs();
+  updateFavBtn();
+  renderList();
+}
+function updateFavBtn(){
+  const btn = document.getElementById('ov-fav');
+  if(!btn) return;
+  const on = state.favs.has(state.selectedId);
+  btn.classList.toggle('on', on);
+  btn.textContent = on ? '♥' : '♡';
+}
+function toggleFavsOnly(){
+  state.favsOnly = !state.favsOnly;
+  document.getElementById('favs-chip').classList.toggle('on', state.favsOnly);
+  document.getElementById('favs-chip').style.background = state.favsOnly ? '#fff5f0' : '';
+  document.getElementById('favs-chip').style.color = state.favsOnly ? 'var(--brand)' : '';
+  document.getElementById('favs-chip').style.borderColor = state.favsOnly ? 'var(--brand)' : '';
+  renderList();
+}
+function cardFavClick(ev, id){
+  ev.stopPropagation();
+  if(state.favs.has(id)) state.favs.delete(id); else state.favs.add(id);
+  saveFavs();
+  if(state.selectedId===id) updateFavBtn();
+  renderList();
+}
+
+// ===== Map =====
+const map = L.map('map', {zoomControl:false, attributionControl:false}).setView([54.0,-2.0],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+L.control.attribution({prefix:false}).addTo(map);
+
+const clusterGroup = L.markerClusterGroup({
+  maxClusterRadius: 50,
+  showCoverageOnHover: false,
+});
+map.addLayer(clusterGroup);
+
+function makeIcon(v, selected=false){
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim();
+  return L.divIcon({
+    className: selected ? 'selected' : '',
+    html: `<div class="venue-marker" style="border-color:${color}">${v.emoji}</div>`,
+    iconSize:[36,36], iconAnchor:[18,18]
+  });
+}
+
+VENUES.forEach(v=>{
+  const m = L.marker([v.lat, v.lon], {icon: makeIcon(v)});
+  m.on('click', ()=>openDetail(v));
+  clusterGroup.addLayer(m);
+  state.markers.set(v.id, m);
+});
+
+// ===== Filter + render =====
+function computeFiltered(){
+  const q = state.search.trim().toLowerCase();
+  const bounds = map.getBounds();
+  let list = VENUES.filter(v=>{
+    if(state.favsOnly && !state.favs.has(v.id)) return false;
+    if(state.activeCats.size && !state.activeCats.has(v.cat)) return false;
+    if(q && !(v.name.toLowerCase().includes(q) || v.zh.includes(q) || v.city.toLowerCase().includes(q))) return false;
+    if(!state.favsOnly && !bounds.contains([v.lat, v.lon])) return false;
+    return true;
+  });
+  if(state.sortBy==='rating'){
+    list.sort((a,b)=>(b.rating||0)-(a.rating||0));
+  } else if(state.sortBy==='name'){
+    list.sort((a,b)=>a.name.localeCompare(b.name));
+  }
+  state.filtered = list;
+  return list;
+}
+
+function renderList(){
+  const list = computeFiltered();
+  const el = document.getElementById('list');
+  document.getElementById('count').textContent = list.length;
+  if(!list.length){
+    el.innerHTML = `<div class="empty">No venues in this area. Try moving the map or clearing filters.</div>`;
+    return;
+  }
+  el.innerHTML = list.slice(0,200).map(v=>{
+    const isFav = state.favs.has(v.id);
+    // NL venues: original name is already Dutch → use for en & nl; zh uses nameZh
+    const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+    const secondary = state.lang==='zh' ? v.name : (v.zh || '');
+    const catLabel = CATS[v.cat]?.[state.lang] || v.cat;
+    return `
+    <div class="venue-card" data-id="${v.id}" onclick="openDetail(VENUES.find(x=>x.id===${v.id}))">
+      <div class="venue-thumb cat-${v.cat}">${v.emoji}<button class="card-fav ${isFav?'on':''}" onclick="cardFavClick(event,${v.id})" title="Favorite">${isFav?'♥':'♡'}</button></div>
+      <div class="venue-info">
+        <div class="venue-name">${primary}</div>
+        ${secondary?`<div class="venue-zh">${secondary}</div>`:''}
+        <div class="venue-meta">
+          ${v.rating?`<span class="rating">★ ${v.rating.toFixed(1)}</span><span class="dot">·</span>`:''}
+          <span>${catLabel}</span>
+          ${v.city?`<span class="dot">·</span><span>${v.city}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== Detail overlay =====
+function openDetail(v){
+  if(!v) return;
+  state.selectedId = v.id;
+  const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+  const secondary = state.lang==='zh' && v.zh ? v.name : v.zh;
+  document.getElementById('ov-name').textContent = primary;
+  document.getElementById('ov-zh').textContent = secondary;
+  const rows = [];
+  if(v.rating) rows.push([t('rating'), `★ ${v.rating.toFixed(1)} · ${v.reviews.toLocaleString()} ${t('reviews')}`]);
+  if(v.street) rows.push([t('address'), `${v.street} ${v.house}, ${v.postcode} ${v.city}`.trim()]);
+  else if(v.city) rows.push([t('city'), v.city]);
+  rows.push([t('category'), `${v.emoji} ${CATS[v.cat]?.[state.lang] || v.cat}`]);
+  if(v.hours) rows.push([t('hours'), v.hours]);
+  document.getElementById('ov-body').innerHTML = rows.map(([k,val])=>
+    `<div class="detail-row"><div class="lbl">${k}</div><div>${val}</div></div>`
+  ).join('');
+  document.getElementById('ov-directions').href = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}&destination_place_id=${encodeURIComponent(v.name)}`;
+  document.getElementById('ov-directions').textContent = t('directions');
+  document.getElementById('ov-website').textContent = t('website');
+  const wsBtn = document.getElementById('ov-website');
+  if(v.website){
+    wsBtn.href = v.website; wsBtn.style.display='flex';
+  } else {
+    wsBtn.style.display='none';
+  }
+  updateFavBtn();
+  document.getElementById('overlay').classList.add('open');
+  // pan to marker
+  map.flyTo([v.lat, v.lon], Math.max(map.getZoom(), 13), {duration:.6});
+}
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('open');
+  state.selectedId = null;
+}
+
+// ===== Filter drawer =====
+function buildCatGrid(){
+  const counts = {};
+  VENUES.forEach(v=>counts[v.cat]=(counts[v.cat]||0)+1);
+  const el = document.getElementById('cat-grid');
+  el.innerHTML = Object.entries(CATS)
+    .filter(([k])=>counts[k])
+    .sort(([a],[b])=>(counts[b]||0)-(counts[a]||0))
+    .map(([k,c])=>`<button class="cat-btn ${state.activeCats.has(k)?'active':''}" data-cat="${k}" onclick="toggleCat('${k}')">
+      <span class="emoji">${c.emoji}</span>${c[state.lang]}<span class="count">${counts[k]}</span>
+    </button>`).join('');
+}
+function toggleCat(k){
+  if(state.activeCats.has(k)) state.activeCats.delete(k); else state.activeCats.add(k);
+  buildCatGrid();
+  renderList();
+}
+function clearFilter(){
+  state.activeCats.clear();
+  buildCatGrid();
+  renderList();
+}
+function openFilter(){document.getElementById('filter').classList.add('open');}
+function closeFilter(){document.getElementById('filter').classList.remove('open');}
+
+// ===== Drawer interactions =====
+function toggleDrawer(){
+  const d = document.getElementById('drawer');
+  const s = d.dataset.state;
+  d.dataset.state = s==='peek'?'half':(s==='half'?'full':'peek');
+}
+
+// ===== Near me (geolocation) =====
+function locateMe(){
+  if(!navigator.geolocation) return alert('Geolocation not supported');
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      const {latitude, longitude} = pos.coords;
+      map.flyTo([latitude, longitude], 12, {duration:.8});
+      L.circleMarker([latitude, longitude], {radius:10, color:'#c96442', fillColor:'#c96442', fillOpacity:.3, weight:3}).addTo(map);
+    },
+    (err)=>alert('Could not get location: '+err.message)
+  );
+}
+
+// ===== Zoom =====
+function zoomIn(){map.zoomIn();}
+function zoomOut(){map.zoomOut();}
+
+// ===== Search =====
+document.getElementById('search').addEventListener('input', e=>{
+  state.search = e.target.value;
+  renderList();
+});
+
+// ===== Country picker (placeholder — links to /) =====
+function openCountryPicker(){
+  window.location.href = '/';
+}
+
+// ===== Map/List view toggle (mobile) =====
+function setView(v){
+  document.body.dataset.view = v;
+  document.getElementById('tog-map').classList.toggle('active', v==='map');
+  document.getElementById('tog-list').classList.toggle('active', v==='list');
+  if(v==='map'){
+    setTimeout(()=>map.invalidateSize(), 50);
+  }
+}
+document.body.dataset.view = 'map';
+
+// ===== Sort toggle =====
+function toggleSort(){
+  state.sortBy = state.sortBy==='rating'?'name':'rating';
+  renderList();
+}
+
+// ===== Sync list when map moves =====
+let moveTimer;
+map.on('moveend', ()=>{
+  clearTimeout(moveTimer);
+  moveTimer = setTimeout(renderList, 150);
+});
+
+// ===== Initial render =====
+applyLang();
+buildCatGrid();
+renderList();
+
+// ===== Click outside to close overlays =====
+map.on('click', ()=>{
+  closeOverlay();
+});
+</script>
+</body>
+</html>

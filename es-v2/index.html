@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Spain Kids Explorer · KidsExplorer.eu</title>
+<meta name="description" content="Family-friendly venues across Spain on one interactive map. Multilingual. Free.">
+<link rel="canonical" href="https://kidsexplorer.eu/es/">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Original Holland Kids palette (restored from v1) */
+  --bg:#F2F4F8;
+  --surface:#FFFFFF;
+  --border:#CBD5E1;
+  --border-strong:#94A3B8;
+  --text:#1A2B4A;
+  --text-soft:#5A6A84;
+  --text-mute:#9AA5B8;
+  --brand:#E05A1E;
+  --brand-dark:#B84515;
+  --brand-light:#FFF0E9;
+  --teal:#0EA5A0;
+  --navy:#1A2B4A;
+  --shadow:0 1px 3px rgba(26,43,74,.12), 0 0 0 1px rgba(26,43,74,.04);
+  --shadow-lg:0 8px 24px rgba(26,43,74,.20), 0 0 0 1px rgba(26,43,74,.08);
+  --radius:14px;
+  --header-h:56px;
+  --safe-bottom:env(safe-area-inset-bottom,0);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input{font-family:inherit;border:none;outline:none;background:none;color:inherit}
+
+/* ===== Top Header ===== */
+.hdr{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);z-index:900;display:flex;align-items:center;gap:10px;padding:0 14px}
+.hdr-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;letter-spacing:-.3px;color:var(--brand);white-space:nowrap}
+.hdr-brand .logo{font-size:20px}
+.hdr-country{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--bg);border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:600;cursor:pointer}
+.hdr-country:hover{border-color:var(--brand)}
+.hdr-country .flag{font-size:16px}
+.hdr-search{flex:1;display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:999px;cursor:text;min-width:0}
+.hdr-search input{flex:1;font-size:14px;min-width:0}
+.hdr-search .icon{color:var(--text-mute);flex-shrink:0}
+.hdr-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--bg);border:1px solid var(--border);font-size:16px;flex-shrink:0}
+.hdr-btn:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ===== Map ===== */
+#map{position:fixed;top:var(--header-h);left:0;right:0;bottom:0;z-index:1}
+.leaflet-popup-content-wrapper{border-radius:14px}
+.leaflet-popup-content{margin:14px 16px;font-family:'Inter',sans-serif;font-size:13px}
+
+/* ===== Map/List Toggle (mobile) ===== */
+.view-toggle{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--header-h) + 12px);z-index:600;display:flex;background:#fff;border:1px solid var(--border);border-radius:999px;box-shadow:var(--shadow);padding:3px}
+.view-toggle button{padding:8px 18px;font-size:13px;font-weight:600;border-radius:999px;color:var(--text-soft)}
+.view-toggle button.active{background:var(--text);color:#fff}
+.view-toggle button:not(.active):hover{color:var(--text)}
+body[data-view="list"] #map{display:none}
+body[data-view="list"] .drawer{transform:translateY(0)!important;top:calc(var(--header-h) + 58px);border-radius:20px 20px 0 0;max-height:calc(100vh - var(--header-h) - 58px);height:calc(100vh - var(--header-h) - 58px)}
+body[data-view="list"] .drawer-handle{display:none}
+body[data-view="list"] .fab-stack{display:none}
+@media (min-width:1024px){
+  .view-toggle{display:none} /* desktop shows both */
+}
+
+/* ===== Floating Action Buttons ===== */
+.fab-stack{position:fixed;right:14px;top:calc(var(--header-h) + 14px);z-index:500;display:flex;flex-direction:column;gap:10px}
+.fab{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s}
+.fab:hover{border-color:var(--brand);color:var(--brand);transform:scale(1.05)}
+.fab.near{background:var(--brand);color:#fff;border-color:var(--brand);width:auto;padding:0 18px;border-radius:22px;font-size:13px;font-weight:600;gap:6px}
+.fab.near:hover{background:var(--brand-dark);color:#fff}
+
+/* ===== Bottom Drawer (List) ===== */
+.drawer{position:fixed;left:0;right:0;bottom:0;z-index:700;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:80vh;display:flex;flex-direction:column}
+.drawer[data-state="peek"]{transform:translateY(calc(100% - 72px))}
+.drawer[data-state="half"]{transform:translateY(calc(100% - 48vh))}
+.drawer[data-state="full"]{transform:translateY(8vh)}
+.drawer-handle{flex-shrink:0;padding:8px 0 4px;text-align:center;cursor:grab;touch-action:none}
+.drawer-handle::before{content:'';display:inline-block;width:40px;height:4px;background:var(--border-strong);border-radius:2px}
+.drawer-hdr{flex-shrink:0;padding:6px 18px 12px;display:flex;align-items:center;justify-content:space-between}
+.drawer-hdr .count{font-weight:700;font-size:14px}
+.drawer-hdr .count small{font-weight:500;color:var(--text-mute);font-size:12px;margin-left:4px}
+.drawer-hdr .actions{display:flex;gap:6px}
+.drawer-hdr .chip{padding:6px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.drawer-hdr .chip:hover{border-color:var(--brand);color:var(--brand)}
+.drawer-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 18px calc(20px + var(--safe-bottom))}
+.venue-card{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.venue-card:last-child{border-bottom:none}
+.venue-card:hover{background:#fafaf7}
+.venue-card:hover .venue-name{color:var(--brand)}
+.venue-thumb{width:56px;height:56px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;position:relative;overflow:hidden}
+.venue-thumb::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.2),transparent)}
+.venue-info{flex:1;min-width:0}
+.venue-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-zh{font-size:12px;color:var(--text-mute);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft)}
+.venue-meta .rating{color:var(--brand);font-weight:600}
+.venue-meta .dot{color:var(--text-mute)}
+.empty{padding:40px 20px;text-align:center;color:var(--text-mute);font-size:14px}
+
+/* ===== Detail Overlay (bottom sheet, half-screen) ===== */
+.overlay{position:fixed;left:0;right:0;bottom:0;z-index:900;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);max-height:50vh;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.overlay.open{transform:translateY(0)}
+.overlay-hdr{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;padding:18px 18px 12px;gap:10px}
+.overlay-title{flex:1;min-width:0}
+.overlay-title h3{font-size:18px;font-weight:700;line-height:1.2;margin-bottom:4px}
+.overlay-title .zh{font-size:13px;color:var(--text-mute)}
+.overlay-close{width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-soft)}
+.overlay-body{flex:1;overflow-y:auto;padding:0 18px 20px}
+.detail-row{display:flex;gap:10px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--text-soft)}
+.detail-row .lbl{min-width:70px;font-weight:600;color:var(--text)}
+.overlay-actions{flex-shrink:0;padding:12px 18px calc(12px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:8px}
+.overlay-actions .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+.overlay-actions .btn-primary{background:var(--brand);color:#fff}
+.overlay-actions .btn-primary:hover{background:var(--brand-dark)}
+.overlay-actions .btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.overlay-actions .btn-secondary:hover{border-color:var(--brand);color:var(--brand)}
+.overlay-fav{width:44px;height:44px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:all .15s}
+.overlay-fav:hover{border-color:var(--brand)}
+.overlay-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.card-fav{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.9);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text-mute);z-index:2;transition:all .15s}
+.card-fav:hover{color:var(--brand);border-color:var(--brand)}
+.card-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.venue-thumb{position:relative}
+
+/* ===== Filter Drawer (slides from right) ===== */
+.filter-drawer{position:fixed;top:var(--header-h);right:0;bottom:0;width:min(360px,92vw);background:#fff;border-left:1px solid var(--border);box-shadow:-10px 0 40px rgba(0,0,0,.12);z-index:950;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;pointer-events:none}
+.filter-drawer.open{pointer-events:auto}
+.filter-drawer.open{transform:translateX(0)}
+.filter-hdr{flex-shrink:0;padding:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.filter-hdr h3{font-size:18px;font-weight:700}
+.filter-body{flex:1;overflow-y:auto;padding:20px}
+.filter-section{margin-bottom:24px}
+.filter-section h4{font-size:12px;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.cat-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:500;color:var(--text)}
+.cat-btn.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.cat-btn:not(.active):hover{border-color:var(--brand);color:var(--brand)}
+.cat-btn .emoji{font-size:16px}
+.cat-btn .count{margin-left:auto;font-size:11px;opacity:.75}
+.filter-footer{flex-shrink:0;padding:16px 20px calc(16px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:10px}
+.filter-footer .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600}
+.filter-footer .btn-clear{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.filter-footer .btn-apply{background:var(--brand);color:#fff}
+
+/* Gradient covers for thumbnails */
+.cat-theme_park{background:linear-gradient(135deg,#ff9a56,#ff6b9d)}
+.cat-zoo{background:linear-gradient(135deg,#22c55e,#059669)}
+.cat-aquarium{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-museum{background:linear-gradient(135deg,#8b5cf6,#4f46e5)}
+.cat-nature{background:linear-gradient(135deg,#84cc16,#15803d)}
+.cat-beach{background:linear-gradient(135deg,#38bdf8,#0ea5e9)}
+.cat-playground{background:linear-gradient(135deg,#fbbf24,#f97316)}
+.cat-indoor_play{background:linear-gradient(135deg,#a855f7,#7e22ce)}
+.cat-trampoline{background:linear-gradient(135deg,#ec4899,#be185d)}
+.cat-swim{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-climbing{background:linear-gradient(135deg,#f59e0b,#b45309)}
+.cat-karting{background:linear-gradient(135deg,#ef4444,#991b1b)}
+.cat-farm{background:linear-gradient(135deg,#a3e635,#65a30d)}
+.cat-attraction{background:linear-gradient(135deg,#fb923c,#c2410c)}
+.cat-theatre{background:linear-gradient(135deg,#d946ef,#86198f)}
+.cat-cinema{background:linear-gradient(135deg,#64748b,#334155)}
+.cat-ice_rink{background:linear-gradient(135deg,#60a5fa,#1d4ed8)}
+.cat-minigolf{background:linear-gradient(135deg,#10b981,#047857)}
+.cat-other{background:linear-gradient(135deg,#94a3b8,#475569)}
+.cat-castle{background:linear-gradient(135deg,#a78bfa,#6d28d9)}
+.cat-windmill{background:linear-gradient(135deg,#bae6fd,#0284c7)}
+.cat-escape{background:linear-gradient(135deg,#fdba74,#c2410c)}
+.cat-sports{background:linear-gradient(135deg,#fde047,#ca8a04)}
+.cat-restaurant{background:linear-gradient(135deg,#f87171,#b91c1c)}
+.cat-monument{background:linear-gradient(135deg,#d6d3d1,#57534e)}
+.cat-ship{background:linear-gradient(135deg,#67e8f9,#0e7490)}
+.cat-ruins{background:linear-gradient(135deg,#fde68a,#92400e)}
+
+/* Marker icons */
+.venue-marker{width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.leaflet-marker-icon.selected .venue-marker{transform:scale(1.2);border-width:4px}
+
+/* Cluster */
+.marker-cluster-small{background:rgba(201,100,66,.25)}
+.marker-cluster-small div{background:rgba(201,100,66,.8)}
+.marker-cluster-medium{background:rgba(201,100,66,.35)}
+.marker-cluster-medium div{background:rgba(201,100,66,.9)}
+.marker-cluster-large{background:rgba(201,100,66,.45)}
+.marker-cluster-large div{background:var(--brand)}
+.marker-cluster div{color:#fff;font-weight:700}
+
+@media (max-width:640px){
+  .hdr-brand span:not(.logo){display:none}
+  .drawer-hdr{padding:6px 14px 10px}
+  .drawer-body{padding:0 14px calc(20px + var(--safe-bottom))}
+  .cat-grid{grid-template-columns:1fr}
+}
+@media (min-width:1024px){
+  /* Desktop: drawer becomes sidebar */
+  .drawer{top:var(--header-h);right:auto;left:0;width:420px;max-width:420px;max-height:none;height:calc(100vh - var(--header-h));border-radius:0;border-right:1px solid var(--border);border-top:none;transform:translateX(0) !important;box-shadow:4px 0 24px rgba(0,0,0,.06)}
+  .drawer-handle{display:none}
+  #map{left:420px}
+  .overlay{left:auto;right:20px;bottom:20px;width:400px;max-width:calc(100vw - 440px);max-height:70vh;border-radius:20px;border:1px solid var(--border)}
+  .fab-stack{top:calc(var(--header-h) + 14px);right:14px}
+}
+</style>
+</head>
+<body>
+
+<!-- Top Header -->
+<header class="hdr">
+  <a href="/" class="hdr-brand"><span class="logo">🌍</span><span>KidsExplorer</span></a>
+  <button class="hdr-country" onclick="openCountryPicker()">
+    <span class="flag">🇪🇸</span><span>ES</span><span style="opacity:.5">▾</span>
+  </button>
+  <div class="hdr-search">
+    <span class="icon">🔍</span>
+    <input id="search" placeholder="Search / 搜索…">
+  </div>
+  <button class="hdr-btn" id="lang-btn" onclick="toggleLang()" title="Language">中</button>
+  <button class="hdr-btn" onclick="openFilter()" title="Category">🏷️</button>
+</header>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- View Toggle (mobile only) -->
+<div class="view-toggle">
+  <button id="tog-map" class="active" onclick="setView('map')">🗺 Map</button>
+  <button id="tog-list" onclick="setView('list')">☰ List</button>
+</div>
+
+<!-- Floating Actions -->
+<div class="fab-stack">
+  <button class="fab near" onclick="locateMe()"><span>📍</span><span>Near me</span></button>
+  <button class="fab" onclick="zoomIn()">+</button>
+  <button class="fab" onclick="zoomOut()">−</button>
+</div>
+
+<!-- Bottom Drawer: Venue list -->
+<section class="drawer" id="drawer" data-state="peek">
+  <div class="drawer-handle" onclick="toggleDrawer()"></div>
+  <div class="drawer-hdr">
+    <div class="count"><span id="count">0</span> <small id="count-label">in view</small></div>
+    <div class="actions">
+      <button class="chip" id="favs-chip" onclick="toggleFavsOnly()">♡ Favs</button>
+      <button class="chip" onclick="openFilter()">🏷 Category</button>
+      <button class="chip" onclick="toggleSort()">↕ Sort</button>
+    </div>
+  </div>
+  <div class="drawer-body" id="list"></div>
+</section>
+
+<!-- Detail Overlay -->
+<aside class="overlay" id="overlay">
+  <div class="overlay-hdr">
+    <div class="overlay-title">
+      <h3 id="ov-name"></h3>
+      <div class="zh" id="ov-zh"></div>
+    </div>
+    <button class="overlay-close" onclick="closeOverlay()">×</button>
+  </div>
+  <div class="overlay-body" id="ov-body"></div>
+  <div class="overlay-actions">
+    <button class="overlay-fav" id="ov-fav" onclick="toggleFav()" title="Save to favorites">♡</button>
+    <a class="btn btn-secondary" id="ov-directions" target="_blank">🗺 Directions</a>
+    <a class="btn btn-primary" id="ov-website" target="_blank">🌐 Website</a>
+  </div>
+</aside>
+
+<!-- Filter Drawer -->
+<aside class="filter-drawer" id="filter">
+  <div class="filter-hdr">
+    <h3>Category</h3>
+    <button class="overlay-close" onclick="closeFilter()">×</button>
+  </div>
+  <div class="filter-body">
+    <div class="filter-section">
+      <h4>Category</h4>
+      <div class="cat-grid" id="cat-grid"></div>
+    </div>
+  </div>
+  <div class="filter-footer">
+    <button class="btn btn-clear" onclick="clearFilter()">Clear</button>
+    <button class="btn btn-apply" onclick="closeFilter()">Show results</button>
+  </div>
+</aside>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+const STATIC_ES_VENUES = [
+  // ══════════════════════════════════════════════════════════════
+  // THEME PARKS (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:2001,lat:41.092254,lon:1.154902, tags:{nameZh:'冒险港世界',name:'PortAventura World',tourism:'theme_park',website:'https://www.portaventuraworld.com','addr:city':'Salou',opening_hours:'Mo-Su 10:00-22:00 (seasonal)',rating:'4.4',reviews:'82431'}},
+  { type:'node',id:2002,lat:40.229445,lon:-3.592826, tags:{nameZh:'华纳公园马德里',name:'Parque Warner Madrid',tourism:'theme_park',website:'https://www.parquewarner.com','addr:city':'San Martin de la Vega',opening_hours:'Mo-Su 10:00-21:00 (seasonal)',rating:'4.2',reviews:'42318'}},
+  { type:'node',id:2003,lat:37.4081,lon:-5.9989, tags:{nameZh:'魔法岛塞维利亚',name:'Isla Magica',tourism:'theme_park',website:'https://www.islamagica.es','addr:city':'Sevilla',opening_hours:'Mo-Su 11:00-23:00 (seasonal)',rating:'4.0',reviews:'18247'}},
+  { type:'node',id:2004,lat:38.561952,lon:-0.160112, tags:{nameZh:'特拉神话',name:'Terra Mitica',tourism:'theme_park',website:'https://www.terramiticapark.com','addr:city':'Benidorm',opening_hours:'Mo-Su 10:00-21:00 (seasonal)',rating:'4.0',reviews:'12847'}},
+  { type:'node',id:2005,lat:41.423153,lon:2.119938, tags:{nameZh:'提比达博游乐园',name:'Tibidabo Amusement Park',tourism:'theme_park',website:'https://www.tibidabo.cat','addr:city':'Barcelona',opening_hours:'Sa-Su 11:00-21:00 (seasonal)',rating:'4.3',reviews:'24218'}},
+  { type:'node',id:2006,lat:28.0717,lon:-16.7261, tags:{nameZh:'暹罗公园特内里费',name:'Siam Park',tourism:'theme_park',website:'https://www.siampark.net','addr:city':'Costa Adeje - Tenerife',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'48217'}},
+  { type:'node',id:2007,lat:38.5350,lon:-0.0900, tags:{nameZh:'水上乐园贝尼多姆',name:'Aqualandia Benidorm',leisure:'water_park',website:'https://www.aqualandia.net','addr:city':'Benidorm',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:2008,lat:40.333483,lon:-1.080905, tags:{nameZh:'恐龙城特鲁埃尔',name:'Dinopolis Teruel',tourism:'theme_park',website:'https://www.dinopolis.com','addr:city':'Teruel',opening_hours:'Mo-Su 10:00-20:00 (seasonal)'}},
+  { type:'node',id:2009,lat:39.839010,lon:-4.092359, tags:{nameZh:'狂人国西班牙',name:'Puy du Fou Espana',tourism:'theme_park',website:'https://www.puydufou.com/espana','addr:city':'Toledo',opening_hours:'Mo-Su 10:00-22:00 (seasonal)',rating:'4.6',reviews:'32841'}},
+  { type:'node',id:2010,lat:40.392296,lon:-3.612606, tags:{nameZh:'法乌尼亚马德里',name:'Faunia Madrid',tourism:'theme_park',website:'https://www.faunia.es','addr:city':'Madrid',opening_hours:'Mo-Su 10:00-20:00',rating:'4.2',reviews:'18247'}},
+  { type:'node',id:2011,lat:41.0900,lon:1.1700, tags:{nameZh:'水族馆冒险港',name:'PortAventura Caribe Aquatic Park',leisure:'water_park',website:'https://www.portaventuraworld.com','addr:city':'Salou',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:2012,lat:40.2600,lon:-3.5800, tags:{nameZh:'华纳海滩水上乐园',name:'Parque Warner Beach',leisure:'water_park',website:'https://www.parquewarner.com','addr:city':'San Martin de la Vega',opening_hours:'Mo-Su 11:00-20:00 (seasonal)'}},
+  { type:'node',id:2013,lat:28.0900,lon:-16.7400, tags:{nameZh:'鹦鹉乐园特内里费',name:'Loro Parque',tourism:'theme_park',website:'https://www.loroparque.com','addr:city':'Puerto de la Cruz - Tenerife',opening_hours:'Mo-Su 08:30-18:45',rating:'4.5',reviews:'52418'}},
+  { type:'node',id:2014,lat:27.7700,lon:-15.5700, tags:{nameZh:'棕榈山绿洲大加那利',name:'Palmitos Park',tourism:'theme_park',website:'https://www.palmitospark.es','addr:city':'Maspalomas - Gran Canaria',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2015,lat:36.783348,lon:-2.603631, tags:{nameZh:'马里帕尔克水上乐园',name:'Mario Park',tourism:'theme_park','addr:city':'Roquetas de Mar',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:2016,lat:39.9700,lon:-0.0500, tags:{nameZh:'阿夸拉尼亚水上乐园',name:'Aquarama Benicassim',leisure:'water_park','addr:city':'Benicassim',opening_hours:'Mo-Su 10:30-19:00 (seasonal)'}},
+  { type:'node',id:2017,lat:36.598860,lon:-4.539823, tags:{nameZh:'提沃利世界马拉加',name:'Tivoli World',tourism:'theme_park','addr:city':'Benalmadena',opening_hours:'Mo-Su 12:00-23:00 (seasonal)'}},
+  { type:'node',id:2018,lat:41.3800,lon:2.1500, tags:{nameZh:'巴塞罗那水上乐园',name:'Illa Fantasia',leisure:'water_park','addr:city':'Vilassar de Dalt',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:2019,lat:38.010132,lon:-1.163746, tags:{nameZh:'特拉自然公园',name:'Terra Natura Murcia',tourism:'theme_park',website:'https://www.terranatura.com','addr:city':'Murcia',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2020,lat:38.3600,lon:-0.5100, tags:{nameZh:'特拉自然公园贝尼多姆',name:'Terra Natura Benidorm',tourism:'theme_park',website:'https://www.terranatura.com','addr:city':'Benidorm',opening_hours:'Mo-Su 10:00-18:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // ZOOS / AQUARIUMS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:2030,lat:40.409105,lon:-3.764266, tags:{nameZh:'马德里动物水族馆',name:'Zoo Aquarium de Madrid',tourism:'zoo',website:'https://www.zoomadrid.com','addr:city':'Madrid',opening_hours:'Mo-Su 10:30-18:00',rating:'4.0',reviews:'38247'}},
+  { type:'node',id:2031,lat:41.388080,lon:2.190347, tags:{nameZh:'巴塞罗那动物园',name:'Zoo de Barcelona',tourism:'zoo',website:'https://www.zoobarcelona.cat','addr:city':'Barcelona',opening_hours:'Mo-Su 10:00-17:30',rating:'4.0',reviews:'28431'}},
+  { type:'node',id:2032,lat:39.478332,lon:-0.411219, tags:{nameZh:'瓦伦西亚生物公园',name:'Bioparc Valencia',tourism:'zoo',website:'https://www.bioparcvalencia.es','addr:city':'Valencia',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'24218'}},
+  { type:'node',id:2033,lat:39.4528,lon:-0.3369, tags:{nameZh:'瓦伦西亚海洋馆',name:"L'Oceanografic Valencia",tourism:'aquarium',website:'https://www.oceanografic.org','addr:city':'Valencia',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'62847'}},
+  { type:'node',id:2034,lat:28.408629,lon:-16.564318, tags:{nameZh:'鹦鹉乐园',name:'Loro Parque Tenerife',tourism:'zoo',website:'https://www.loroparque.com','addr:city':'Puerto de la Cruz - Tenerife',opening_hours:'Mo-Su 08:30-18:45'}},
+  { type:'node',id:2035,lat:41.377023,lon:2.184411, tags:{nameZh:'巴塞罗那水族馆',name:'Aquarium Barcelona',tourism:'aquarium',website:'https://www.aquariumbcn.com','addr:city':'Barcelona',opening_hours:'Mo-Su 10:00-20:00',rating:'4.1',reviews:'32418'}},
+  { type:'node',id:2036,lat:36.6900,lon:-5.2800, tags:{nameZh:'塞尔沃探险',name:'Selwo Aventura',tourism:'zoo',website:'https://www.selwo.es','addr:city':'Estepona',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2037,lat:43.355520,lon:-3.841351, tags:{nameZh:'卡巴塞诺自然公园',name:'Parque de la Naturaleza de Cabarceno',tourism:'zoo',website:'https://www.parquedecabarceno.com','addr:city':'Cabarceno - Cantabria',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:2038,lat:36.592313,lon:-4.532252, tags:{nameZh:'塞尔沃海洋公园',name:'Selwo Marina Benalmadena',tourism:'aquarium',website:'https://www.selwo.es','addr:city':'Benalmadena',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2039,lat:43.322901,lon:-1.992119, tags:{nameZh:'圣塞巴斯蒂安水族馆',name:'Aquarium de San Sebastian',tourism:'aquarium',website:'https://www.aquariumss.com','addr:city':'San Sebastian',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:2040,lat:27.887014,lon:-15.466639, tags:{nameZh:'鳄鱼公园大加那利',name:'Cocodrilo Park',tourism:'zoo','addr:city':'Aguimes - Gran Canaria',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2041,lat:41.086957,lon:1.158583, tags:{nameZh:'冒险港水族馆',name:'PortAventura Aquarium',tourism:'aquarium','addr:city':'Salou',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:2042,lat:42.234958,lon:-8.711441, tags:{nameZh:'维戈水族馆',name:'Aquarium de Vigo',tourism:'aquarium','addr:city':'Vigo',opening_hours:'Tu-Su 10:00-14:00, 16:00-20:00'}},
+  { type:'node',id:2043,lat:43.463325,lon:-3.783684, tags:{nameZh:'桑坦德海洋博物馆',name:'Museo Maritimo del Cantabrico',tourism:'aquarium','addr:city':'Santander',opening_hours:'Tu-Su 10:00-19:30'}},
+  { type:'node',id:2044,lat:40.299465,lon:-3.924005, tags:{nameZh:'马德里水族馆',name:'Atlantis Aquarium Madrid',tourism:'aquarium','addr:city':'Madrid',opening_hours:'Mo-Su 10:00-21:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // MUSEUMS (~30)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:2060,lat:41.412453,lon:2.131665, tags:{nameZh:'CosmoCaixa巴塞罗那科学馆',name:'CosmoCaixa Barcelona',tourism:'museum',website:'https://www.cosmocaixa.org','addr:city':'Barcelona',opening_hours:'Tu-Su 10:00-20:00',rating:'4.5',reviews:'18247'}},
+  { type:'node',id:2061,lat:40.440013,lon:-3.689668, tags:{nameZh:'国家自然科学博物馆',name:'Museo Nacional de Ciencias Naturales',tourism:'museum',website:'https://www.mncn.csic.es','addr:city':'Madrid',opening_hours:'Tu-Fr 10:00-17:00, Sa-Su 10:00-20:00',rating:'4.3',reviews:'12847'}},
+  { type:'node',id:2062,lat:40.4138,lon:-3.6921, tags:{nameZh:'普拉多博物馆',name:'Museo del Prado',tourism:'museum',website:'https://www.museodelprado.es','addr:city':'Madrid',opening_hours:'Mo-Sa 10:00-20:00, Su 10:00-19:00',rating:'4.7',reviews:'142847'}},
+  { type:'node',id:2063,lat:40.408049,lon:-3.694422, tags:{nameZh:'索菲亚王后艺术中心',name:'Museo Reina Sofia',tourism:'museum',website:'https://www.museoreinasofia.es','addr:city':'Madrid',opening_hours:'Mo,We-Sa 10:00-21:00, Su 10:00-14:30'}},
+  { type:'node',id:2064,lat:40.424807,lon:-3.691407, tags:{nameZh:'马德里蜡像馆',name:'Museo de Cera Madrid',tourism:'museum',website:'https://www.museoceramadrid.com','addr:city':'Madrid',opening_hours:'Mo-Su 10:00-14:30, 16:30-20:30'}},
+  { type:'node',id:2065,lat:41.387115,lon:2.181723, tags:{nameZh:'巴塞罗那巧克力博物馆',name:'Museu de la Xocolata',tourism:'museum',website:'https://www.museuxocolata.cat','addr:city':'Barcelona',opening_hours:'Mo-Sa 10:00-19:00, Su 10:00-15:00'}},
+  { type:'node',id:2066,lat:39.455756,lon:-0.352552, tags:{nameZh:'瓦伦西亚艺术科学城',name:'Ciudad de las Artes y las Ciencias',tourism:'museum',website:'https://www.cac.es','addr:city':'Valencia',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2067,lat:43.2690,lon:-2.9340, tags:{nameZh:'古根海姆博物馆毕尔巴鄂',name:'Guggenheim Museum Bilbao',tourism:'museum',website:'https://www.guggenheim-bilbao.eus','addr:city':'Bilbao',opening_hours:'Tu-Su 10:00-20:00'}},
+  { type:'node',id:2068,lat:41.385104,lon:2.181201, tags:{nameZh:'巴塞罗那毕加索博物馆',name:'Museu Picasso Barcelona',tourism:'museum',website:'https://www.museupicasso.bcn.cat','addr:city':'Barcelona',opening_hours:'Tu-Su 10:00-19:00'}},
+  { type:'node',id:2069,lat:40.416216,lon:-3.694932, tags:{nameZh:'蒂森博物馆',name:'Museo Thyssen-Bornemisza',tourism:'museum',website:'https://www.museothyssen.org','addr:city':'Madrid',opening_hours:'Mo 12:00-16:00, Tu-Su 10:00-19:00'}},
+  { type:'node',id:2070,lat:41.368401,lon:2.153423, tags:{nameZh:'加泰罗尼亚国家艺术博物馆',name:'MNAC Barcelona',tourism:'museum',website:'https://www.museunacional.cat','addr:city':'Barcelona',opening_hours:'Tu-Sa 10:00-18:00, Su 10:00-15:00'}},
+  { type:'node',id:2071,lat:40.399322,lon:-3.692149, tags:{nameZh:'马德里铁路博物馆',name:'Museo del Ferrocarril Madrid',tourism:'museum',website:'https://www.museodelferrocarril.org','addr:city':'Madrid',opening_hours:'Mo-Fr 09:30-15:00'}},
+  { type:'node',id:2072,lat:41.411125,lon:2.221052, tags:{nameZh:'巴塞罗那科学博物馆',name:'Museu Blau Barcelona',tourism:'museum',website:'https://www.museuciencies.cat','addr:city':'Barcelona',opening_hours:'Tu-Sa 10:00-19:00, Su 10:00-20:00'}},
+  { type:'node',id:2073,lat:43.265617,lon:-2.938210, tags:{nameZh:'毕尔巴鄂海事博物馆',name:'Museo Maritimo de Bilbao',tourism:'museum','addr:city':'Bilbao',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:2074,lat:37.162701,lon:-3.605758, tags:{nameZh:'格拉纳达科学公园',name:'Parque de las Ciencias Granada',tourism:'museum',website:'https://www.parqueciencias.com','addr:city':'Granada',opening_hours:'Tu-Sa 10:00-19:00, Su 10:00-15:00'}},
+  { type:'node',id:2075,lat:40.566009,lon:-3.609646, tags:{nameZh:'马德里儿童博物馆',name:'Micropolix Madrid',tourism:'museum','addr:city':'San Sebastian de los Reyes',opening_hours:'We-Su 11:00-20:00'}},
+  { type:'node',id:2076,lat:41.375330,lon:2.175866, tags:{nameZh:'巴塞罗那海事博物馆',name:'Museu Maritim de Barcelona',tourism:'museum',website:'https://www.mmb.cat','addr:city':'Barcelona',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2077,lat:39.4700,lon:-0.3600, tags:{nameZh:'瓦伦西亚美术馆',name:'Museo de Bellas Artes Valencia',tourism:'museum','addr:city':'Valencia',opening_hours:'Tu-Su 10:00-20:00'}},
+  { type:'node',id:2078,lat:37.392416,lon:-6.000013, tags:{nameZh:'塞维利亚美术馆',name:'Museo de Bellas Artes de Sevilla',tourism:'museum','addr:city':'Sevilla',opening_hours:'Tu-Sa 09:00-20:00, Su 09:00-15:00'}},
+  { type:'node',id:2079,lat:41.647512,lon:-0.886712, tags:{nameZh:'萨拉戈萨科学博物馆',name:'Museo de Ciencias Naturales de Zaragoza',tourism:'museum','addr:city':'Zaragoza',opening_hours:'Tu-Su 10:00-14:00, 17:00-20:00'}},
+  { type:'node',id:2080,lat:42.882855,lon:-8.539081, tags:{nameZh:'加利西亚人民博物馆圣地亚哥',name:'Museo do Pobo Galego',tourism:'museum','addr:city':'Santiago de Compostela',opening_hours:'Tu-Sa 10:00-14:00, 16:00-20:00'}},
+  { type:'node',id:2081,lat:40.423429,lon:-3.688889, tags:{nameZh:'马德里考古博物馆',name:'Museo Arqueologico Nacional',tourism:'museum',website:'https://www.man.es','addr:city':'Madrid',opening_hours:'Tu-Sa 09:30-20:00, Su 09:30-15:00'}},
+  { type:'node',id:2082,lat:40.408340,lon:-3.687316, tags:{nameZh:'马德里皇家天文台',name:'Real Observatorio de Madrid',tourism:'museum','addr:city':'Madrid',opening_hours:'Fr 09:00-14:00'}},
+  { type:'node',id:2083,lat:39.555314,lon:2.610263, tags:{nameZh:'帕尔马基金会米罗',name:'Fundacio Pilar i Joan Miro Palma',tourism:'museum','addr:city':'Palma de Mallorca',opening_hours:'Tu-Sa 10:00-18:00, Su 10:00-15:00'}},
+  { type:'node',id:2084,lat:41.383095,lon:2.166759, tags:{nameZh:'巴塞罗那当代艺术博物馆',name:'MACBA Barcelona',tourism:'museum',website:'https://www.macba.cat','addr:city':'Barcelona',opening_hours:'Mo,We-Fr 11:00-19:30, Sa 10:00-21:00, Su 10:00-15:00'}},
+  { type:'node',id:2085,lat:36.721551,lon:-4.418282, tags:{nameZh:'马拉加毕加索博物馆',name:'Museo Picasso Malaga',tourism:'museum',website:'https://www.museopicassomalaga.org','addr:city':'Malaga',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:2086,lat:36.719038,lon:-4.413261, tags:{nameZh:'蓬皮杜中心马拉加',name:'Centre Pompidou Malaga',tourism:'museum',website:'https://centrepompidou-malaga.eu','addr:city':'Malaga',opening_hours:'We-Mo 09:30-20:00'}},
+  { type:'node',id:2087,lat:28.463865,lon:-16.249478, tags:{nameZh:'特内里费自然与人类博物馆',name:'Museo de la Naturaleza y el Hombre',tourism:'museum','addr:city':'Santa Cruz de Tenerife',opening_hours:'Tu-Sa 09:00-20:00, Su 10:00-17:00'}},
+  { type:'node',id:2088,lat:43.361745,lon:-5.843763, tags:{nameZh:'奥维耶多美术博物馆',name:'Museo de Bellas Artes de Asturias',tourism:'museum','addr:city':'Oviedo',opening_hours:'Tu-Sa 10:30-14:00, 16:00-20:00'}},
+  { type:'node',id:2089,lat:40.958055,lon:-5.666883, tags:{nameZh:'萨拉曼卡汽车博物馆',name:'Museo de Historia de la Automocion',tourism:'museum','addr:city':'Salamanca',opening_hours:'Tu-Su 10:00-14:00, 17:00-20:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // CHINESE RESTAURANTS (~35)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:2100,lat:40.3850,lon:-3.7090, tags:{nameZh:'新亚洲酒楼乌塞拉',name:'Restaurante Asia Usera',amenity:'chinese_restaurant','addr:city':'Madrid - Usera','addr:street':'Calle de Marcelo Usera'}},
+  { type:'node',id:2101,lat:40.3870,lon:-3.7050, tags:{nameZh:'天府酒楼乌塞拉',name:'Restaurante Tian Fu',amenity:'chinese_restaurant','addr:city':'Madrid - Usera','addr:street':'Calle de Nicolas Sanchez'}},
+  { type:'node',id:2102,lat:40.3830,lon:-3.7100, tags:{nameZh:'鸿运楼乌塞拉',name:'Hong Yun Lou',amenity:'chinese_restaurant','addr:city':'Madrid - Usera','addr:street':'Calle de Dolores Barranco'}},
+  { type:'node',id:2103,lat:40.3860,lon:-3.7070, tags:{nameZh:'川味居马德里',name:'Sichuan Taste Madrid',amenity:'chinese_restaurant','addr:city':'Madrid - Usera','addr:street':'Calle de Rafaela Ybarra'}},
+  { type:'node',id:2104,lat:40.3840,lon:-3.7080, tags:{nameZh:'东方明珠乌塞拉',name:'Perla Oriental Usera',amenity:'chinese_restaurant','addr:city':'Madrid - Usera','addr:street':'Calle de Amparo Usera'}},
+  { type:'node',id:2105,lat:40.4200,lon:-3.7000, tags:{nameZh:'金龙大酒楼马德里',name:'Gran Dragon de Oro Madrid',amenity:'chinese_restaurant','addr:city':'Madrid Centro','addr:street':'Calle de Atocha'}},
+  { type:'node',id:2106,lat:40.4250,lon:-3.7050, tags:{nameZh:'华宫马德里',name:'Palacio de China Madrid',amenity:'chinese_restaurant','addr:city':'Madrid Centro','addr:street':'Gran Via'}},
+  { type:'node',id:2107,lat:40.3880,lon:-3.7060, tags:{nameZh:'兰州拉面乌塞拉',name:'Lanzhou Lamian Usera',amenity:'chinese_restaurant','addr:city':'Madrid - Usera','addr:street':'Calle de Marcelo Usera'}},
+  { type:'node',id:2108,lat:40.3855,lon:-3.7075, tags:{nameZh:'小龙坎火锅马德里',name:'Xiao Long Kan Madrid',amenity:'chinese_restaurant','addr:city':'Madrid - Usera','addr:street':'Calle de Olvido'}},
+  { type:'node',id:2109,lat:40.3845,lon:-3.7095, tags:{nameZh:'海底捞马德里',name:'Haidilao Madrid',amenity:'chinese_restaurant','addr:city':'Madrid - Usera'}},
+  { type:'node',id:2110,lat:41.3800,lon:2.1700, tags:{nameZh:'巴塞罗那金凤凰',name:'Golden Phoenix Barcelona',amenity:'chinese_restaurant','addr:city':'Barcelona','addr:street':'Carrer de Balmes'}},
+  { type:'node',id:2111,lat:41.3750,lon:2.1650, tags:{nameZh:'巴塞罗那龙城',name:'Dragon City Barcelona',amenity:'chinese_restaurant','addr:city':'Barcelona','addr:street':'La Rambla'}},
+  { type:'node',id:2112,lat:41.3850,lon:2.1600, tags:{nameZh:'巴塞罗那川味轩',name:'Sichuan House Barcelona',amenity:'chinese_restaurant','addr:city':'Barcelona','addr:street':'Carrer de Muntaner'}},
+  { type:'node',id:2113,lat:39.4700,lon:-0.3700, tags:{nameZh:'瓦伦西亚华宫',name:'Palacio Chino Valencia',amenity:'chinese_restaurant','addr:city':'Valencia','addr:street':'Calle de Colon'}},
+  { type:'node',id:2114,lat:39.4650,lon:-0.3750, tags:{nameZh:'瓦伦西亚金龙',name:'Dragon de Oro Valencia',amenity:'chinese_restaurant','addr:city':'Valencia','addr:street':'Calle de Ruzafa'}},
+  { type:'node',id:2115,lat:36.7200,lon:-4.4200, tags:{nameZh:'马拉加金凤凰',name:'Phoenix de Oro Malaga',amenity:'chinese_restaurant','addr:city':'Malaga','addr:street':'Calle Larios'}},
+  { type:'node',id:2116,lat:37.3900,lon:-6.0000, tags:{nameZh:'塞维利亚东方花园',name:'Jardin Oriental Sevilla',amenity:'chinese_restaurant','addr:city':'Sevilla','addr:street':'Calle Sierpes'}},
+  { type:'node',id:2117,lat:37.3850,lon:-5.9950, tags:{nameZh:'塞维利亚金筷子',name:'Palillos de Oro Sevilla',amenity:'chinese_restaurant','addr:city':'Sevilla','addr:street':'Avenida de la Constitucion'}},
+  { type:'node',id:2118,lat:43.2600,lon:-2.9300, tags:{nameZh:'毕尔巴鄂龙宫',name:'Palacio del Dragon Bilbao',amenity:'chinese_restaurant','addr:city':'Bilbao','addr:street':'Gran Via'}},
+  { type:'node',id:2119,lat:38.3500,lon:-0.4800, tags:{nameZh:'阿利坎特华苑',name:'Jardin de China Alicante',amenity:'chinese_restaurant','addr:city':'Alicante','addr:street':'Rambla de Mendez Nunez'}},
+  { type:'node',id:2120,lat:39.5700,lon:2.6500, tags:{nameZh:'帕尔马金龙',name:'Dragon de Oro Palma',amenity:'chinese_restaurant','addr:city':'Palma de Mallorca','addr:street':'Paseo del Borne'}},
+  { type:'node',id:2121,lat:28.4700,lon:-16.2500, tags:{nameZh:'特内里费东方楼',name:'Casa Oriental Tenerife',amenity:'chinese_restaurant','addr:city':'Santa Cruz de Tenerife','addr:street':'Calle del Pilar'}},
+  { type:'node',id:2122,lat:41.6500,lon:-0.8800, tags:{nameZh:'萨拉戈萨金凤凰',name:'Phoenix de Oro Zaragoza',amenity:'chinese_restaurant','addr:city':'Zaragoza','addr:street':'Calle Alfonso I'}},
+  { type:'node',id:2123,lat:37.1800,lon:-3.6000, tags:{nameZh:'格拉纳达华宫',name:'Palacio Chino Granada',amenity:'chinese_restaurant','addr:city':'Granada','addr:street':'Gran Via de Colon'}},
+  { type:'node',id:2124,lat:37.8900,lon:-4.7800, tags:{nameZh:'科尔多瓦龙城',name:'Dragon City Cordoba',amenity:'chinese_restaurant','addr:city':'Cordoba','addr:street':'Avenida Gran Capitan'}},
+  { type:'node',id:2125,lat:40.3890,lon:-3.7040, tags:{nameZh:'重庆火锅乌塞拉',name:'Chongqing Hotpot Usera',amenity:'chinese_restaurant','addr:city':'Madrid - Usera','addr:street':'Calle de Marcelo Usera'}},
+  { type:'node',id:2126,lat:40.3865,lon:-3.7055, tags:{nameZh:'北京烤鸭乌塞拉',name:'Pato Pekin Usera',amenity:'chinese_restaurant','addr:city':'Madrid - Usera','addr:street':'Calle de Olvido'}},
+  { type:'node',id:2127,lat:41.3780,lon:2.1680, tags:{nameZh:'巴塞罗那福满楼',name:'Fu Man Lou Barcelona',amenity:'chinese_restaurant','addr:city':'Barcelona','addr:street':'Carrer de Pelai'}},
+  { type:'node',id:2128,lat:36.7150,lon:-4.4250, tags:{nameZh:'马拉加龙城',name:'Dragon City Malaga',amenity:'chinese_restaurant','addr:city':'Malaga','addr:street':'Alameda Principal'}},
+  { type:'node',id:2129,lat:43.3200,lon:-1.9800, tags:{nameZh:'圣塞巴斯蒂安东方明珠',name:'Perla Oriental San Sebastian',amenity:'chinese_restaurant','addr:city':'San Sebastian','addr:street':'Boulevard'}},
+  { type:'node',id:2130,lat:36.5300,lon:-6.2900, tags:{nameZh:'加的斯金龙',name:'Dragon de Oro Cadiz',amenity:'chinese_restaurant','addr:city':'Cadiz','addr:street':'Calle San Francisco'}},
+  { type:'node',id:2131,lat:40.9700,lon:-5.6600, tags:{nameZh:'萨拉曼卡金凤凰',name:'Phoenix de Oro Salamanca',amenity:'chinese_restaurant','addr:city':'Salamanca','addr:street':'Rua Mayor'}},
+  { type:'node',id:2132,lat:39.8600,lon:-4.0200, tags:{nameZh:'托莱多东方明珠',name:'Perla Oriental Toledo',amenity:'chinese_restaurant','addr:city':'Toledo','addr:street':'Calle Comercio'}},
+  { type:'node',id:2133,lat:42.8800,lon:-8.5500, tags:{nameZh:'圣地亚哥龙宫',name:'Palacio del Dragon Santiago',amenity:'chinese_restaurant','addr:city':'Santiago de Compostela','addr:street':'Rua do Franco'}},
+  { type:'node',id:2134,lat:42.6900,lon:-1.6400, tags:{nameZh:'潘普洛纳金龙',name:'Dragon de Oro Pamplona',amenity:'chinese_restaurant','addr:city':'Pamplona','addr:street':'Avenida Carlos III'}},
+  { type:'node',id:350,lat:41.6490,lon:-0.8890, tags:{nameZh:'萨拉戈萨华宫',name:'Palacio Chino Zaragoza',amenity:'chinese_restaurant','addr:city':'Zaragoza','addr:street':'Calle Alfonso I','addr:housenumber':'30',opening_hours:'Mo-Su 12:00-16:00, 19:00-23:00'}},
+  { type:'node',id:351,lat:37.9830,lon:-1.1300, tags:{nameZh:'穆尔西亚温州城',name:'Restaurante Wen Zhou Murcia',amenity:'chinese_restaurant','addr:city':'Murcia','addr:street':'Calle Puerta de Orihuela','addr:housenumber':'9',opening_hours:'Mo-Su 12:00-16:00, 19:00-23:30'}},
+  { type:'node',id:352,lat:37.9860,lon:-1.1280, tags:{nameZh:'穆尔西亚花园',name:'Jardin Chino Murcia',amenity:'chinese_restaurant','addr:city':'Murcia','addr:street':'Avenida Miguel de Cervantes','addr:housenumber':'56',opening_hours:'Mo-Su 12:00-16:00, 19:00-23:00'}},
+  { type:'node',id:353,lat:39.5730,lon:2.6530, tags:{nameZh:'帕尔马皇宫',name:'Restaurante Palacio Chino Palma',amenity:'chinese_restaurant','addr:city':'Palma de Mallorca','addr:street':'Calle Aragon','addr:housenumber':'18',opening_hours:'Mo-Su 12:00-16:00, 19:00-23:00'}},
+  { type:'node',id:354,lat:39.5700,lon:2.6480, tags:{nameZh:'帕尔马福州',name:'Chino Fu Zhou Palma',amenity:'chinese_restaurant',website:'https://www.chinofuzhou.es','addr:city':'Palma de Mallorca','addr:street':'Calle de San Miguel','addr:housenumber':'44',opening_hours:'Mo-Su 12:00-16:00, 19:00-23:30'}},
+  { type:'node',id:355,lat:28.1000,lon:-15.4130, tags:{nameZh:'拉斯帕尔马斯金门',name:'Puerta de Oro Las Palmas',amenity:'chinese_restaurant','addr:city':'Las Palmas de Gran Canaria','addr:street':'Calle Tenerife','addr:housenumber':'8',opening_hours:'Mo-Su 12:00-16:00, 19:00-23:00'}},
+  { type:'node',id:356,lat:28.4690,lon:-16.2540, tags:{nameZh:'新新餐厅',name:'Restaurante Xin Xin Tenerife',amenity:'chinese_restaurant',website:'https://xinxinrestaurante.com','addr:city':'Santa Cruz de Tenerife','addr:street':'Avenida de Antonio Dominguez','addr:housenumber':'2',opening_hours:'Mo-Su 12:00-16:00, 19:00-23:00'}},
+  { type:'node',id:357,lat:37.8850,lon:-4.7790, tags:{nameZh:'科尔多瓦华宫',name:'Palacio Chino Cordoba',amenity:'chinese_restaurant','addr:city':'Cordoba','addr:street':'Avenida del Gran Capitan','addr:housenumber':'28',opening_hours:'Mo-Su 12:00-16:00, 19:30-23:00'}},
+  { type:'node',id:358,lat:41.6520,lon:-4.7250, tags:{nameZh:'巴利亚多利德金龙',name:'Dragon de Oro Valladolid',amenity:'chinese_restaurant','addr:city':'Valladolid','addr:street':'Calle Santiago','addr:housenumber':'22',opening_hours:'Mo-Su 12:00-16:00, 19:30-23:00'}},
+  { type:'node',id:359,lat:42.2370,lon:-8.7250, tags:{nameZh:'维戈红楼',name:'Casa Hong Vigo',amenity:'chinese_restaurant',website:'https://casahongvigo.com','addr:city':'Vigo','addr:street':'Calle Principe','addr:housenumber':'50',opening_hours:'Mo-Su 12:30-16:00, 20:00-23:30'}},
+  { type:'node',id:360,lat:42.2330,lon:-8.7200, tags:{nameZh:'维戈长城',name:'Gran Muralla Vigo',amenity:'chinese_restaurant',website:'https://granmurallavigovigo.com','addr:city':'Vigo','addr:street':'Rua do Principe','addr:housenumber':'16',opening_hours:'Mo-Su 12:00-16:00, 19:30-23:30'}},
+  { type:'node',id:361,lat:43.5450,lon:-5.6620, tags:{nameZh:'希洪香港',name:'Chino Hong Kong Gijon',amenity:'chinese_restaurant','addr:city':'Gijon','addr:street':'Calle Llanes','addr:housenumber':'4',opening_hours:'Mo-Su 12:00-16:00, 19:30-23:00'}},
+  { type:'node',id:362,lat:43.3710,lon:-8.3960, tags:{nameZh:'拉科鲁尼亚龙宫',name:'Palacio del Dragon A Coruña',amenity:'chinese_restaurant','addr:city':'A Coruña','addr:street':'Calle Real','addr:housenumber':'58',opening_hours:'Mo-Su 12:00-16:00, 19:30-23:00'}},
+  { type:'node',id:363,lat:43.4620,lon:-3.8100, tags:{nameZh:'桑坦德东方花园',name:'Jardin Oriental Santander',amenity:'chinese_restaurant','addr:city':'Santander','addr:street':'Calle Burgos','addr:housenumber':'10',opening_hours:'Mo-Su 12:00-16:00, 19:30-23:00'}},
+  { type:'node',id:364,lat:40.9650,lon:-5.6640, tags:{nameZh:'萨拉曼卡华宫',name:'Palacio Chino Salamanca',amenity:'chinese_restaurant','addr:city':'Salamanca','addr:street':'Rua Mayor','addr:housenumber':'22',opening_hours:'Mo-Su 12:00-16:00, 19:30-23:00'}},
+  { type:'node',id:365,lat:38.8790,lon:-6.9700, tags:{nameZh:'巴达霍斯金龙',name:'Dragon de Oro Badajoz',amenity:'chinese_restaurant','addr:city':'Badajoz','addr:street':'Calle Menacho','addr:housenumber':'14',opening_hours:'Mo-Su 12:00-16:00, 19:30-23:00'}},
+  { type:'node',id:366,lat:42.3440,lon:-3.6970, tags:{nameZh:'布尔戈斯华苑',name:'Jardin de China Burgos',amenity:'chinese_restaurant','addr:city':'Burgos','addr:street':'Calle Vitoria','addr:housenumber':'8',opening_hours:'Mo-Su 12:00-16:00, 19:30-23:00'}},
+  { type:'node',id:367,lat:36.8400,lon:-2.4600, tags:{nameZh:'阿尔梅里亚金凤凰',name:'Phoenix de Oro Almeria',amenity:'chinese_restaurant','addr:city':'Almeria','addr:street':'Paseo de Almeria','addr:housenumber':'60',opening_hours:'Mo-Su 12:00-16:00, 19:30-23:00'}},
+  { type:'node',id:368,lat:36.6920,lon:-6.1360, tags:{nameZh:'赫雷斯龙城',name:'Dragon City Jerez',amenity:'chinese_restaurant','addr:city':'Jerez de la Frontera','addr:street':'Calle Larga','addr:housenumber':'18',opening_hours:'Mo-Su 12:00-16:00, 19:30-23:00'}},
+  { type:'node',id:369,lat:41.1180,lon:1.2450, tags:{nameZh:'塔拉戈纳金龙',name:'Dragon de Oro Tarragona',amenity:'chinese_restaurant','addr:city':'Tarragona','addr:street':'Rambla Nova','addr:housenumber':'52',opening_hours:'Mo-Su 12:00-16:00, 19:30-23:00'}},
+  { type:'node',id:370,lat:41.9830,lon:2.8240, tags:{nameZh:'赫罗纳华宫',name:'Palacio Chino Girona',amenity:'chinese_restaurant','addr:city':'Girona','addr:street':'Carrer Nou','addr:housenumber':'14',opening_hours:'Mo-Su 12:00-16:00, 19:30-23:00'}},
+  { type:'node',id:371,lat:38.2660,lon:-0.6980, tags:{nameZh:'埃尔切东方花园',name:'Jardin Oriental Elche',amenity:'chinese_restaurant','addr:city':'Elche','addr:street':'Calle Corredora','addr:housenumber':'28',opening_hours:'Mo-Su 12:00-16:00, 19:30-23:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // BUFFET / WOK RESTAURANTS (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:2150,lat:40.4300,lon:-3.6800, tags:{nameZh:'Wok自助餐马德里',name:'Wok Garden Madrid',amenity:'buffet_restaurant','addr:city':'Madrid','addr:street':'Paseo de la Castellana'}},
+  { type:'node',id:2151,lat:41.3900,lon:2.1600, tags:{nameZh:'Wok自助餐巴塞罗那',name:'Wok Garden Barcelona',amenity:'buffet_restaurant','addr:city':'Barcelona','addr:street':'Carrer de Balmes'}},
+  { type:'node',id:2152,lat:39.4600,lon:-0.3600, tags:{nameZh:'Wok自助餐瓦伦西亚',name:'Wok Garden Valencia',amenity:'buffet_restaurant','addr:city':'Valencia','addr:street':'Calle de Colon'}},
+  { type:'node',id:2153,lat:37.3900,lon:-5.9800, tags:{nameZh:'Wok自助餐塞维利亚',name:'Wok Sevilla',amenity:'buffet_restaurant','addr:city':'Sevilla','addr:street':'Avenida de la Constitucion'}},
+  { type:'node',id:2154,lat:36.7200,lon:-4.4100, tags:{nameZh:'Wok自助餐马拉加',name:'Wok Malaga',amenity:'buffet_restaurant','addr:city':'Malaga','addr:street':'Calle Larios'}},
+  { type:'node',id:2155,lat:43.2600,lon:-2.9400, tags:{nameZh:'Wok自助餐毕尔巴鄂',name:'Wok Bilbao',amenity:'buffet_restaurant','addr:city':'Bilbao','addr:street':'Alameda de Mazarredo'}},
+  { type:'node',id:2156,lat:38.3500,lon:-0.4900, tags:{nameZh:'Wok自助餐阿利坎特',name:'Wok Alicante',amenity:'buffet_restaurant','addr:city':'Alicante','addr:street':'Avenida de Maisonnave'}},
+  { type:'node',id:2157,lat:39.5700,lon:2.6400, tags:{nameZh:'Wok自助餐帕尔马',name:'Wok Palma',amenity:'buffet_restaurant','addr:city':'Palma de Mallorca','addr:street':'Avenida Jaume III'}},
+  { type:'node',id:2158,lat:41.6500,lon:-0.8900, tags:{nameZh:'Wok自助餐萨拉戈萨',name:'Wok Zaragoza',amenity:'buffet_restaurant','addr:city':'Zaragoza','addr:street':'Paseo de la Independencia'}},
+  { type:'node',id:2159,lat:28.4700,lon:-16.2600, tags:{nameZh:'Wok自助餐特内里费',name:'Wok Tenerife',amenity:'buffet_restaurant','addr:city':'Santa Cruz de Tenerife','addr:street':'Calle del Pilar'}},
+  { type:'node',id:2160,lat:37.1800,lon:-3.5900, tags:{nameZh:'Wok自助餐格拉纳达',name:'Wok Granada',amenity:'buffet_restaurant','addr:city':'Granada','addr:street':'Gran Via de Colon'}},
+  { type:'node',id:2161,lat:40.4000,lon:-3.7100, tags:{nameZh:'亚洲铁板烧自助马德里南',name:'Asia Wok Madrid Sur',amenity:'buffet_restaurant','addr:city':'Madrid','addr:street':'Calle de Toledo'}},
+  { type:'node',id:2162,lat:41.4000,lon:2.1400, tags:{nameZh:'东方自助巴塞罗那',name:'Oriental Buffet Barcelona',amenity:'buffet_restaurant','addr:city':'Barcelona','addr:street':'Avinguda Diagonal'}},
+  { type:'node',id:2163,lat:37.8900,lon:-4.7800, tags:{nameZh:'Wok自助餐科尔多瓦',name:'Wok Cordoba',amenity:'buffet_restaurant','addr:city':'Cordoba','addr:street':'Avenida Gran Capitan'}},
+  { type:'node',id:2164,lat:43.4600,lon:-3.8100, tags:{nameZh:'Wok自助餐桑坦德',name:'Wok Santander',amenity:'buffet_restaurant','addr:city':'Santander','addr:street':'Calle Burgos'}},
+  { type:'node',id:2165,lat:27.7600,lon:-15.5500, tags:{nameZh:'Wok自助餐大加那利',name:'Wok Gran Canaria',amenity:'buffet_restaurant','addr:city':'Las Palmas de Gran Canaria','addr:street':'Calle Mesa y Lopez'}},
+  { type:'node',id:2166,lat:36.5300,lon:-6.2800, tags:{nameZh:'Wok自助餐加的斯',name:'Wok Cadiz',amenity:'buffet_restaurant','addr:city':'Cadiz','addr:street':'Calle Ancha'}},
+  { type:'node',id:2167,lat:43.3600,lon:-5.8500, tags:{nameZh:'Wok自助餐奥维耶多',name:'Wok Oviedo',amenity:'buffet_restaurant','addr:city':'Oviedo','addr:street':'Calle Uria'}},
+  { type:'node',id:2168,lat:40.9600,lon:-5.6600, tags:{nameZh:'Wok自助餐萨拉曼卡',name:'Wok Salamanca',amenity:'buffet_restaurant','addr:city':'Salamanca','addr:street':'Gran Via'}},
+  { type:'node',id:2169,lat:42.8100,lon:-1.6500, tags:{nameZh:'Wok自助餐潘普洛纳',name:'Wok Pamplona',amenity:'buffet_restaurant','addr:city':'Pamplona','addr:street':'Avenida Carlos III'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // INDOOR PLAYGROUNDS (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:2180,lat:40.444570,lon:-3.581363, tags:{nameZh:'Urban Planet马德里',name:'Urban Planet Madrid',leisure:'indoor_playground','addr:city':'Madrid',opening_hours:'Mo-Su 10:00-21:00'}},
+  { type:'node',id:2181,lat:41.422970,lon:2.186862, tags:{nameZh:'SuperPark巴塞罗那',name:'SuperPark Barcelona',leisure:'indoor_playground','addr:city':'Barcelona',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2182,lat:39.480074,lon:-0.339188, tags:{nameZh:'Jump Yard瓦伦西亚',name:'Jump Yard Valencia',leisure:'indoor_playground','addr:city':'Valencia',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2183,lat:37.392124,lon:-5.996932, tags:{nameZh:'蹦床公园塞维利亚',name:'Urban Planet Sevilla',leisure:'indoor_playground','addr:city':'Sevilla',opening_hours:'Mo-Su 10:00-21:00'}},
+  { type:'node',id:2184,lat:36.724559,lon:-4.415705, tags:{nameZh:'蹦床公园马拉加',name:'Jumping Clay Malaga',leisure:'indoor_playground','addr:city':'Malaga',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2185,lat:43.264634,lon:-2.935711, tags:{nameZh:'蹦床公园毕尔巴鄂',name:'Urban Planet Bilbao',leisure:'indoor_playground','addr:city':'Bilbao',opening_hours:'Mo-Su 10:00-21:00'}},
+  { type:'node',id:2186,lat:41.655535,lon:-0.906042, tags:{nameZh:'蹦床公园萨拉戈萨',name:'Jumping Park Zaragoza',leisure:'indoor_playground','addr:city':'Zaragoza',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2187,lat:38.3600,lon:-0.5000, tags:{nameZh:'蹦床公园阿利坎特',name:'Urban Planet Alicante',leisure:'indoor_playground','addr:city':'Alicante',opening_hours:'Mo-Su 10:00-21:00'}},
+  { type:'node',id:2188,lat:39.591639,lon:2.635543, tags:{nameZh:'帕尔马蹦床公园',name:'Jump Palma',leisure:'indoor_playground','addr:city':'Palma de Mallorca',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2189,lat:40.410650,lon:-3.751407, tags:{nameZh:'Nickelodeon乐园马德里',name:'Nickelodeon Adventure Madrid',leisure:'indoor_playground','addr:city':'Madrid',opening_hours:'Mo-Su 10:00-21:00'}},
+  { type:'node',id:2190,lat:37.166974,lon:-3.607625, tags:{nameZh:'蹦床公园格拉纳达',name:'Jumping Park Granada',leisure:'indoor_playground','addr:city':'Granada',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2191,lat:43.460402,lon:-3.831148, tags:{nameZh:'蹦床公园桑坦德',name:'Fun Jump Santander',leisure:'indoor_playground','addr:city':'Santander',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2192,lat:37.878293,lon:-4.782740, tags:{nameZh:'蹦床公园科尔多瓦',name:'Jumping Park Cordoba',leisure:'indoor_playground','addr:city':'Cordoba',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2193,lat:28.467178,lon:-16.250784, tags:{nameZh:'蹦床公园特内里费',name:'Urban Planet Tenerife',leisure:'indoor_playground','addr:city':'Santa Cruz de Tenerife',opening_hours:'Mo-Su 10:00-21:00'}},
+  { type:'node',id:2194,lat:42.217340,lon:-8.742029, tags:{nameZh:'蹦床公园维戈',name:'Jumping Park Vigo',leisure:'indoor_playground','addr:city':'Vigo',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2195,lat:40.490165,lon:-3.673597, tags:{nameZh:'马德里北蹦床公园',name:'Fun Jump Madrid Norte',leisure:'indoor_playground','addr:city':'Madrid',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2196,lat:41.383315,lon:2.182208, tags:{nameZh:'Jumping Clay巴塞罗那',name:'Jumping Clay Barcelona',leisure:'indoor_playground','addr:city':'Barcelona',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2197,lat:43.361739,lon:-5.844442, tags:{nameZh:'蹦床公园奥维耶多',name:'Jump Oviedo',leisure:'indoor_playground','addr:city':'Oviedo',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2198,lat:42.807895,lon:-1.673658, tags:{nameZh:'蹦床公园潘普洛纳',name:'Urban Planet Pamplona',leisure:'indoor_playground','addr:city':'Pamplona',opening_hours:'Mo-Su 10:00-21:00'}},
+  { type:'node',id:2199,lat:40.965157,lon:-5.664018, tags:{nameZh:'蹦床公园萨拉曼卡',name:'Jump Salamanca',leisure:'indoor_playground','addr:city':'Salamanca',opening_hours:'Mo-Su 10:00-20:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // BEACHES (~30)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:2210,lat:41.3900,lon:2.2000, tags:{nameZh:'巴塞罗那海滩',name:'Platja de la Barceloneta',natural:'beach','addr:city':'Barcelona'}},
+  { type:'node',id:2211,lat:39.5700,lon:2.6200, tags:{nameZh:'帕尔马海滩',name:'Playa de Palma',natural:'beach','addr:city':'Palma de Mallorca'}},
+  { type:'node',id:2212,lat:36.7300,lon:-3.6900, tags:{nameZh:'内尔哈海滩',name:'Playa de Burriana Nerja',natural:'beach','addr:city':'Nerja'}},
+  { type:'node',id:2213,lat:36.7500,lon:-4.0600, tags:{nameZh:'太阳海岸海滩',name:'Playa de la Malagueta',natural:'beach','addr:city':'Malaga'}},
+  { type:'node',id:2214,lat:38.5400,lon:-0.1300, tags:{nameZh:'莱万特海滩贝尼多姆',name:'Playa de Levante Benidorm',natural:'beach','addr:city':'Benidorm'}},
+  { type:'node',id:2215,lat:38.3500,lon:-0.4900, tags:{nameZh:'圣胡安海滩阿利坎特',name:'Playa de San Juan Alicante',natural:'beach','addr:city':'Alicante'}},
+  { type:'node',id:2216,lat:39.2500,lon:3.0200, tags:{nameZh:'卡拉蒙德拉戈马略卡',name:'Cala Mondrago Mallorca',natural:'beach','addr:city':'Santanyi - Mallorca'}},
+  { type:'node',id:2217,lat:28.0500,lon:-16.7200, tags:{nameZh:'美洲海滩特内里费',name:'Playa de las Americas',natural:'beach','addr:city':'Arona - Tenerife'}},
+  { type:'node',id:2218,lat:27.7600,lon:-15.5700, tags:{nameZh:'马斯帕洛马斯沙丘海滩',name:'Playa de Maspalomas',natural:'beach','addr:city':'Maspalomas - Gran Canaria'}},
+  { type:'node',id:2219,lat:43.3200,lon:-1.9900, tags:{nameZh:'拉孔查海滩圣塞巴斯蒂安',name:'Playa de la Concha',natural:'beach','addr:city':'San Sebastian'}},
+  { type:'node',id:2220,lat:36.1300,lon:-5.3500, tags:{nameZh:'塔里法海滩',name:'Playa de los Lances Tarifa',natural:'beach','addr:city':'Tarifa'}},
+  { type:'node',id:2221,lat:36.5100,lon:-6.2900, tags:{nameZh:'加的斯海滩',name:'Playa de la Caleta Cadiz',natural:'beach','addr:city':'Cadiz'}},
+  { type:'node',id:2222,lat:36.7400,lon:-4.0600, tags:{nameZh:'马拉加海滩',name:'Playa de la Malagueta Malaga',natural:'beach','addr:city':'Malaga'}},
+  { type:'node',id:2223,lat:41.1000,lon:1.2500, tags:{nameZh:'萨洛海滩',name:'Platja de Llevant Salou',natural:'beach','addr:city':'Salou'}},
+  { type:'node',id:2224,lat:41.7200,lon:2.9300, tags:{nameZh:'布拉瓦海岸托萨德马尔',name:'Platja Gran Tossa de Mar',natural:'beach','addr:city':'Tossa de Mar'}},
+  { type:'node',id:2225,lat:38.9900,lon:1.3000, tags:{nameZh:'伊维萨海滩',name:'Playa d\'en Bossa Ibiza',natural:'beach','addr:city':'Ibiza'}},
+  { type:'node',id:2226,lat:39.8700,lon:4.2700, tags:{nameZh:'梅诺卡海滩',name:'Cala Macarella Menorca',natural:'beach','addr:city':'Ciutadella - Menorca'}},
+  { type:'node',id:2227,lat:43.4700,lon:-3.7800, tags:{nameZh:'桑坦德萨迪内罗海滩',name:'Playa del Sardinero',natural:'beach','addr:city':'Santander'}},
+  { type:'node',id:2228,lat:43.4000,lon:-8.2100, tags:{nameZh:'拉科鲁尼亚海滩',name:'Playa de Riazor',natural:'beach','addr:city':'A Coruna'}},
+  { type:'node',id:2229,lat:43.5600,lon:-5.9300, tags:{nameZh:'希洪海滩',name:'Playa de San Lorenzo Gijon',natural:'beach','addr:city':'Gijon'}},
+  { type:'node',id:2230,lat:39.4900,lon:-0.3200, tags:{nameZh:'瓦伦西亚马尔瓦罗萨海滩',name:'Playa de la Malvarrosa',natural:'beach','addr:city':'Valencia'}},
+  { type:'node',id:2231,lat:42.3900,lon:3.1600, tags:{nameZh:'卡达克斯海滩',name:'Platja Gran Cadaques',natural:'beach','addr:city':'Cadaques'}},
+  { type:'node',id:2232,lat:36.6800,lon:-4.5000, tags:{nameZh:'马贝拉海滩',name:'Playa de Nagules Marbella',natural:'beach','addr:city':'Marbella'}},
+  { type:'node',id:2233,lat:37.3800,lon:-5.9700, tags:{nameZh:'格拉纳达热带海岸海滩',name:'Playa de Almunecar',natural:'beach','addr:city':'Almunecar'}},
+  { type:'node',id:2234,lat:42.1900,lon:3.1300, tags:{nameZh:'玫瑰海滩赫罗纳',name:'Platja de Roses',natural:'beach','addr:city':'Roses'}},
+  { type:'node',id:2235,lat:28.7700,lon:-17.8700, tags:{nameZh:'拉帕尔马黑沙滩',name:'Playa de Puerto Naos',natural:'beach','addr:city':'Los Llanos - La Palma'}},
+  { type:'node',id:2236,lat:43.3800,lon:-8.4100, tags:{nameZh:'阿塔比利亚海滩加利西亚',name:'Playa de las Catedrales',natural:'beach','addr:city':'Ribadeo'}},
+  { type:'node',id:2237,lat:40.4200,lon:-3.6900, tags:{nameZh:'马德里河海滩',name:'Madrid Rio Playa Urbana',natural:'beach','addr:city':'Madrid'}},
+  { type:'node',id:2238,lat:41.1600,lon:1.1200, tags:{nameZh:'塔拉戈纳海滩',name:'Platja del Miracle Tarragona',natural:'beach','addr:city':'Tarragona'}},
+  { type:'node',id:2239,lat:36.7600,lon:-2.6300, tags:{nameZh:'阿尔梅里亚海滩',name:'Playa de San Jose Almeria',natural:'beach','addr:city':'San Jose - Almeria'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // HISTORIC (~30)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:2240,lat:37.1760,lon:-3.5881, tags:{nameZh:'阿尔罕布拉宫',name:'Alhambra de Granada',historic:'castle',website:'https://www.alhambra-patronato.es','addr:city':'Granada',opening_hours:'Mo-Su 08:30-18:00'}},
+  { type:'node',id:2241,lat:41.4036,lon:2.1743, tags:{nameZh:'圣家堂',name:'Sagrada Familia',historic:'monument',website:'https://www.sagradafamilia.org','addr:city':'Barcelona',opening_hours:'Mo-Su 09:00-20:00'}},
+  { type:'node',id:2242,lat:37.3864,lon:-5.9922, tags:{nameZh:'塞维利亚王宫',name:'Real Alcazar de Sevilla',historic:'castle',website:'https://www.alcazarsevilla.org','addr:city':'Sevilla',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:2243,lat:37.8792,lon:-4.7794, tags:{nameZh:'科尔多瓦清真寺大教堂',name:'Mezquita-Catedral de Cordoba',historic:'monument',website:'https://www.mezquita-catedraldecordoba.es','addr:city':'Cordoba',opening_hours:'Mo-Sa 10:00-19:00, Su 08:30-11:30'}},
+  { type:'node',id:2244,lat:39.8628,lon:-4.0273, tags:{nameZh:'托莱多古城',name:'Casco Historico de Toledo',historic:'monument','addr:city':'Toledo'}},
+  { type:'node',id:2245,lat:40.9481,lon:-4.1176, tags:{nameZh:'塞戈维亚水道桥',name:'Acueducto de Segovia',historic:'monument','addr:city':'Segovia'}},
+  { type:'node',id:2246,lat:41.4145,lon:2.1527, tags:{nameZh:'桂尔公园',name:'Park Guell',historic:'monument',website:'https://www.parkguell.barcelona','addr:city':'Barcelona',opening_hours:'Mo-Su 09:00-19:30'}},
+  { type:'node',id:2247,lat:41.3916,lon:2.1649, tags:{nameZh:'巴特略之家',name:'Casa Batllo',historic:'monument',website:'https://www.casabatllo.es','addr:city':'Barcelona',opening_hours:'Mo-Su 09:00-21:00'}},
+  { type:'node',id:2248,lat:42.8806,lon:-8.5444, tags:{nameZh:'圣地亚哥大教堂',name:'Catedral de Santiago de Compostela',historic:'monument','addr:city':'Santiago de Compostela'}},
+  { type:'node',id:2249,lat:41.5933,lon:1.8375, tags:{nameZh:'蒙特塞拉特修道院',name:'Monasterio de Montserrat',historic:'monument',website:'https://www.montserratvisita.com','addr:city':'Montserrat',opening_hours:'Mo-Su 07:00-20:00'}},
+  { type:'node',id:2250,lat:40.4177,lon:-3.7142, tags:{nameZh:'马德里皇宫',name:'Palacio Real de Madrid',historic:'castle',website:'https://www.patrimonionacional.es','addr:city':'Madrid',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2251,lat:39.8640,lon:-4.0200, tags:{nameZh:'托莱多城堡',name:'Alcazar de Toledo',historic:'castle','addr:city':'Toledo',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:2252,lat:40.9500,lon:-4.1200, tags:{nameZh:'塞戈维亚城堡',name:'Alcazar de Segovia',historic:'castle',website:'https://www.alcazardesegovia.com','addr:city':'Segovia',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2253,lat:40.4800,lon:-3.5700, tags:{nameZh:'埃斯科里亚尔皇宫',name:'Real Monasterio de El Escorial',historic:'monument',website:'https://www.patrimonionacional.es','addr:city':'San Lorenzo de El Escorial',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:2254,lat:41.3907,lon:2.1617, tags:{nameZh:'米拉之家',name:'Casa Mila - La Pedrera',historic:'monument',website:'https://www.lapedrera.com','addr:city':'Barcelona',opening_hours:'Mo-Su 09:00-20:30'}},
+  { type:'node',id:2255,lat:37.3900,lon:-5.9900, tags:{nameZh:'塞维利亚大教堂',name:'Catedral de Sevilla',historic:'monument','addr:city':'Sevilla',opening_hours:'Mo-Sa 10:45-17:00, Su 14:30-18:00'}},
+  { type:'node',id:2256,lat:37.3900,lon:-5.9940, tags:{nameZh:'吉拉尔达塔塞维利亚',name:'Giralda de Sevilla',historic:'monument','addr:city':'Sevilla'}},
+  { type:'node',id:2257,lat:36.7500,lon:-5.1600, tags:{nameZh:'龙达新桥',name:'Puente Nuevo de Ronda',historic:'monument','addr:city':'Ronda'}},
+  { type:'node',id:2258,lat:40.9500,lon:-4.1200, tags:{nameZh:'塞戈维亚大教堂',name:'Catedral de Segovia',historic:'monument','addr:city':'Segovia'}},
+  { type:'node',id:2259,lat:42.3500,lon:-3.7000, tags:{nameZh:'布尔戈斯大教堂',name:'Catedral de Burgos',historic:'monument','addr:city':'Burgos'}},
+  { type:'node',id:2260,lat:40.6400,lon:-4.0000, tags:{nameZh:'阿维拉城墙',name:'Murallas de Avila',historic:'monument','addr:city':'Avila'}},
+  { type:'node',id:2261,lat:42.5990,lon:-5.5700, tags:{nameZh:'莱昂大教堂',name:'Catedral de Leon',historic:'monument','addr:city':'Leon'}},
+  { type:'node',id:2262,lat:41.1200,lon:1.2500, tags:{nameZh:'塔拉戈纳罗马圆形剧场',name:'Amfiteatre de Tarragona',historic:'ruins','addr:city':'Tarragona'}},
+  { type:'node',id:2263,lat:37.8900,lon:-4.7800, tags:{nameZh:'科尔多瓦犹太区',name:'Juderia de Cordoba',historic:'monument','addr:city':'Cordoba'}},
+  { type:'node',id:2264,lat:41.6600,lon:-0.8800, tags:{nameZh:'萨拉戈萨圣母大教堂',name:'Basilica del Pilar',historic:'monument','addr:city':'Zaragoza'}},
+  { type:'node',id:2265,lat:40.4200,lon:-3.7100, tags:{nameZh:'马德里太阳门广场',name:'Puerta del Sol',historic:'monument','addr:city':'Madrid'}},
+  { type:'node',id:2266,lat:37.4000,lon:-5.9900, tags:{nameZh:'塞维利亚西班牙广场',name:'Plaza de Espana Sevilla',historic:'monument','addr:city':'Sevilla'}},
+  { type:'node',id:2267,lat:41.6600,lon:-0.8900, tags:{nameZh:'阿尔哈费利亚宫',name:'Palacio de la Aljaferia',historic:'castle','addr:city':'Zaragoza',opening_hours:'Mo-Su 10:00-14:00, 16:00-18:30'}},
+  { type:'node',id:2268,lat:40.9700,lon:-5.6600, tags:{nameZh:'萨拉曼卡大学',name:'Universidad de Salamanca',historic:'monument','addr:city':'Salamanca'}},
+  { type:'node',id:2269,lat:40.9700,lon:-5.6700, tags:{nameZh:'萨拉曼卡主广场',name:'Plaza Mayor Salamanca',historic:'monument','addr:city':'Salamanca'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // NATURE (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:2270,lat:36.984460,lon:-6.408603, tags:{nameZh:'多尼亚纳国家公园',name:'Parque Nacional de Donana',leisure:'nature_reserve',website:'https://www.donanareservas.es','addr:city':'Almonte - Huelva'}},
+  { type:'node',id:2271,lat:43.1700,lon:-4.8400, tags:{nameZh:'欧罗巴山国家公园',name:'Picos de Europa',leisure:'nature_reserve','addr:city':'Cangas de Onis - Asturias'}},
+  { type:'node',id:2272,lat:28.268796,lon:-16.637403, tags:{nameZh:'泰德火山特内里费',name:'Parque Nacional del Teide',leisure:'nature_reserve',website:'https://www.volcanoteide.com','addr:city':'Tenerife',opening_hours:'Mo-Su 09:00-16:00'}},
+  { type:'node',id:2273,lat:37.095528,lon:-3.142420, tags:{nameZh:'内华达山脉',name:'Sierra Nevada',leisure:'nature_reserve','addr:city':'Granada'}},
+  { type:'node',id:2274,lat:42.649893,lon:-0.101817, tags:{nameZh:'奥尔德萨国家公园',name:'Parque Nacional de Ordesa y Monte Perdido',leisure:'nature_reserve','addr:city':'Torla - Huesca'}},
+  { type:'node',id:2275,lat:36.917037,lon:-4.774000, tags:{nameZh:'国王小道',name:'Caminito del Rey',leisure:'nature_reserve',website:'https://www.caminitodelrey.info','addr:city':'Ardales - Malaga',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:2276,lat:37.007298,lon:-2.420518, tags:{nameZh:'塔韦纳斯沙漠',name:'Desierto de Tabernas',leisure:'nature_reserve','addr:city':'Tabernas - Almeria'}},
+  { type:'node',id:2277,lat:39.9700,lon:-1.8600, tags:{nameZh:'恩查雷达城市森林',name:'Parque Natural de la Serrania de Cuenca',leisure:'nature_reserve','addr:city':'Cuenca'}},
+  { type:'node',id:2278,lat:42.551774,lon:0.972737, tags:{nameZh:'阿伊格斯特托湖国家公园',name:'Parc Nacional Aiguestortes',leisure:'nature_reserve','addr:city':'Espot - Lleida'}},
+  { type:'node',id:2279,lat:39.845969,lon:-4.093321, tags:{nameZh:'托莱多瓜达拉马山',name:'Parque Natural de los Montes de Toledo',leisure:'nature_reserve','addr:city':'Toledo'}},
+  { type:'node',id:2280,lat:40.909426,lon:-3.952752, tags:{nameZh:'瓜达拉马山国家公园',name:'Sierra de Guadarrama',leisure:'nature_reserve','addr:city':'Madrid'}},
+  { type:'node',id:2281,lat:28.117657,lon:-15.455414, tags:{nameZh:'大加那利沙丘',name:'Dunas de Maspalomas',leisure:'nature_reserve','addr:city':'Maspalomas - Gran Canaria'}},
+  { type:'node',id:2282,lat:38.7400,lon:-9.0000, tags:{nameZh:'阿尔布费拉自然公园瓦伦西亚',name:'Parque Natural de la Albufera',leisure:'nature_reserve','addr:city':'Valencia'}},
+  { type:'node',id:2283,lat:42.8800,lon:-6.7500, tags:{nameZh:'莱昂省索米耶多自然公园',name:'Parque Natural de Somiedo',leisure:'nature_reserve','addr:city':'Somiedo - Asturias'}},
+  { type:'node',id:2284,lat:39.878484,lon:4.256572, tags:{nameZh:'梅诺卡生物圈保护区',name:'Reserva de Biosfera Menorca',leisure:'nature_reserve','addr:city':'Menorca'}},
+  { type:'node',id:2285,lat:43.276639,lon:-4.982960, tags:{nameZh:'科瓦东加湖',name:'Lagos de Covadonga',leisure:'nature_reserve','addr:city':'Covadonga - Asturias'}},
+  { type:'node',id:2286,lat:42.6400,lon:-0.9400, tags:{nameZh:'巴德纳斯自然公园',name:'Bardenas Reales',leisure:'nature_reserve','addr:city':'Tudela - Navarra'}},
+  { type:'node',id:2287,lat:37.919218,lon:-3.001043, tags:{nameZh:'卡索尔拉自然公园',name:'Parque Natural de Cazorla',leisure:'nature_reserve','addr:city':'Cazorla - Jaen'}},
+  { type:'node',id:2288,lat:28.721127,lon:-17.872984, tags:{nameZh:'拉帕尔马火山国家公园',name:'Parque Nacional de la Caldera de Taburiente',leisure:'nature_reserve','addr:city':'La Palma'}},
+  { type:'node',id:2289,lat:42.293265,lon:3.286009, tags:{nameZh:'卡达克斯达利故居',name:'Casa Museo Dali Portlligat',tourism:'museum','addr:city':'Cadaques',opening_hours:'Tu-Su 10:30-18:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // PLAYGROUNDS & OUTDOOR (~40)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:2300,lat:40.408056,lon:-3.681271, tags:{nameZh:'马德里丽池公园游乐场',name:'Parque del Retiro Zona Infantil',leisure:'playground','addr:city':'Madrid'}},
+  { type:'node',id:2301,lat:41.388416,lon:2.186255, tags:{nameZh:'城堡公园游乐场巴塞罗那',name:'Parc de la Ciutadella Zona Infantil',leisure:'playground','addr:city':'Barcelona'}},
+  { type:'node',id:2302,lat:39.472460,lon:-0.361980, tags:{nameZh:'图里亚花园游乐场瓦伦西亚',name:'Jardines del Turia Parque Infantil',leisure:'playground','addr:city':'Valencia'}},
+  { type:'node',id:2303,lat:37.376511,lon:-5.984941, tags:{nameZh:'玛利亚路易莎公园游乐场塞维利亚',name:'Parque de Maria Luisa Zona Infantil',leisure:'playground','addr:city':'Sevilla'}},
+  { type:'node',id:2304,lat:36.731907,lon:-4.384558, tags:{nameZh:'马拉加公园游乐场',name:'Parque de Malaga Zona Infantil',leisure:'playground','addr:city':'Malaga'}},
+  { type:'node',id:2305,lat:43.2700,lon:-2.9400, tags:{nameZh:'多尼亚卡西尔达公园毕尔巴鄂',name:'Parque de Dona Casilda Zona Infantil',leisure:'playground','addr:city':'Bilbao'}},
+  { type:'node',id:2306,lat:37.159663,lon:-3.590038, tags:{nameZh:'格拉纳达加尔西亚洛尔卡公园',name:'Parque Garcia Lorca Zona Infantil',leisure:'playground','addr:city':'Granada'}},
+  { type:'node',id:2307,lat:41.633197,lon:-0.895093, tags:{nameZh:'萨拉戈萨大公园',name:'Parque Grande Jose Antonio Labordeta Zona Infantil',leisure:'playground','addr:city':'Zaragoza'}},
+  { type:'node',id:2308,lat:39.567303,lon:2.647056, tags:{nameZh:'帕尔马海洋公园游乐场',name:'Parc de la Mar Zona Infantil',leisure:'playground','addr:city':'Palma de Mallorca'}},
+  { type:'node',id:2309,lat:40.451063,lon:-3.710454, tags:{nameZh:'马德里胡安卡洛斯一世公园',name:'Parque Juan Carlos I Zona Infantil',leisure:'playground','addr:city':'Madrid'}},
+  { type:'node',id:2310,lat:41.442537,lon:2.227468, tags:{nameZh:'巴塞罗那欧洲公园',name:'Parc de lEscorxador Zona Infantil',leisure:'playground','addr:city':'Barcelona'}},
+  { type:'node',id:2311,lat:43.314003,lon:-1.975601, tags:{nameZh:'圣塞巴斯蒂安水族馆公园',name:'Parque de Cristina Enea Zona Infantil',leisure:'playground','addr:city':'San Sebastian'}},
+  { type:'node',id:2312,lat:43.469516,lon:-3.768479, tags:{nameZh:'桑坦德半岛公园',name:'Parque de la Peninsula de la Magdalena',leisure:'playground','addr:city':'Santander'}},
+  { type:'node',id:2313,lat:28.472399,lon:-16.254176, tags:{nameZh:'特内里费加西亚公园',name:'Parque Garcia Sanabria Zona Infantil',leisure:'playground','addr:city':'Santa Cruz de Tenerife'}},
+  { type:'node',id:2314,lat:40.394679,lon:-3.723510, tags:{nameZh:'马德里卡萨德坎波',name:'Casa de Campo Parque Infantil',leisure:'playground','addr:city':'Madrid'}},
+  { type:'node',id:2315,lat:39.457556,lon:-0.379423, tags:{nameZh:'瓦伦西亚中央公园',name:'Parque Central Valencia Zona Infantil',leisure:'playground','addr:city':'Valencia'}},
+  { type:'node',id:2316,lat:36.731907,lon:-4.384558, tags:{nameZh:'马拉加瓜达尔美迪纳公园',name:'Parque de Huelin Zona Infantil',leisure:'playground','addr:city':'Malaga'}},
+  { type:'node',id:2317,lat:37.883801,lon:-4.785478, tags:{nameZh:'科尔多瓦维多利亚花园',name:'Jardines de la Victoria Zona Infantil',leisure:'playground','addr:city':'Cordoba'}},
+  { type:'node',id:2318,lat:42.877859,lon:-8.551064, tags:{nameZh:'圣地亚哥阿拉梅达公园',name:'Parque de la Alameda Zona Infantil',leisure:'playground','addr:city':'Santiago de Compostela'}},
+  { type:'node',id:2319,lat:38.367312,lon:-0.486118, tags:{nameZh:'阿利坎特洛马公园',name:'Parque Lo Morant Zona Infantil',leisure:'playground','addr:city':'Alicante'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // SWIMMING POOLS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:2340,lat:40.415593,lon:-3.734599, tags:{nameZh:'马德里市政泳池',name:'Piscina Municipal Casa de Campo',leisure:'swimming_pool','addr:city':'Madrid',opening_hours:'Mo-Su 11:00-20:30 (seasonal)'}},
+  { type:'node',id:2341,lat:41.365817,lon:2.150724, tags:{nameZh:'巴塞罗那皮卡内尔泳池',name:'Piscines Bernat Picornell',leisure:'swimming_pool','addr:city':'Barcelona',opening_hours:'Mo-Su 07:00-21:00'}},
+  { type:'node',id:2342,lat:39.4700,lon:-0.3700, tags:{nameZh:'瓦伦西亚市政泳池',name:'Piscina Municipal Valencia',leisure:'swimming_pool','addr:city':'Valencia',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2343,lat:37.374134,lon:-5.758059, tags:{nameZh:'塞维利亚市政泳池',name:'Piscina Municipal Sevilla',leisure:'swimming_pool','addr:city':'Sevilla',opening_hours:'Mo-Su 11:00-20:00 (seasonal)'}},
+  { type:'node',id:2344,lat:36.538135,lon:-4.633193, tags:{nameZh:'马拉加水上乐园',name:'AquaMijas',leisure:'swimming_pool','addr:city':'Mijas - Malaga',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:2345,lat:43.255297,lon:-2.931778, tags:{nameZh:'毕尔巴鄂市政泳池',name:'Piscinas Municipales Bilbao',leisure:'swimming_pool','addr:city':'Bilbao',opening_hours:'Mo-Su 07:00-21:00'}},
+  { type:'node',id:2346,lat:41.6600,lon:-0.8900, tags:{nameZh:'萨拉戈萨市政泳池',name:'Piscinas Municipales Zaragoza',leisure:'swimming_pool','addr:city':'Zaragoza',opening_hours:'Mo-Su 10:00-20:00 (seasonal)'}},
+  { type:'node',id:2347,lat:37.1800,lon:-3.6000, tags:{nameZh:'格拉纳达市政泳池',name:'Piscinas Municipales Granada',leisure:'swimming_pool','addr:city':'Granada',opening_hours:'Mo-Su 11:00-20:00 (seasonal)'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // CHILDREN'S FARMS (~10)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:2360,lat:40.4200,lon:-3.7100, tags:{nameZh:'马德里教育农场',name:'Granja Escuela Giraluna Madrid',tourism:'children_farm','addr:city':'Madrid',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2361,lat:41.4200,lon:2.1500, tags:{nameZh:'巴塞罗那教育农场',name:'Granja Escola Can Sala Barcelona',tourism:'children_farm','addr:city':'Barcelona',opening_hours:'Sa-Su 10:00-14:00'}},
+  { type:'node',id:2362,lat:39.4700,lon:-0.3800, tags:{nameZh:'瓦伦西亚教育农场',name:'Granja Escuela la Granja Valencia',tourism:'children_farm','addr:city':'Valencia',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2363,lat:37.3800,lon:-5.9900, tags:{nameZh:'塞维利亚教育农场',name:'Granja Escuela Buenavista Sevilla',tourism:'children_farm','addr:city':'Sevilla',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:2364,lat:36.7200,lon:-4.4100, tags:{nameZh:'马拉加教育农场',name:'Granja Escuela El Pato Malaga',tourism:'children_farm','addr:city':'Malaga',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2365,lat:40.4500,lon:-3.7000, tags:{nameZh:'马德里北教育农场',name:'Granja Escuela El Palomar',tourism:'children_farm','addr:city':'Chapineria - Madrid',opening_hours:'Sa-Su 10:00-18:00'}},
+  { type:'node',id:2366,lat:43.2600,lon:-2.9300, tags:{nameZh:'毕尔巴鄂教育农场',name:'Granja Escuela Urdaibai',tourism:'children_farm','addr:city':'Gautegiz Arteaga - Vizcaya',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:2367,lat:41.6500,lon:-0.8700, tags:{nameZh:'萨拉戈萨教育农场',name:'Granja Escuela La Torre Zaragoza',tourism:'children_farm','addr:city':'Zaragoza',opening_hours:'Sa-Su 10:00-14:00'}},
+  { type:'node',id:2368,lat:43.3600,lon:-5.8500, tags:{nameZh:'奥维耶多教育农场',name:'Granja Escuela Asturias',tourism:'children_farm','addr:city':'Oviedo',opening_hours:'Sa-Su 10:00-17:00'}},
+  { type:'node',id:2369,lat:42.8800,lon:-8.5400, tags:{nameZh:'圣地亚哥教育农场',name:'Granja Escuela A Cancela',tourism:'children_farm','addr:city':'Santiago de Compostela',opening_hours:'Sa-Su 10:00-14:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // THEATRES & ARTS CENTRES (~10)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:2380,lat:40.4200,lon:-3.7100, tags:{nameZh:'马德里皇家剧院',name:'Teatro Real Madrid',amenity:'theatre',website:'https://www.teatro-real.com','addr:city':'Madrid'}},
+  { type:'node',id:2381,lat:41.3800,lon:2.1750, tags:{nameZh:'利塞奥大剧院巴塞罗那',name:'Gran Teatre del Liceu',amenity:'theatre',website:'https://www.liceubarcelona.cat','addr:city':'Barcelona'}},
+  { type:'node',id:2382,lat:39.4700,lon:-0.3600, tags:{nameZh:'瓦伦西亚艺术宫',name:'Palau de les Arts Valencia',amenity:'arts_centre',website:'https://www.lesarts.com','addr:city':'Valencia'}},
+  { type:'node',id:2383,lat:37.3900,lon:-5.9900, tags:{nameZh:'塞维利亚弗拉门戈博物馆',name:'Museo del Baile Flamenco',amenity:'arts_centre',website:'https://www.museoflamenco.com','addr:city':'Sevilla',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:2384,lat:43.2700,lon:-2.9400, tags:{nameZh:'毕尔巴鄂欧斯卡尔杜纳宫',name:'Palacio Euskalduna Bilbao',amenity:'arts_centre','addr:city':'Bilbao'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // ATTRACTIONS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:2390,lat:40.4532,lon:-3.6883, tags:{nameZh:'伯纳乌球场',name:'Estadio Santiago Bernabeu',tourism:'attraction',website:'https://www.realmadrid.com','addr:city':'Madrid'}},
+  { type:'node',id:2391,lat:41.3809,lon:2.1228, tags:{nameZh:'诺坎普球场',name:'Spotify Camp Nou',tourism:'attraction',website:'https://www.fcbarcelona.com','addr:city':'Barcelona'}},
+  { type:'node',id:2392,lat:41.387889,lon:2.168503, tags:{nameZh:'兰布拉大道巴塞罗那',name:'La Rambla Barcelona',tourism:'attraction','addr:city':'Barcelona'}},
+  { type:'node',id:2393,lat:39.455756,lon:-0.352552, tags:{nameZh:'瓦伦西亚艺术科学城',name:'Ciudad de las Artes y las Ciencias',tourism:'attraction',website:'https://www.cac.es','addr:city':'Valencia'}},
+  { type:'node',id:2394,lat:40.4167,lon:-3.7036, tags:{nameZh:'马德里太阳门广场',name:'Puerta del Sol',tourism:'attraction','addr:city':'Madrid'}},
+  { type:'node',id:2395,lat:28.254553,lon:-16.626023, tags:{nameZh:'泰德峰缆车',name:'Teleferico del Teide',tourism:'attraction',website:'https://www.volcanoteide.com','addr:city':'Tenerife',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:2396,lat:36.715993,lon:-4.413804, tags:{nameZh:'马拉加港',name:'Muelle Uno Malaga',tourism:'attraction','addr:city':'Malaga'}},
+  { type:'node',id:2397,lat:41.370093,lon:2.185468, tags:{nameZh:'巴塞罗那港',name:'Port Vell Barcelona',tourism:'attraction','addr:city':'Barcelona'}},
+  { type:'node',id:2398,lat:43.321044,lon:-2.009651, tags:{nameZh:'蒙特伊格尔多缆车',name:'Monte Igueldo',tourism:'attraction','addr:city':'San Sebastian'}},
+  { type:'node',id:2399,lat:40.414946,lon:-3.683285, tags:{nameZh:'马德里丽池公园',name:'Parque del Retiro',leisure:'park','addr:city':'Madrid'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: CANARY ISLANDS (~30)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:400,lat:28.4167,lon:-16.5500, tags:{nameZh:'特内里费丛林公园',name:'Jungle Park',tourism:'theme_park',website:'https://www.jungleparktenerife.com','addr:city':'Arona - Tenerife',opening_hours:'Mo-Su 10:00-17:30'}},
+  { type:'node',id:401,lat:28.1100,lon:-16.7800, tags:{nameZh:'暹罗水上乐园儿童区',name:'Siam Park Kids Zone',leisure:'water_park','addr:city':'Costa Adeje - Tenerife'}},
+  { type:'node',id:402,lat:28.0500,lon:-16.5400, tags:{nameZh:'蝴蝶园特内里费',name:'Mariposario del Drago',tourism:'attraction','addr:city':'Icod de los Vinos - Tenerife',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:403,lat:28.3700,lon:-16.7200, tags:{nameZh:'阿夸兰水上乐园',name:'Aqualand Costa Adeje',leisure:'water_park',website:'https://www.aqualand.es','addr:city':'Costa Adeje - Tenerife',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:404,lat:28.061556,lon:-16.692244, tags:{nameZh:'猴子公园',name:'Monkey Park',tourism:'zoo','addr:city':'Los Cristianos - Tenerife',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:405,lat:28.4100,lon:-16.5500, tags:{nameZh:'鳄鱼公园',name:'Cocodrilo Park',tourism:'zoo','addr:city':'Agüimes - Gran Canaria',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:406,lat:27.7600,lon:-15.5400, tags:{nameZh:'大加那利水族馆',name:'Poema del Mar',tourism:'aquarium',website:'https://www.pofriadelmfar.com','addr:city':'Las Palmas - Gran Canaria',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:407,lat:27.7500,lon:-15.5800, tags:{nameZh:'大加那利植物园',name:'Jardín Botánico Viera y Clavijo',leisure:'park','addr:city':'Las Palmas - Gran Canaria',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:408,lat:27.9200,lon:-15.5500, tags:{nameZh:'安格里亚特水上乐园',name:'Angry Birds Activity Park',leisure:'water_park','addr:city':'Puerto Rico - Gran Canaria',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:409,lat:27.7800,lon:-15.4400, tags:{nameZh:'拉斯坎特拉斯海滩',name:'Playa de Las Canteras',natural:'beach','addr:city':'Las Palmas - Gran Canaria'}},
+  { type:'node',id:410,lat:29.021643,lon:-13.781236, tags:{nameZh:'蒂曼法亚国家公园',name:'Parque Nacional de Timanfaya',tourism:'attraction',website:'https://www.reservasparquesnacionales.es','addr:city':'Yaiza - Lanzarote'}},
+  { type:'node',id:411,lat:29.080084,lon:-13.477250, tags:{nameZh:'仙人掌花园',name:'Jardín de Cactus',tourism:'attraction','addr:city':'Guatiza - Lanzarote',opening_hours:'Mo-Su 10:00-17:45'}},
+  { type:'node',id:412,lat:29.160423,lon:-13.439365, tags:{nameZh:'绿洞穴',name:'Cueva de los Verdes',tourism:'attraction','addr:city':'Haría - Lanzarote',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:413,lat:29.003697,lon:-13.487061, tags:{nameZh:'兰萨罗特水族馆',name:'Lanzarote Aquarium',tourism:'aquarium','addr:city':'Costa Teguise - Lanzarote',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:414,lat:28.7400,lon:-13.8600, tags:{nameZh:'大堡垒海滩',name:'Playa de Sotavento',natural:'beach','addr:city':'Pájara - Fuerteventura'}},
+  { type:'node',id:415,lat:28.5000,lon:-13.8500, tags:{nameZh:'绿洲公园富埃特文图拉',name:'Oasis Park Fuerteventura',tourism:'zoo',website:'https://www.fuerteventuraoasispark.com','addr:city':'La Lajita - Fuerteventura',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:416,lat:28.475697,lon:-16.308958, tags:{nameZh:'特内里费科学博物馆',name:'Museo de la Ciencia y el Cosmos',tourism:'museum',website:'https://www.museosdetenerife.org','addr:city':'San Cristóbal de La Laguna - Tenerife',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:417,lat:28.4700,lon:-16.2500, tags:{nameZh:'拉拉古纳古城',name:'Casco Histórico de La Laguna',historic:'monument','addr:city':'San Cristóbal de La Laguna - Tenerife'}},
+  { type:'node',id:418,lat:28.316251,lon:-16.883110, tags:{nameZh:'特内里费洛斯吉甘特斯悬崖',name:'Acantilados de Los Gigantes',tourism:'attraction','addr:city':'Santiago del Teide - Tenerife'}},
+  { type:'node',id:419,lat:27.765357,lon:-18.023145, tags:{nameZh:'耶罗岛自然泳池',name:'Charco Azul El Hierro',leisure:'swimming_pool','addr:city':'Frontera - El Hierro'}},
+  { type:'node',id:420,lat:28.648815,lon:-17.895973, tags:{nameZh:'拉帕尔马火山路线',name:'Ruta de los Volcanes La Palma',tourism:'attraction','addr:city':'El Paso - La Palma'}},
+  { type:'node',id:421,lat:28.0900,lon:-15.4200, tags:{nameZh:'大加那利沙丘',name:'Dunas de Maspalomas',tourism:'attraction','addr:city':'San Bartolomé de Tirajana - Gran Canaria'}},
+  { type:'node',id:422,lat:28.1000,lon:-15.4400, tags:{nameZh:'马斯帕洛马斯海滩',name:'Playa de Maspalomas',natural:'beach','addr:city':'Maspalomas - Gran Canaria'}},
+  { type:'node',id:423,lat:28.4000,lon:-16.5600, tags:{nameZh:'奥罗塔瓦历史中心',name:'Casco Histórico La Orotava',historic:'monument','addr:city':'La Orotava - Tenerife'}},
+  { type:'node',id:424,lat:28.0600,lon:-16.7300, tags:{nameZh:'哥梅拉岛加拉洪奈国家公园',name:'Parque Nacional de Garajonay',tourism:'attraction','addr:city':'La Gomera'}},
+  { type:'node',id:425,lat:27.7600,lon:-15.5900, tags:{nameZh:'大加那利锡鲁斯博物馆',name:'Museo Elder de la Ciencia',tourism:'museum',website:'https://www.museoelder.org','addr:city':'Las Palmas - Gran Canaria',opening_hours:'Tu-Su 10:00-20:00'}},
+  { type:'node',id:426,lat:27.9900,lon:-15.3800, tags:{nameZh:'阿基梅水上乐园',name:'Aqualand Maspalomas',leisure:'water_park','addr:city':'Maspalomas - Gran Canaria',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:427,lat:29.157491,lon:-13.431680, tags:{nameZh:'哈美奥斯德尔阿瓜洞穴',name:'Jameos del Agua',tourism:'attraction','addr:city':'Haría - Lanzarote',opening_hours:'Mo-Su 10:00-18:30'}},
+  { type:'node',id:428,lat:28.0700,lon:-16.5200, tags:{nameZh:'千年龙树',name:'Drago Milenario',tourism:'attraction','addr:city':'Icod de los Vinos - Tenerife',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:429,lat:28.0400,lon:-16.5700, tags:{nameZh:'洛斯克里斯蒂亚诺斯海滩',name:'Playa de Los Cristianos',natural:'beach','addr:city':'Los Cristianos - Tenerife'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: BALEARIC ISLANDS (~25)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:430,lat:39.6300,lon:2.6200, tags:{nameZh:'马略卡西方水上乐园',name:'Western Water Park',leisure:'water_park',website:'https://www.westernpark.com','addr:city':'Magaluf - Mallorca',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:431,lat:39.5500,lon:2.3500, tags:{nameZh:'马略卡水族馆',name:'Palma Aquarium',tourism:'aquarium',website:'https://www.palmaaquarium.com','addr:city':'Playa de Palma - Mallorca',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:432,lat:39.8700,lon:4.2600, tags:{nameZh:'梅诺卡水上乐园',name:'Aqua Center Menorca',leisure:'water_park','addr:city':'Cala en Bosc - Menorca',opening_hours:'Mo-Su 10:30-18:00'}},
+  { type:'node',id:433,lat:39.8500,lon:3.1200, tags:{nameZh:'马略卡卡拉米洛海滩',name:'Cala Millor Beach',natural:'beach','addr:city':'Son Servera - Mallorca'}},
+  { type:'node',id:434,lat:39.7700,lon:3.0200, tags:{nameZh:'马略卡洞穴',name:'Cuevas del Drach',tourism:'attraction',website:'https://www.cuevasdeldrach.com','addr:city':'Porto Cristo - Mallorca',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:435,lat:39.7500,lon:2.9100, tags:{nameZh:'马略卡自然公园',name:'Parc Natural de Mondragó',leisure:'nature_reserve','addr:city':'Santanyí - Mallorca'}},
+  { type:'node',id:436,lat:39.636002,lon:2.667033, tags:{nameZh:'索列尔列车',name:'Tren de Sóller',tourism:'attraction','addr:city':'Sóller - Mallorca'}},
+  { type:'node',id:437,lat:39.9400,lon:3.8200, tags:{nameZh:'梅诺卡卡拉加尔达纳海滩',name:'Cala Galdana',natural:'beach','addr:city':'Ferreries - Menorca'}},
+  { type:'node',id:438,lat:39.9600,lon:3.8400, tags:{nameZh:'水上乐园洛斯海豚',name:'Aquarock Menorca',leisure:'water_park','addr:city':'Cala en Bosc - Menorca'}},
+  { type:'node',id:439,lat:38.9100,lon:1.4300, tags:{nameZh:'伊比萨卡拉巴萨海滩',name:'Cala Bassa',natural:'beach','addr:city':'Sant Josep - Ibiza'}},
+  { type:'node',id:440,lat:38.989256,lon:1.289411, tags:{nameZh:'伊比萨水族馆',name:'Aquarium Cap Blanc',tourism:'aquarium','addr:city':'Sant Antoni - Ibiza',opening_hours:'Mo-Su 10:00-16:30'}},
+  { type:'node',id:441,lat:39.5700,lon:2.6500, tags:{nameZh:'帕尔马大教堂',name:'Catedral de Mallorca',historic:'monument',website:'https://catedraldemallorca.org','addr:city':'Palma - Mallorca',opening_hours:'Mo-Fr 10:00-17:15'}},
+  { type:'node',id:442,lat:39.6100,lon:2.6200, tags:{nameZh:'贝尔弗城堡',name:'Castell de Bellver',historic:'castle','addr:city':'Palma - Mallorca',opening_hours:'Tu-Su 10:00-19:00'}},
+  { type:'node',id:443,lat:39.7600,lon:3.3700, tags:{nameZh:'马略卡自然动物园',name:'NaturaParc Mallorca',tourism:'zoo','addr:city':'Santa Eugenia - Mallorca',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:444,lat:39.914931,lon:4.178717, tags:{nameZh:'梅诺卡动物园',name:'Lloc de Menorca',tourism:'zoo','addr:city':'Alaior - Menorca',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:445,lat:39.566985,lon:2.650835, tags:{nameZh:'帕尔马海上博物馆',name:'Museu Marítim de Mallorca',tourism:'museum','addr:city':'Palma - Mallorca',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:446,lat:39.508818,lon:2.501998, tags:{nameZh:'帕尔马水族馆探险乐园',name:'Jungle Parc Mallorca',tourism:'theme_park','addr:city':'Santa Ponsa - Mallorca',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:447,lat:39.8300,lon:2.7900, tags:{nameZh:'阿尔库迪亚水上乐园',name:'Hidropark Alcudia',leisure:'water_park','addr:city':'Alcúdia - Mallorca',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:448,lat:39.8900,lon:4.2700, tags:{nameZh:'休达德亚古城',name:'Casco Antiguo de Ciutadella',historic:'monument','addr:city':'Ciutadella - Menorca'}},
+  { type:'node',id:449,lat:39.570876,lon:2.641190, tags:{nameZh:'马略卡儿童游乐场帕尔马',name:'Parque de Sa Riera',leisure:'playground','addr:city':'Palma - Mallorca'}},
+  { type:'node',id:450,lat:39.8800,lon:3.1000, tags:{nameZh:'阿尔塔洞穴',name:'Cuevas de Artà',tourism:'attraction','addr:city':'Capdepera - Mallorca',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:451,lat:38.9200,lon:1.4400, tags:{nameZh:'伊比萨达特维拉古城',name:'Dalt Vila',historic:'monument','addr:city':'Eivissa - Ibiza'}},
+  { type:'node',id:452,lat:40.0000,lon:3.8300, tags:{nameZh:'梅诺卡马翁港',name:'Port de Maó',tourism:'attraction','addr:city':'Maó - Menorca'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MORE ANDALUSIA (~25)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:453,lat:37.1761,lon:-3.5881, tags:{nameZh:'阿尔罕布拉宫',name:'Alhambra',historic:'monument',website:'https://www.alhambra-patronato.es','addr:city':'Granada',opening_hours:'Mo-Su 08:30-18:00'}},
+  { type:'node',id:454,lat:37.162701,lon:-3.605758, tags:{nameZh:'格拉纳达科学公园',name:'Parque de las Ciencias',tourism:'museum',website:'https://www.parqueciencias.com','addr:city':'Granada',opening_hours:'Tu-Sa 10:00-19:00'}},
+  { type:'node',id:455,lat:37.8800,lon:-4.7794, tags:{nameZh:'科尔多巴清真寺大教堂',name:'Mezquita-Catedral de Córdoba',historic:'monument',website:'https://mezquita-catedraldecordoba.es','addr:city':'Córdoba',opening_hours:'Mo-Sa 10:00-19:00'}},
+  { type:'node',id:456,lat:37.8900,lon:-4.7700, tags:{nameZh:'科尔多巴古城',name:'Judería de Córdoba',historic:'monument','addr:city':'Córdoba'}},
+  { type:'node',id:457,lat:36.5300,lon:-6.2900, tags:{nameZh:'加的斯海滩维多利亚',name:'Playa de la Victoria',natural:'beach','addr:city':'Cádiz'}},
+  { type:'node',id:458,lat:36.5200,lon:-6.2800, tags:{nameZh:'加的斯卡莱塔海滩',name:'Playa de la Caleta',natural:'beach','addr:city':'Cádiz'}},
+  { type:'node',id:459,lat:36.693427,lon:-6.136436, tags:{nameZh:'赫雷斯马术学校',name:'Real Escuela Andaluza del Arte Ecuestre',tourism:'attraction',website:'https://www.realescuela.org','addr:city':'Jerez de la Frontera',opening_hours:'Tu-Sa 10:00-14:00'}},
+  { type:'node',id:460,lat:36.1400,lon:-5.3500, tags:{nameZh:'塔里法海滩',name:'Playa de Bolonia',natural:'beach','addr:city':'Tarifa'}},
+  { type:'node',id:461,lat:36.721551,lon:-4.418282, tags:{nameZh:'马拉加毕加索博物馆',name:'Museo Picasso Málaga',tourism:'museum',website:'https://www.museopicassomalaga.org','addr:city':'Málaga',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:462,lat:36.723377,lon:-4.419740, tags:{nameZh:'马拉加交互博物馆',name:'Museo Interactivo de la Música Málaga',tourism:'museum','addr:city':'Málaga',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:463,lat:37.3800,lon:-5.9900, tags:{nameZh:'塞维利亚王宫',name:'Real Alcázar de Sevilla',historic:'monument',website:'https://www.alcazarsevilla.org','addr:city':'Sevilla',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:464,lat:37.376974,lon:-5.986940, tags:{nameZh:'塞维利亚西班牙广场',name:'Plaza de España Sevilla',tourism:'attraction','addr:city':'Sevilla'}},
+  { type:'node',id:465,lat:36.596541,lon:-4.515320, tags:{nameZh:'贝纳尔马德纳海洋生活馆',name:'Sea Life Benalmádena',tourism:'aquarium',website:'https://www.visitsealife.com/benalmadena','addr:city':'Benalmádena',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:466,lat:36.6800,lon:-4.4900, tags:{nameZh:'太阳海岸水上乐园',name:'Aquamijas',leisure:'water_park','addr:city':'Mijas',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:467,lat:36.761750,lon:-3.844843, tags:{nameZh:'内尔哈洞穴',name:'Cueva de Nerja',tourism:'attraction',website:'https://www.cuevadenerja.es','addr:city':'Nerja',opening_hours:'Mo-Su 09:30-16:00'}},
+  { type:'node',id:468,lat:37.1800,lon:-3.5900, tags:{nameZh:'格拉纳达阿尔拜辛区',name:'Barrio del Albaicín',historic:'monument','addr:city':'Granada'}},
+  { type:'node',id:469,lat:36.7600,lon:-5.1500, tags:{nameZh:'卡米尼托雷伊步道',name:'Caminito del Rey',tourism:'attraction',website:'https://www.caminitodelrey.info','addr:city':'Ardales'}},
+  { type:'node',id:470,lat:36.169815,lon:-5.345599, tags:{nameZh:'直布罗陀岩石',name:'Peñón de Gibraltar',tourism:'attraction','addr:city':'La Línea de la Concepción'}},
+  { type:'node',id:471,lat:37.370486,lon:-5.991075, tags:{nameZh:'塞维利亚水族馆',name:'Acuario de Sevilla',tourism:'aquarium',website:'https://www.acuariosevilla.es','addr:city':'Sevilla',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:472,lat:36.7100,lon:-4.4300, tags:{nameZh:'马拉加阿尔卡萨城堡',name:'Alcazaba de Málaga',historic:'castle','addr:city':'Málaga',opening_hours:'Tu-Su 09:00-18:00'}},
+  { type:'node',id:473,lat:37.018021,lon:-2.430233, tags:{nameZh:'阿尔梅里亚迷你好莱坞',name:'Mini Hollywood',tourism:'theme_park',website:'https://www.oasysminihollywood.com','addr:city':'Tabernas',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:474,lat:36.719038,lon:-4.413261, tags:{nameZh:'马拉加蓬皮杜中心',name:'Centre Pompidou Málaga',tourism:'museum','addr:city':'Málaga',opening_hours:'We-Mo 09:30-20:00'}},
+  { type:'node',id:475,lat:37.170859,lon:-3.609253, tags:{nameZh:'格拉纳达儿童游乐场',name:'Parque Federico García Lorca',leisure:'playground','addr:city':'Granada'}},
+  { type:'node',id:476,lat:36.5400,lon:-6.3000, tags:{nameZh:'加的斯罗马剧场',name:'Teatro Romano de Cádiz',historic:'ruins','addr:city':'Cádiz'}},
+  { type:'node',id:477,lat:37.111902,lon:-3.588743, tags:{nameZh:'格拉纳达市政游泳池',name:'Piscina Municipal de Granada',leisure:'swimming_pool','addr:city':'Granada'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: CATALONIA BEYOND BARCELONA (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:478,lat:41.9800,lon:2.8200, tags:{nameZh:'布拉瓦海岸托萨德马尔',name:'Platja Gran Tossa de Mar',natural:'beach','addr:city':'Tossa de Mar'}},
+  { type:'node',id:479,lat:42.2600,lon:3.1600, tags:{nameZh:'卡达克斯海滩',name:'Platja de Cadaqués',natural:'beach','addr:city':'Cadaqués'}},
+  { type:'node',id:480,lat:41.1200,lon:1.2500, tags:{nameZh:'塔拉戈纳罗马遗址',name:'Amfiteatre Romà de Tarragona',historic:'ruins','addr:city':'Tarragona'}},
+  { type:'node',id:481,lat:41.1200,lon:1.2400, tags:{nameZh:'塔拉戈纳罗马大道',name:'Passeig Arqueològic',historic:'ruins','addr:city':'Tarragona'}},
+  { type:'node',id:482,lat:41.9800,lon:2.8200, tags:{nameZh:'赫罗纳犹太区',name:'Barri Vell Girona',historic:'monument','addr:city':'Girona'}},
+  { type:'node',id:483,lat:41.9900,lon:2.8300, tags:{nameZh:'赫罗纳大教堂',name:'Catedral de Girona',historic:'monument','addr:city':'Girona',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:484,lat:42.267974,lon:2.959656, tags:{nameZh:'达利博物馆菲格雷斯',name:'Teatre-Museu Dalí',tourism:'museum',website:'https://www.salvador-dali.org','addr:city':'Figueres',opening_hours:'Tu-Su 10:30-18:00'}},
+  { type:'node',id:485,lat:41.594181,lon:1.839586, tags:{nameZh:'蒙特塞拉特修道院',name:'Monestir de Montserrat',tourism:'attraction','addr:city':'Monistrol de Montserrat'}},
+  { type:'node',id:486,lat:41.6900,lon:2.4900, tags:{nameZh:'马塔罗海滩',name:'Platja de Mataró',natural:'beach','addr:city':'Mataró'}},
+  { type:'node',id:487,lat:41.2400,lon:1.8100, tags:{nameZh:'锡切斯海滩',name:'Platja de la Bassa Rodona',natural:'beach','addr:city':'Sitges'}},
+  { type:'node',id:488,lat:41.8500,lon:3.1200, tags:{nameZh:'滨海略雷特水世界',name:'Water World Lloret',leisure:'water_park',website:'https://www.waterworld.es','addr:city':'Lloret de Mar',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:489,lat:42.4200,lon:2.1700, tags:{nameZh:'比利牛斯山地冒险公园',name:'Parc Aventura Cerdanya',tourism:'theme_park','addr:city':'La Molina'}},
+  { type:'node',id:490,lat:42.3100,lon:2.0200, tags:{nameZh:'格罗特火山区自然公园',name:'Parc Natural Zona Volcànica Garrotxa',leisure:'nature_reserve','addr:city':'Olot'}},
+  { type:'node',id:491,lat:41.1100,lon:1.2600, tags:{nameZh:'塔拉戈纳PortAventura水上世界',name:'PortAventura Caribe Aquatic',leisure:'water_park','addr:city':'Salou'}},
+  { type:'node',id:492,lat:41.565323,lon:2.007944, tags:{nameZh:'特拉萨科技博物馆',name:'mNACTEC Terrassa',tourism:'museum',website:'https://www.mnactec.cat','addr:city':'Terrassa',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:493,lat:41.412453,lon:2.131665, tags:{nameZh:'巴塞罗那科斯莫凯夏科学馆',name:'CosmoCaixa Barcelona',tourism:'museum',website:'https://cosmocaixa.org','addr:city':'Barcelona',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:494,lat:41.232699,lon:1.792268, tags:{nameZh:'锡切斯儿童游乐场',name:'Parc de Terramar Sitges',leisure:'playground','addr:city':'Sitges'}},
+  { type:'node',id:495,lat:41.1300,lon:1.1500, tags:{nameZh:'坎布里尔斯海滩',name:'Platja de Cambrils',natural:'beach','addr:city':'Cambrils'}},
+  { type:'node',id:496,lat:42.266675,lon:2.960567, tags:{nameZh:'菲格雷斯玩具博物馆',name:'Museu del Joguet de Catalunya',tourism:'museum','addr:city':'Figueres',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:497,lat:41.985748,lon:2.814383, tags:{nameZh:'赫罗纳儿童游乐场',name:'Parc de la Devesa',leisure:'playground','addr:city':'Girona'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: BASQUE COUNTRY (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:498,lat:43.3100,lon:-2.0100, tags:{nameZh:'翁达雷塔海滩',name:'Playa de Ondarreta',natural:'beach','addr:city':'Donostia-San Sebastián'}},
+  { type:'node',id:499,lat:43.3200,lon:-1.9900, tags:{nameZh:'孔查海滩',name:'Playa de la Concha',natural:'beach','addr:city':'Donostia-San Sebastián'}},
+  { type:'node',id:500,lat:43.322901,lon:-1.992119, tags:{nameZh:'圣塞巴斯蒂安水族馆',name:'Aquarium Donostia-San Sebastián',tourism:'aquarium',website:'https://www.aquariumss.com','addr:city':'Donostia-San Sebastián',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:501,lat:43.268428,lon:-2.934061, tags:{nameZh:'毕尔巴鄂古根海姆博物馆',name:'Museo Guggenheim Bilbao',tourism:'museum',website:'https://www.guggenheim-bilbao.eus','addr:city':'Bilbao',opening_hours:'Tu-Su 10:00-20:00'}},
+  { type:'node',id:502,lat:43.266400,lon:-2.946203, tags:{nameZh:'毕尔巴鄂海洋博物馆',name:'Itsasmuseum Bilbao',tourism:'museum',website:'https://www.itsasmuseum.eus','addr:city':'Bilbao',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:503,lat:43.2500,lon:-2.9200, tags:{nameZh:'毕尔巴鄂阿里亚加剧院',name:'Teatro Arriaga',amenity:'theatre','addr:city':'Bilbao'}},
+  { type:'node',id:504,lat:43.3000,lon:-2.0000, tags:{nameZh:'圣塞巴斯蒂安老城区',name:'Parte Vieja Donostia',historic:'monument','addr:city':'Donostia-San Sebastián'}},
+  { type:'node',id:505,lat:43.321044,lon:-2.009651, tags:{nameZh:'蒙特伊格尔多',name:'Monte Igueldo Donostia',tourism:'attraction','addr:city':'Donostia-San Sebastián'}},
+  { type:'node',id:506,lat:43.3800,lon:-2.8400, tags:{nameZh:'格奇科海滩',name:'Playa de Gorliz',natural:'beach','addr:city':'Gorliz'}},
+  { type:'node',id:507,lat:43.339668,lon:-3.013775, tags:{nameZh:'盖乔海滨步道',name:'Paseo Marítimo de Getxo',tourism:'attraction','addr:city':'Getxo'}},
+  { type:'node',id:508,lat:42.827024,lon:-2.706053, tags:{nameZh:'维多利亚加斯泰兹绿带',name:'Anillo Verde Vitoria-Gasteiz',leisure:'park','addr:city':'Vitoria-Gasteiz'}},
+  { type:'node',id:509,lat:43.290834,lon:-1.984967, tags:{nameZh:'圣塞巴斯蒂安科学博物馆',name:'Eureka! Zientzia Museoa',tourism:'museum','addr:city':'Donostia-San Sebastián',opening_hours:'Tu-Su 10:00-19:00'}},
+  { type:'node',id:510,lat:43.2200,lon:-2.6900, tags:{nameZh:'蒙德拉贡大学探索中心',name:'Territorio Kutxa Espacio de la Ciencia',tourism:'museum','addr:city':'Donostia-San Sebastián',opening_hours:'Tu-Su 10:00-20:00'}},
+  { type:'node',id:511,lat:43.3800,lon:-2.9200, tags:{nameZh:'索佩拉纳海滩',name:'Playa de Sopelana',natural:'beach','addr:city':'Sopelana'}},
+  { type:'node',id:512,lat:43.3900,lon:-2.6800, tags:{nameZh:'穆特里库海滩',name:'Playa de Mutriku',natural:'beach','addr:city':'Mutriku'}},
+  { type:'node',id:513,lat:43.2700,lon:-2.9300, tags:{nameZh:'毕尔巴鄂老城区',name:'Casco Viejo de Bilbao',historic:'monument','addr:city':'Bilbao'}},
+  { type:'node',id:514,lat:43.300643,lon:-1.969911, tags:{nameZh:'圣塞巴斯蒂安游泳池',name:'Piscinas de Anoeta',leisure:'swimming_pool','addr:city':'Donostia-San Sebastián'}},
+  { type:'node',id:515,lat:43.265857,lon:-2.941720, tags:{nameZh:'毕尔巴鄂儿童游乐场',name:'Parque de Doña Casilda',leisure:'playground','addr:city':'Bilbao'}},
+  { type:'node',id:516,lat:43.3100,lon:-2.6900, tags:{nameZh:'格塔里亚海滩',name:'Playa de Getaria',natural:'beach','addr:city':'Getaria'}},
+  { type:'node',id:517,lat:43.258590,lon:-2.933539, tags:{nameZh:'毕尔巴鄂阿里亚加游泳中心',name:'Bilbao Sport Center',leisure:'swimming_pool','addr:city':'Bilbao'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MORE PLAYGROUNDS & POOLS ACROSS SPAIN (~30)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:518,lat:40.460753,lon:-3.605771, tags:{nameZh:'马德里儿童乐园胡安卡洛斯一世',name:'Parque Juan Carlos I',leisure:'playground','addr:city':'Madrid'}},
+  { type:'node',id:519,lat:40.418076,lon:-3.717771, tags:{nameZh:'马德里皇宫花园',name:'Campo del Moro',leisure:'park','addr:city':'Madrid'}},
+  { type:'node',id:520,lat:41.388416,lon:2.186255, tags:{nameZh:'巴塞罗那城堡公园',name:'Parc de la Ciutadella',leisure:'playground','addr:city':'Barcelona'}},
+  { type:'node',id:521,lat:37.374771,lon:-5.988794, tags:{nameZh:'塞维利亚玛丽亚路易莎公园',name:'Parque de María Luisa',leisure:'playground','addr:city':'Sevilla'}},
+  { type:'node',id:522,lat:39.474196,lon:-0.366809, tags:{nameZh:'瓦伦西亚图里亚公园',name:'Jardín del Turia',leisure:'playground','addr:city':'Valencia'}},
+  { type:'node',id:523,lat:39.462499,lon:-0.359502, tags:{nameZh:'瓦伦西亚格列佛公园',name:'Parque Gulliver',leisure:'playground','addr:city':'Valencia'}},
+  { type:'node',id:524,lat:43.262943,lon:-2.928384, tags:{nameZh:'毕尔巴鄂阿尔比亚花园',name:'Jardines de Albia',leisure:'playground','addr:city':'Bilbao'}},
+  { type:'node',id:525,lat:42.340275,lon:-3.702096, tags:{nameZh:'布尔戈斯河畔公园',name:'Paseo del Espolón Burgos',leisure:'playground','addr:city':'Burgos'}},
+  { type:'node',id:526,lat:41.672402,lon:-0.904100, tags:{nameZh:'萨拉戈萨水公园',name:'Parque del Agua Luis Buñuel',leisure:'swimming_pool','addr:city':'Zaragoza'}},
+  { type:'node',id:527,lat:42.818520,lon:-1.654605, tags:{nameZh:'潘普洛纳城堡公园',name:'Parque de la Ciudadela Pamplona',leisure:'playground','addr:city':'Pamplona'}},
+  { type:'node',id:528,lat:38.369789,lon:-0.490635, tags:{nameZh:'阿利坎特城堡公园',name:'Parque lo Morant',leisure:'playground','addr:city':'Alicante'}},
+  { type:'node',id:529,lat:37.9900,lon:-1.1300, tags:{nameZh:'穆尔西亚市立游泳池',name:'Piscina Municipal de Murcia',leisure:'swimming_pool','addr:city':'Murcia'}},
+  { type:'node',id:530,lat:36.7200,lon:-4.4200, tags:{nameZh:'马拉加市立游泳池',name:'Piscina Municipal de Málaga',leisure:'swimming_pool','addr:city':'Málaga'}},
+  { type:'node',id:531,lat:40.4600,lon:-3.7000, tags:{nameZh:'马德里水上乐园',name:'Aquópolis San Fernando',leisure:'water_park','addr:city':'San Fernando de Henares',opening_hours:'Mo-Su 12:00-20:00 (seasonal)'}},
+  { type:'node',id:532,lat:37.3700,lon:-6.0000, tags:{nameZh:'塞维利亚水上乐园',name:'Aquópolis Sevilla',leisure:'water_park','addr:city':'Sevilla',opening_hours:'Mo-Su 12:00-20:00 (seasonal)'}},
+  { type:'node',id:533,lat:39.4800,lon:-0.3600, tags:{nameZh:'瓦伦西亚水上乐园',name:'Aquópolis Cullera',leisure:'water_park','addr:city':'Cullera',opening_hours:'Mo-Su 11:00-19:00 (seasonal)'}},
+  { type:'node',id:534,lat:41.633197,lon:-0.895093, tags:{nameZh:'萨拉戈萨儿童游乐场大公园',name:'Parque Grande José Antonio Labordeta',leisure:'playground','addr:city':'Zaragoza'}},
+  { type:'node',id:535,lat:43.383890,lon:-8.409721, tags:{nameZh:'拉科鲁尼亚水族馆',name:'Aquarium Finisterrae',tourism:'aquarium',website:'https://www.mc2coruna.org','addr:city':'A Coruña',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:536,lat:43.362114,lon:-8.412476, tags:{nameZh:'拉科鲁尼亚科学博物馆',name:'Casa de las Ciencias',tourism:'museum','addr:city':'A Coruña',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:537,lat:42.289831,lon:-8.610170, tags:{nameZh:'维戈游泳池',name:'Piscina Municipal de Vigo',leisure:'swimming_pool','addr:city':'Vigo'}},
+  { type:'node',id:538,lat:42.877871,lon:-8.549475, tags:{nameZh:'圣地亚哥阿拉梅达公园',name:'Parque de la Alameda',leisure:'playground','addr:city':'Santiago de Compostela'}},
+  { type:'node',id:539,lat:43.361743,lon:-8.412547, tags:{nameZh:'拉科鲁尼亚儿童游乐场',name:'Parque de Santa Margarita',leisure:'playground','addr:city':'A Coruña'}},
+  { type:'node',id:540,lat:39.592323,lon:2.661802, tags:{nameZh:'帕尔马市政游泳池',name:'Piscina Municipal Son Hugo',leisure:'swimming_pool','addr:city':'Palma - Mallorca'}},
+  { type:'node',id:541,lat:40.961464,lon:-5.655837, tags:{nameZh:'萨拉曼卡游乐场',name:'Parque de los Jesuitas',leisure:'playground','addr:city':'Salamanca'}},
+  { type:'node',id:542,lat:41.645258,lon:-4.732361, tags:{nameZh:'巴利亚多利德坎波格兰德公园',name:'Campo Grande Valladolid',leisure:'playground','addr:city':'Valladolid'}},
+  { type:'node',id:543,lat:39.865977,lon:-4.017908, tags:{nameZh:'托莱多儿童游乐场',name:'Parque de Safont',leisure:'playground','addr:city':'Toledo'}},
+  { type:'node',id:544,lat:38.987670,lon:-1.856735, tags:{nameZh:'阿尔巴塞特游乐场',name:'Parque Abelardo Sánchez',leisure:'playground','addr:city':'Albacete'}},
+  { type:'node',id:545,lat:39.474694,lon:-6.383459, tags:{nameZh:'卡塞雷斯儿童游乐场',name:'Parque del Príncipe Cáceres',leisure:'playground','addr:city':'Cáceres'}},
+  { type:'node',id:546,lat:38.878216,lon:-6.977049, tags:{nameZh:'巴达霍斯儿童游乐场',name:'Parque de Castelar',leisure:'playground','addr:city':'Badajoz'}},
+  { type:'node',id:547,lat:42.601616,lon:-5.585990, tags:{nameZh:'莱昂游乐场',name:'Parque de Quevedo León',leisure:'playground','addr:city':'León'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MORE BEACHES (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:548,lat:43.3700,lon:-8.3900, tags:{nameZh:'拉科鲁尼亚里亚索海滩',name:'Playa de Riazor',natural:'beach','addr:city':'A Coruña'}},
+  { type:'node',id:549,lat:43.4700,lon:-3.7900, tags:{nameZh:'桑坦德萨尔迪内罗海滩',name:'Playa del Sardinero',natural:'beach','addr:city':'Santander'}},
+  { type:'node',id:550,lat:43.5400,lon:-5.6600, tags:{nameZh:'希洪圣洛伦索海滩',name:'Playa de San Lorenzo Gijón',natural:'beach','addr:city':'Gijón'}},
+  { type:'node',id:551,lat:36.7200,lon:-4.3000, tags:{nameZh:'马拉加马拉格塔海滩',name:'Playa de la Malagueta',natural:'beach','addr:city':'Málaga'}},
+  { type:'node',id:552,lat:39.5100,lon:-0.3300, tags:{nameZh:'瓦伦西亚马尔瓦罗萨海滩',name:'Playa de la Malvarrosa',natural:'beach','addr:city':'Valencia'}},
+  { type:'node',id:553,lat:41.3800,lon:2.1900, tags:{nameZh:'巴塞罗那巴塞罗内塔海滩',name:'Playa de la Barceloneta',natural:'beach','addr:city':'Barcelona'}},
+  { type:'node',id:554,lat:38.3500,lon:-0.4800, tags:{nameZh:'阿利坎特圣胡安海滩',name:'Playa de San Juan',natural:'beach','addr:city':'Alicante'}},
+  { type:'node',id:555,lat:36.7000,lon:-6.4300, tags:{nameZh:'桑卢卡尔海滩',name:'Playa de la Calzada',natural:'beach','addr:city':'Sanlúcar de Barrameda'}},
+  { type:'node',id:556,lat:42.2400,lon:-8.7100, tags:{nameZh:'维戈萨米尔海滩',name:'Playa de Samil',natural:'beach','addr:city':'Vigo'}},
+  { type:'node',id:557,lat:42.3900,lon:-8.8000, tags:{nameZh:'蓬特韦德拉拉兰萨达海滩',name:'Playa de La Lanzada',natural:'beach','addr:city':'Sanxenxo'}},
+  { type:'node',id:558,lat:39.8600,lon:0.0200, tags:{nameZh:'卡斯特利翁海滩',name:'Playa del Pinar Castellón',natural:'beach','addr:city':'Castellón de la Plana'}},
+  { type:'node',id:559,lat:37.6400,lon:-0.6900, tags:{nameZh:'拉曼加海滩',name:'Playa de La Manga',natural:'beach','addr:city':'San Javier'}},
+  { type:'node',id:560,lat:43.3200,lon:-1.9600, tags:{nameZh:'圣塞巴斯蒂安苏里奥拉海滩',name:'Playa de Zurriola',natural:'beach','addr:city':'Donostia-San Sebastián'}},
+  { type:'node',id:561,lat:36.7500,lon:-3.5200, tags:{nameZh:'阿尔穆涅卡尔海滩',name:'Playa de San Cristóbal',natural:'beach','addr:city':'Almuñécar'}},
+  { type:'node',id:562,lat:36.5100,lon:-4.8800, tags:{nameZh:'马贝拉海滩',name:'Playa de Puerto Banús',natural:'beach','addr:city':'Marbella'}},
+  { type:'node',id:563,lat:36.7200,lon:-4.4100, tags:{nameZh:'马拉加佩德雷加莱霍海滩',name:'Playa de Pedregalejo',natural:'beach','addr:city':'Málaga'}},
+  { type:'node',id:564,lat:38.0800,lon:-0.7100, tags:{nameZh:'拉曼加小海海滩',name:'Playa del Mar Menor',natural:'beach','addr:city':'San Pedro del Pinatar'}},
+  { type:'node',id:565,lat:37.2200,lon:-7.0100, tags:{nameZh:'伊斯拉克里斯蒂纳海滩',name:'Playa de Isla Cristina',natural:'beach','addr:city':'Isla Cristina'}},
+  { type:'node',id:566,lat:43.4600,lon:-3.8000, tags:{nameZh:'桑坦德马格达莱纳海滩',name:'Playa de la Magdalena',natural:'beach','addr:city':'Santander'}},
+  { type:'node',id:567,lat:36.7300,lon:-4.0600, tags:{nameZh:'布里亚纳海滩',name:'Playa de Burriana Nerja',natural:'beach','addr:city':'Nerja'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MORE MUSEUMS & HISTORIC (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:568,lat:40.423429,lon:-3.688889, tags:{nameZh:'国家考古博物馆',name:'Museo Arqueológico Nacional',tourism:'museum',website:'https://www.man.es','addr:city':'Madrid',opening_hours:'Tu-Sa 09:30-20:00'}},
+  { type:'node',id:569,lat:40.417526,lon:-3.692381, tags:{nameZh:'马德里海军博物馆',name:'Museo Naval',tourism:'museum','addr:city':'Madrid',opening_hours:'Tu-Su 10:00-19:00'}},
+  { type:'node',id:570,lat:41.377405,lon:2.177270, tags:{nameZh:'巴塞罗那蜡像馆',name:'Museo de Cera Barcelona',tourism:'museum','addr:city':'Barcelona',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:571,lat:40.424807,lon:-3.691407, tags:{nameZh:'马德里蜡像馆',name:'Museo de Cera Madrid',tourism:'museum','addr:city':'Madrid',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:572,lat:37.8800,lon:-4.7800, tags:{nameZh:'科尔多瓦城堡',name:'Alcázar de los Reyes Cristianos',historic:'castle','addr:city':'Córdoba',opening_hours:'Tu-Su 08:30-20:00'}},
+  { type:'node',id:573,lat:39.8600,lon:-4.0200, tags:{nameZh:'托莱多城堡',name:'Alcázar de Toledo',historic:'castle','addr:city':'Toledo',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:574,lat:40.9500,lon:-4.1200, tags:{nameZh:'塞哥维亚城堡',name:'Alcázar de Segovia',historic:'castle',website:'https://www.alcazardesegovia.com','addr:city':'Segovia',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:575,lat:40.9600,lon:-4.1200, tags:{nameZh:'塞哥维亚罗马水道桥',name:'Acueducto de Segovia',historic:'monument','addr:city':'Segovia'}},
+  { type:'node',id:576,lat:40.9700,lon:-5.6600, tags:{nameZh:'萨拉曼卡大教堂',name:'Catedral de Salamanca',historic:'monument','addr:city':'Salamanca',opening_hours:'Mo-Sa 10:00-19:00'}},
+  { type:'node',id:577,lat:38.8700,lon:-6.9700, tags:{nameZh:'梅里达罗马剧院',name:'Teatro Romano de Mérida',historic:'ruins',website:'https://www.consorciomerida.org','addr:city':'Mérida',opening_hours:'Mo-Su 09:00-18:30'}},
+  { type:'node',id:578,lat:42.8800,lon:-8.5400, tags:{nameZh:'圣地亚哥大教堂',name:'Catedral de Santiago de Compostela',historic:'monument','addr:city':'Santiago de Compostela'}},
+  { type:'node',id:579,lat:41.6600,lon:-0.8900, tags:{nameZh:'萨拉戈萨皮拉尔大教堂',name:'Basílica del Pilar',historic:'monument','addr:city':'Zaragoza'}},
+  { type:'node',id:580,lat:42.5900,lon:-5.5700, tags:{nameZh:'莱昂大教堂',name:'Catedral de León',historic:'monument','addr:city':'León',opening_hours:'Mo-Sa 09:30-13:30, 16:00-19:00'}},
+  { type:'node',id:581,lat:40.6300,lon:-3.1600, tags:{nameZh:'阿尔卡拉大学',name:'Universidad de Alcalá',historic:'monument','addr:city':'Alcalá de Henares'}},
+  { type:'node',id:582,lat:39.455645,lon:-0.351303, tags:{nameZh:'瓦伦西亚科学博物馆',name:'Museo de las Ciencias Príncipe Felipe',tourism:'museum',website:'https://www.cac.es','addr:city':'Valencia',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:583,lat:39.453049,lon:-0.347181, tags:{nameZh:'瓦伦西亚海洋馆',name:'Oceanogràfic Valencia',tourism:'aquarium',website:'https://www.oceanografic.org','addr:city':'Valencia',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:584,lat:43.463325,lon:-3.783684, tags:{nameZh:'桑坦德海洋博物馆',name:'Museo Marítimo del Cantábrico',tourism:'museum','addr:city':'Santander',opening_hours:'Tu-Su 10:00-19:30'}},
+  { type:'node',id:585,lat:42.3500,lon:-3.7000, tags:{nameZh:'布尔戈斯大教堂',name:'Catedral de Burgos',historic:'monument','addr:city':'Burgos',opening_hours:'Mo-Su 09:30-19:30'}},
+  { type:'node',id:586,lat:43.540562,lon:-5.674042, tags:{nameZh:'希洪铁路博物馆',name:'Museo del Ferrocarril de Asturias',tourism:'museum','addr:city':'Gijón',opening_hours:'Tu-Su 10:00-14:00'}},
+  { type:'node',id:587,lat:41.650822,lon:-0.870630, tags:{nameZh:'萨拉戈萨儿童博物馆',name:'Museo del Origami Zaragoza',tourism:'museum','addr:city':'Zaragoza',opening_hours:'Mo-Su 10:00-14:00, 17:00-20:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: NATURE & PARKS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:588,lat:40.424191,lon:-3.755858, tags:{nameZh:'马德里卡萨德坎波',name:'Casa de Campo Madrid',leisure:'park','addr:city':'Madrid'}},
+  { type:'node',id:589,lat:42.649893,lon:-0.101817, tags:{nameZh:'奥尔德萨峡谷国家公园',name:'Parque Nacional de Ordesa y Monte Perdido',leisure:'nature_reserve','addr:city':'Torla-Ordesa'}},
+  { type:'node',id:590,lat:43.2500,lon:-4.7500, tags:{nameZh:'欧洲山峰国家公园',name:'Parque Nacional Picos de Europa',leisure:'nature_reserve','addr:city':'Cangas de Onís'}},
+  { type:'node',id:591,lat:37.076031,lon:-3.201676, tags:{nameZh:'内华达山脉国家公园',name:'Parque Nacional Sierra Nevada',leisure:'nature_reserve','addr:city':'Granada'}},
+  { type:'node',id:592,lat:36.984460,lon:-6.408603, tags:{nameZh:'多尼亚纳国家公园',name:'Parque Nacional de Doñana',leisure:'nature_reserve','addr:city':'Almonte'}},
+  { type:'node',id:593,lat:39.5300,lon:-3.3900, tags:{nameZh:'卡巴涅罗斯国家公园',name:'Parque Nacional de Cabañeros',leisure:'nature_reserve','addr:city':'Horcajo de los Montes'}},
+  { type:'node',id:594,lat:40.5600,lon:-4.0200, tags:{nameZh:'瓜达拉马山脉国家公园',name:'Parque Nacional Sierra de Guadarrama',leisure:'nature_reserve','addr:city':'Madrid'}},
+  { type:'node',id:595,lat:40.784356,lon:-4.004695, tags:{nameZh:'纳瓦塞拉达滑雪度假村',name:'Puerto de Navacerrada',tourism:'attraction','addr:city':'Navacerrada'}},
+  { type:'node',id:596,lat:42.2700,lon:1.8800, tags:{nameZh:'艾格斯托尔特斯国家公园',name:'Parc Nacional Aigüestortes',leisure:'nature_reserve','addr:city':'Espot'}},
+  { type:'node',id:597,lat:39.9000,lon:-4.7500, tags:{nameZh:'蒙弗拉圭国家公园',name:'Parque Nacional de Monfragüe',leisure:'nature_reserve','addr:city':'Villarreal de San Carlos'}},
+  { type:'node',id:598,lat:40.8500,lon:-1.7900, tags:{nameZh:'阿尔巴拉辛古镇',name:'Albarracín',tourism:'attraction','addr:city':'Albarracín'}},
+  { type:'node',id:599,lat:38.857536,lon:1.382802, tags:{nameZh:'伊比萨海洋保护区',name:'Reserva Marina de Es Vedrà',leisure:'nature_reserve','addr:city':'Ibiza'}},
+  { type:'node',id:600,lat:38.107910,lon:-1.858533, tags:{nameZh:'卡拉瓦卡圣殿',name:'Basílica-Santuario de la Vera Cruz',tourism:'attraction','addr:city':'Caravaca de la Cruz'}},
+  { type:'node',id:601,lat:41.414235,lon:2.152458, tags:{nameZh:'巴塞罗那圭尔公园',name:'Park Güell',tourism:'attraction',website:'https://parkguell.barcelona','addr:city':'Barcelona',opening_hours:'Mo-Su 09:30-19:30'}},
+  { type:'node',id:602,lat:42.622503,lon:0.537433, tags:{nameZh:'阿拉贡比利牛斯山家庭徒步',name:'Sendero familiar Benasque',tourism:'attraction','addr:city':'Benasque'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: CHINESE RESTAURANTS (~25)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:603,lat:41.6500,lon:-0.8800, tags:{nameZh:'萨拉戈萨金龙中餐',name:'Restaurante Gran Dragón',amenity:'chinese_restaurant','addr:city':'Zaragoza','addr:street':'Calle de San Miguel'}},
+  { type:'node',id:604,lat:42.8100,lon:-1.6500, tags:{nameZh:'潘普洛纳大中华',name:'Gran China Pamplona',amenity:'chinese_restaurant','addr:city':'Pamplona','addr:street':'Calle Estafeta'}},
+  { type:'node',id:605,lat:42.2300,lon:-8.7200, tags:{nameZh:'维戈中华楼',name:'Restaurante China Vigo',amenity:'chinese_restaurant','addr:city':'Vigo','addr:street':'Rúa do Príncipe'}},
+  { type:'node',id:606,lat:43.3600,lon:-8.4100, tags:{nameZh:'拉科鲁尼亚龙凤中餐',name:'Restaurante Dragón Fénix',amenity:'chinese_restaurant','addr:city':'A Coruña','addr:street':'Rúa San Andrés'}},
+  { type:'node',id:607,lat:42.8800,lon:-8.5400, tags:{nameZh:'圣地亚哥中餐馆',name:'Restaurante Chino Santiago',amenity:'chinese_restaurant','addr:city':'Santiago de Compostela','addr:street':'Rúa do Franco'}},
+  { type:'node',id:608,lat:43.4600,lon:-3.8000, tags:{nameZh:'桑坦德金城中餐',name:'Restaurante Ciudad Dorada',amenity:'chinese_restaurant','addr:city':'Santander','addr:street':'Calle Hernán Cortés'}},
+  { type:'node',id:609,lat:43.5400,lon:-5.6600, tags:{nameZh:'希洪华夏中餐',name:'Restaurante Huaxia Gijón',amenity:'chinese_restaurant','addr:city':'Gijón','addr:street':'Calle Corrida'}},
+  { type:'node',id:610,lat:40.9700,lon:-5.6600, tags:{nameZh:'萨拉曼卡长城中餐',name:'Restaurante Gran Muralla',amenity:'chinese_restaurant','addr:city':'Salamanca','addr:street':'Calle Toro'}},
+  { type:'node',id:611,lat:41.6600,lon:-4.7300, tags:{nameZh:'巴利亚多利德中华园',name:'Jardín Chino Valladolid',amenity:'chinese_restaurant','addr:city':'Valladolid','addr:street':'Calle Santiago'}},
+  { type:'node',id:612,lat:37.8800,lon:-4.7700, tags:{nameZh:'科尔多瓦金宝中餐',name:'Restaurante Jin Bao',amenity:'chinese_restaurant','addr:city':'Córdoba','addr:street':'Avenida Gran Capitán'}},
+  { type:'node',id:613,lat:37.1700,lon:-3.6000, tags:{nameZh:'格拉纳达华人之家',name:'Casa China Granada',amenity:'chinese_restaurant','addr:city':'Granada','addr:street':'Calle Recogidas'}},
+  { type:'node',id:614,lat:36.5300,lon:-6.2900, tags:{nameZh:'加的斯中华楼',name:'China House Cádiz',amenity:'chinese_restaurant','addr:city':'Cádiz','addr:street':'Calle Columela'}},
+  { type:'node',id:615,lat:38.3500,lon:-0.4900, tags:{nameZh:'阿利坎特东方中餐',name:'Restaurante Oriente Alicante',amenity:'chinese_restaurant','addr:city':'Alicante','addr:street':'Calle Castaños'}},
+  { type:'node',id:616,lat:39.4700,lon:-0.3700, tags:{nameZh:'瓦伦西亚新长城',name:'Restaurante Nueva Gran Muralla',amenity:'chinese_restaurant','addr:city':'Valencia','addr:street':'Calle Colón'}},
+  { type:'node',id:617,lat:28.4500,lon:-16.2500, tags:{nameZh:'特内里费龙城中餐',name:'Restaurante Dragón Tenerife',amenity:'chinese_restaurant','addr:city':'Santa Cruz de Tenerife','addr:street':'Calle del Pilar'}},
+  { type:'node',id:618,lat:27.7600,lon:-15.5400, tags:{nameZh:'大加那利金龙',name:'Gran Dragón Las Palmas',amenity:'chinese_restaurant','addr:city':'Las Palmas de Gran Canaria','addr:street':'Calle Mesa y López'}},
+  { type:'node',id:619,lat:39.5700,lon:2.6500, tags:{nameZh:'帕尔马金宫中餐',name:'Restaurante Palacio Dorado',amenity:'chinese_restaurant','addr:city':'Palma de Mallorca','addr:street':'Carrer dels Oms'}},
+  { type:'node',id:620,lat:42.3500,lon:-3.7000, tags:{nameZh:'布尔戈斯中华园',name:'Restaurante Jardín de China',amenity:'chinese_restaurant','addr:city':'Burgos','addr:street':'Calle Vitoria'}},
+  { type:'node',id:621,lat:42.6000,lon:-5.5700, tags:{nameZh:'莱昂金福中餐',name:'Restaurante Jin Fu León',amenity:'chinese_restaurant','addr:city':'León','addr:street':'Calle Ancha'}},
+  { type:'node',id:622,lat:38.8800,lon:-6.9700, tags:{nameZh:'巴达霍斯龙凤中餐',name:'Dragón y Fénix Badajoz',amenity:'chinese_restaurant','addr:city':'Badajoz','addr:street':'Avenida de Elvas'}},
+  { type:'node',id:623,lat:39.8600,lon:-4.0200, tags:{nameZh:'托莱多金城中餐',name:'Restaurante Ciudad Dorada Toledo',amenity:'chinese_restaurant','addr:city':'Toledo','addr:street':'Calle de la Sillería'}},
+  { type:'node',id:624,lat:37.9900,lon:-1.1300, tags:{nameZh:'穆尔西亚长城中餐',name:'Gran Muralla Murcia',amenity:'chinese_restaurant','addr:city':'Murcia','addr:street':'Gran Vía Escultor Francisco Salzillo'}},
+  { type:'node',id:625,lat:38.9900,lon:-1.8600, tags:{nameZh:'阿尔巴塞特中华楼',name:'China House Albacete',amenity:'chinese_restaurant','addr:city':'Albacete','addr:street':'Calle Marqués de Molins'}},
+  { type:'node',id:626,lat:39.4700,lon:-6.3700, tags:{nameZh:'卡塞雷斯东方中餐',name:'Restaurante Oriental Cáceres',amenity:'chinese_restaurant','addr:city':'Cáceres','addr:street':'Avenida de España'}},
+  { type:'node',id:627,lat:40.9600,lon:-4.1200, tags:{nameZh:'塞哥维亚金宝中餐',name:'Jin Bao Segovia',amenity:'chinese_restaurant','addr:city':'Segovia','addr:street':'Calle Real'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: BUFFET RESTAURANTS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:628,lat:41.6500,lon:-0.8800, tags:{nameZh:'萨拉戈萨铁板烧自助',name:'Wok Zaragoza',amenity:'buffet_restaurant','addr:city':'Zaragoza','addr:street':'Paseo de la Independencia'}},
+  { type:'node',id:629,lat:43.2600,lon:-2.9400, tags:{nameZh:'毕尔巴鄂亚洲自助',name:'Wok Bilbao',amenity:'buffet_restaurant','addr:city':'Bilbao','addr:street':'Gran Vía de Don Diego López de Haro'}},
+  { type:'node',id:630,lat:43.3200,lon:-1.9900, tags:{nameZh:'圣塞巴斯蒂安亚洲自助',name:'Asia Wok San Sebastián',amenity:'buffet_restaurant','addr:city':'Donostia-San Sebastián','addr:street':'Avenida de la Libertad'}},
+  { type:'node',id:631,lat:42.8100,lon:-1.6500, tags:{nameZh:'潘普洛纳亚洲自助',name:'Sushi Wok Pamplona',amenity:'buffet_restaurant','addr:city':'Pamplona','addr:street':'Avenida Carlos III'}},
+  { type:'node',id:632,lat:39.4700,lon:-0.3700, tags:{nameZh:'瓦伦西亚铁板烧自助',name:'Teppanyaki Valencia',amenity:'buffet_restaurant','addr:city':'Valencia','addr:street':'Calle Colón'}},
+  { type:'node',id:633,lat:37.3800,lon:-5.9900, tags:{nameZh:'塞维利亚亚洲自助',name:'Asia Buffet Sevilla',amenity:'buffet_restaurant','addr:city':'Sevilla','addr:street':'Avenida de la Constitución'}},
+  { type:'node',id:634,lat:36.7200,lon:-4.4200, tags:{nameZh:'马拉加铁板烧自助',name:'Wok Málaga',amenity:'buffet_restaurant','addr:city':'Málaga','addr:street':'Calle Larios'}},
+  { type:'node',id:635,lat:43.3600,lon:-8.4100, tags:{nameZh:'拉科鲁尼亚亚洲自助',name:'Asia Wok Coruña',amenity:'buffet_restaurant','addr:city':'A Coruña','addr:street':'Calle Real'}},
+  { type:'node',id:636,lat:28.4500,lon:-16.2500, tags:{nameZh:'特内里费亚洲自助',name:'Wok Tenerife',amenity:'buffet_restaurant','addr:city':'Santa Cruz de Tenerife','addr:street':'Avenida de Anaga'}},
+  { type:'node',id:637,lat:27.7600,lon:-15.5400, tags:{nameZh:'大加那利亚洲自助',name:'Asia Buffet Las Palmas',amenity:'buffet_restaurant','addr:city':'Las Palmas de Gran Canaria','addr:street':'Calle Triana'}},
+  { type:'node',id:638,lat:38.3500,lon:-0.4900, tags:{nameZh:'阿利坎特亚洲自助',name:'Wok Alicante',amenity:'buffet_restaurant','addr:city':'Alicante','addr:street':'Avenida de Maisonnave'}},
+  { type:'node',id:639,lat:37.8800,lon:-4.7700, tags:{nameZh:'科尔多瓦亚洲自助',name:'Asia Wok Córdoba',amenity:'buffet_restaurant','addr:city':'Córdoba','addr:street':'Avenida del Gran Capitán'}},
+  { type:'node',id:640,lat:39.5700,lon:2.6500, tags:{nameZh:'帕尔马亚洲自助',name:'Wok Palma',amenity:'buffet_restaurant','addr:city':'Palma de Mallorca','addr:street':'Avinguda de Jaume III'}},
+  { type:'node',id:641,lat:40.9700,lon:-5.6600, tags:{nameZh:'萨拉曼卡亚洲自助',name:'Asia Wok Salamanca',amenity:'buffet_restaurant','addr:city':'Salamanca','addr:street':'Calle Toro'}},
+  { type:'node',id:642,lat:37.1700,lon:-3.6000, tags:{nameZh:'格拉纳达亚洲自助',name:'Wok Granada',amenity:'buffet_restaurant','addr:city':'Granada','addr:street':'Calle Recogidas'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: INDOOR PLAYGROUNDS (~10)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:643,lat:41.653787,lon:-0.883841, tags:{nameZh:'萨拉戈萨室内游乐场',name:'Bola de Dragón Zaragoza',leisure:'indoor_playground','addr:city':'Zaragoza'}},
+  { type:'node',id:644,lat:43.277603,lon:-2.908764, tags:{nameZh:'毕尔巴鄂室内游乐场',name:'Txikilandia Bilbao',leisure:'indoor_playground','addr:city':'Bilbao'}},
+  { type:'node',id:645,lat:42.824965,lon:-1.661412, tags:{nameZh:'潘普洛纳室内游乐场',name:'Happy Park Pamplona',leisure:'indoor_playground','addr:city':'Pamplona'}},
+  { type:'node',id:646,lat:43.461893,lon:-3.810026, tags:{nameZh:'桑坦德室内游乐场',name:'Divertipark Santander',leisure:'indoor_playground','addr:city':'Santander'}},
+  { type:'node',id:647,lat:37.389978,lon:-5.994348, tags:{nameZh:'塞维利亚室内游乐场',name:'Isla de Juegos Sevilla',leisure:'indoor_playground','addr:city':'Sevilla'}},
+  { type:'node',id:648,lat:39.471927,lon:-0.369625, tags:{nameZh:'瓦伦西亚室内游乐场',name:'Diversia Valencia',leisure:'indoor_playground','addr:city':'Valencia'}},
+  { type:'node',id:649,lat:36.7200,lon:-4.4200, tags:{nameZh:'马拉加室内游乐场',name:'Mundo Mania Málaga',leisure:'indoor_playground','addr:city':'Málaga'}},
+  { type:'node',id:650,lat:28.452057,lon:-16.256576, tags:{nameZh:'特内里费室内游乐场',name:'Fun Park Tenerife',leisure:'indoor_playground','addr:city':'Santa Cruz de Tenerife'}},
+  { type:'node',id:651,lat:43.370970,lon:-8.395943, tags:{nameZh:'拉科鲁尼亚室内游乐场',name:'Diverxia A Coruña',leisure:'indoor_playground','addr:city':'A Coruña'}},
+  { type:'node',id:652,lat:40.566009,lon:-3.609646, tags:{nameZh:'马德里室内游乐场微波利斯',name:'Micropolix Madrid',leisure:'indoor_playground',website:'https://www.micropolix.com','addr:city':'San Sebastián de los Reyes',opening_hours:'Mo-Su 11:00-20:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: CHILDREN'S FARMS (~8)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:653,lat:40.4100,lon:-3.7400, tags:{nameZh:'马德里儿童农场',name:'Granja Escuela Albitana',tourism:'children_farm','addr:city':'Brunete'}},
+  { type:'node',id:654,lat:41.4200,lon:2.1700, tags:{nameZh:'巴塞罗那儿童农场',name:'Granja Aventura Park',tourism:'children_farm','addr:city':'La Baronia de Rialb'}},
+  { type:'node',id:655,lat:37.3800,lon:-5.9900, tags:{nameZh:'塞维利亚儿童农场',name:'Granja Escuela El Remolino',tourism:'children_farm','addr:city':'Sevilla'}},
+  { type:'node',id:656,lat:39.4700,lon:-0.3700, tags:{nameZh:'瓦伦西亚儿童农场',name:'Granja Escuela La Costera',tourism:'children_farm','addr:city':'Xàtiva'}},
+  { type:'node',id:657,lat:43.2600,lon:-2.9400, tags:{nameZh:'毕尔巴鄂儿童农场',name:'Baserri Antzokia',tourism:'children_farm','addr:city':'Artea'}},
+  { type:'node',id:658,lat:36.7200,lon:-4.4200, tags:{nameZh:'马拉加儿童农场',name:'Granja Escuela El Pato',tourism:'children_farm','addr:city':'Alhaurín el Grande'}},
+  { type:'node',id:659,lat:42.8800,lon:-8.5400, tags:{nameZh:'加利西亚儿童农场',name:'Granja A Besta',tourism:'children_farm','addr:city':'Arzúa'}},
+  { type:'node',id:660,lat:28.1000,lon:-15.4400, tags:{nameZh:'大加那利儿童农场',name:'Granja del Tío Isidro',tourism:'children_farm','addr:city':'Ingenio - Gran Canaria'}},
+  { type:'node',id:2400,lat:40.4500,lon:-3.6800, tags:{nameZh:'马德里卡丁车',name:'Carlos Sainz Karting Madrid',leisure:'sports_centre',website:'https://www.carlossainzgokart.com','addr:city':'Madrid',opening_hours:'Mo-Su 10:00-23:00'}},
+  { type:'node',id:2401,lat:41.3800,lon:2.1500, tags:{nameZh:'巴塞罗那卡丁车',name:'Indoor Karting Barcelona',leisure:'sports_centre',website:'https://www.indoorkartingbarcelona.com','addr:city':'Barcelona',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:2402,lat:39.4700,lon:-0.3600, tags:{nameZh:'瓦伦西亚卡丁车',name:'Karting Valencia',leisure:'sports_centre','addr:city':'Valencia',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:2403,lat:37.3900,lon:-6.0000, tags:{nameZh:'塞维利亚卡丁车',name:'Karting Sevilla',leisure:'sports_centre','addr:city':'Sevilla',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:2404,lat:40.420155,lon:-3.697558, tags:{nameZh:'马德里密室逃脱',name:'Fox in a Box Madrid',tourism:'attraction',website:'https://www.foxinaboxmadrid.com','addr:city':'Madrid',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:2405,lat:41.407082,lon:2.203020, tags:{nameZh:'巴塞罗那密室逃脱',name:'Escape Barcelona',tourism:'attraction',website:'https://www.escapebarcelona.com','addr:city':'Barcelona',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:2406,lat:39.472678,lon:-0.384947, tags:{nameZh:'瓦伦西亚密室逃脱',name:'Escape Room Valencia',tourism:'attraction','addr:city':'Valencia',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:2407,lat:36.723139,lon:-4.416607, tags:{nameZh:'马拉加密室逃脱',name:'Escape Room Malaga',tourism:'attraction','addr:city':'Malaga',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:2408,lat:40.442065,lon:-3.457450, tags:{nameZh:'马德里迷你高尔夫',name:'Mini Golf Madrid Indoor',leisure:'miniature_golf','addr:city':'Madrid',opening_hours:'Mo-Su 11:00-21:00'}},
+  { type:'node',id:2409,lat:41.3600,lon:2.1300, tags:{nameZh:'巴塞罗那迷你高尔夫',name:'Minigolf Barcelona',leisure:'miniature_golf','addr:city':'Barcelona',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:2410,lat:28.055749,lon:-16.732054, tags:{nameZh:'特内里费迷你高尔夫',name:'Minigolf Las Americas Tenerife',leisure:'miniature_golf','addr:city':'Playa de las Americas',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:2411,lat:39.569730,lon:2.651075, tags:{nameZh:'马略卡迷你高尔夫',name:'Golf Fantasia Mallorca',leisure:'miniature_golf',website:'https://www.golffantasia.com','addr:city':'Palma de Mallorca',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:2412,lat:40.4200,lon:-3.7200, tags:{nameZh:'马德里攀爬冒险',name:'Aventura Amazonia Madrid',tourism:'theme_park',website:'https://www.aventura-amazonia.com','addr:city':'Madrid',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:2413,lat:41.410662,lon:1.976343, tags:{nameZh:'巴塞罗那攀爬冒险',name:'Bosc Urba Barcelona',tourism:'theme_park',website:'https://www.boscurba.com','addr:city':'Barcelona',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:2414,lat:36.7100,lon:-4.4400, tags:{nameZh:'马拉加攀爬公园',name:'Parque Aventura Malaga',tourism:'theme_park','addr:city':'Malaga',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:2415,lat:43.258182,lon:-2.866899, tags:{nameZh:'毕尔巴鄂攀爬公园',name:'Parque Aventura Bilbao',tourism:'theme_park','addr:city':'Bilbao',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:2416,lat:40.4700,lon:-3.6500, tags:{nameZh:'马德里攀岩中心',name:'Sharma Climbing Madrid',leisure:'sports_centre',website:'https://www.sharmaclimbingmadrid.com','addr:city':'Madrid',opening_hours:'Mo-Fr 10:00-22:00; Sa-Su 10:00-20:00'}},
+  { type:'node',id:2417,lat:41.3500,lon:2.1200, tags:{nameZh:'巴塞罗那攀岩中心',name:'Sharma Climbing Barcelona',leisure:'sports_centre',website:'https://www.sharmaclimbing.com','addr:city':'Barcelona',opening_hours:'Mo-Fr 08:00-22:00; Sa-Su 09:00-20:00'}},
+  { type:'node',id:2418,lat:40.444570,lon:-3.581363, tags:{nameZh:'马德里蹦床公园Norte',name:'Urban Planet Madrid',leisure:'indoor_playground',website:'https://www.urbanplanet.es','addr:city':'Madrid',opening_hours:'Mo-Su 10:00-21:00'}},
+  { type:'node',id:2419,lat:37.392124,lon:-5.996932, tags:{nameZh:'塞维利亚蹦床公园',name:'Urban Planet Sevilla',leisure:'indoor_playground',website:'https://www.urbanplanet.es','addr:city':'Sevilla',opening_hours:'Mo-Su 10:00-21:00'}},
+];
+
+// ===== Category config =====
+const CATS = {
+  theme_park:  {emoji:'🎢', en:'Theme parks',   es:'Parques temáticos',     zh:'主题乐园'},
+  zoo:         {emoji:'🦒', en:'Zoos',          es:'Zoos',   zh:'动物园'},
+  aquarium:    {emoji:'🐠', en:'Aquariums',     es:'Acuarios',        zh:'水族馆'},
+  museum:      {emoji:'🏛️', en:'Museums',       es:'Museos',          zh:'博物馆'},
+  nature:      {emoji:'🌳', en:'Nature',        es:'Naturaleza',         zh:'自然'},
+  beach:       {emoji:'🏖️', en:'Beaches',       es:'Playas',       zh:'海滩'},
+  playground:  {emoji:'🎪', en:'Playgrounds',   es:'Parques infantiles',    zh:'游乐场'},
+  indoor_play: {emoji:'🏠', en:'Indoor play',   es:'Parque cubierto',zh:'室内游乐'},
+  trampoline:  {emoji:'🤸', en:'Trampoline',    es:'Trampolín',     zh:'蹦床'},
+  swim:        {emoji:'🏊', en:'Swimming',      es:'Piscina',        zh:'游泳'},
+  climbing:    {emoji:'🧗', en:'Climbing',      es:'Escalada',       zh:'攀爬'},
+  karting:     {emoji:'🏎️', en:'Karting',       es:'Karting',           zh:'卡丁车'},
+  farm:         {emoji:'🐑', en:'Farms',         es:'Granja',zh:'农场'},
+  attraction:  {emoji:'⭐', en:'Attractions',   es:'Atracciones',     zh:'景点'},
+  theatre:     {emoji:'🎭', en:'Theatre',       es:'Teatro',        zh:'剧院'},
+  cinema:      {emoji:'🎬', en:'Cinema',        es:'Cine',       zh:'电影院'},
+  ice_rink:    {emoji:'⛸️', en:'Ice rink',      es:'Pista de hielo',        zh:'滑冰'},
+  minigolf:    {emoji:'⛳', en:'Minigolf',      es:'Minigolf',     zh:'迷你高尔夫'},
+  castle:      {emoji:'🏰', en:'Castles',       es:'Castillos',       zh:'城堡'},
+  windmill:    {emoji:'🌬️', en:'Windmills',     es:'Molinos',         zh:'风车'},
+  escape:      {emoji:'🔓', en:'Escape rooms',  es:'Escape rooms',   zh:'密室逃脱'},
+  sports:      {emoji:'🏆', en:'Sports centre', es:'Centro deportivo',   zh:'运动中心'},
+  restaurant:  {emoji:'🍽️', en:'Family dining', es:'Restaurantes familiares',           zh:'亲子餐厅'},
+  monument:    {emoji:'🗿', en:'Monuments',     es:'Monumentos',     zh:'古迹'},
+  ship:        {emoji:'⛵', en:'Historic ships',es:'Barcos históricos',zh:'历史船只'},
+  ruins:       {emoji:'🏺', en:'Ruins',         es:'Ruinas',         zh:'遗址'},
+  other:       {emoji:'📍', en:'Other',         es:'Otro',         zh:'其他'}
+};
+
+// Richer emoji mapping using venue name keywords
+function emojiFor(name, cat){
+  const n = (name||'').toLowerCase();
+  // Zoo subtype refinements
+  if(cat==='zoo'){
+    if(/safari|wild|beekse/.test(n)) return '🦁';
+    if(/dolf|sea|seal|marine/.test(n)) return '🐬';
+    if(/bird|vogel|avifauna/.test(n)) return '🦜';
+    if(/ape|monkey|apen/.test(n)) return '🐒';
+    if(/butterfly|vlinder/.test(n)) return '🦋';
+    if(/reptile|snake|slang/.test(n)) return '🐍';
+    return '🦒';
+  }
+  // Museum subtype
+  if(cat==='museum'){
+    if(/science|nemo|natur/.test(n)) return '🔬';
+    if(/art|van gogh|rijks|kunstmuseum|stedelijk|gemeente/.test(n)) return '🖼️';
+    if(/maritime|ship|scheepvaart|maritiem/.test(n)) return '⚓';
+    if(/railway|spoorweg|train|tram/.test(n)) return '🚂';
+    if(/aviation|air|luchtvaart/.test(n)) return '✈️';
+    if(/corpus|body|anatomie/.test(n)) return '🫀';
+    if(/music|muziek|instrument/.test(n)) return '🎼';
+    if(/toy|speelgoed/.test(n)) return '🧸';
+    if(/history|histori|oorlog|war|museum van de geest/.test(n)) return '📜';
+    return '🏛️';
+  }
+  // Theme park subtype
+  if(cat==='theme_park'){
+    if(/water|waterpark|splash|aqua/.test(n)) return '💦';
+    if(/snow|ski|slope/.test(n)) return '❄️';
+    if(/mini|madurodam|miniatuur/.test(n)) return '🏘️';
+    if(/fairy|sprookje|efteling/.test(n)) return '🏰';
+    return '🎢';
+  }
+  // Nature subtype
+  if(cat==='nature'){
+    if(/forest|bos|wald/.test(n)) return '🌲';
+    if(/heath|heide/.test(n)) return '🌾';
+    if(/dune|duin/.test(n)) return '🏝️';
+    if(/lake|meer|lak/.test(n)) return '🏞️';
+    if(/tulip|tulp|keukenhof/.test(n)) return '🌷';
+    return '🌳';
+  }
+  // Playground subtype
+  if(cat==='playground'){
+    if(/water|splash/.test(n)) return '💦';
+    if(/adventure|avontur/.test(n)) return '🧗';
+    return '🛝';
+  }
+  // Indoor play
+  if(cat==='indoor_play'){
+    if(/monkey/.test(n)) return '🐒';
+    if(/ballorig|ball/.test(n)) return '🎈';
+    if(/jimmy|jimmi/.test(n)) return '🤹';
+    return '🏠';
+  }
+  // Restaurant subtype
+  if(cat==='restaurant'){
+    if(/pannenkoek|pancake/.test(n)) return '🥞';
+    if(/chinese|chinees|china|asia|asian|sushi|wok/.test(n)) return '🥢';
+    if(/pizza|pizzer/.test(n)) return '🍕';
+    if(/ice cream|ijssalon|gelato/.test(n)) return '🍦';
+    if(/buffet/.test(n)) return '🍱';
+    if(/burger|mcdonalds/.test(n)) return '🍔';
+    return '🍽️';
+  }
+  // Theme parks extras
+  if(cat==='theme_park' && /petting|boerderij/.test(n)) return '🐄';
+  // Castle/fort
+  if(cat==='castle'){
+    if(/fort|bourtange/.test(n)) return '⚔️';
+    return '🏰';
+  }
+  // Windmill
+  if(cat==='windmill') return '🌬️';
+  // Sports
+  if(cat==='sports'){
+    if(/klim|climb/.test(n)) return '🧗';
+    if(/bow|boog/.test(n)) return '🏹';
+    return '🏆';
+  }
+  // Farm animals
+  if(cat==='farm'){
+    if(/geiten|goat/.test(n)) return '🐐';
+    if(/paarden|horse/.test(n)) return '🐴';
+    return '🐑';
+  }
+  return CATS[cat]?.emoji || '📍';
+}
+
+function classify(t){
+  if(t.tourism==='theme_park') return 'theme_park';
+  if(t.tourism==='zoo') return 'zoo';
+  if(t.tourism==='children_farm') return 'farm';
+  if(t.tourism==='aquarium') return 'aquarium';
+  if(t.tourism==='museum') return 'museum';
+  if(t.tourism==='attraction' || t.tourism==='visitor_centre') return 'attraction';
+  if(t.leisure==='nature_reserve' || t.leisure==='park') return 'nature';
+  if(t.leisure==='playground') return 'playground';
+  if(t.leisure==='indoor_playground') return 'indoor_play';
+  if(t.leisure==='trampoline_park') return 'trampoline';
+  if(t.leisure==='swimming_pool') return 'swim';
+  if(t.leisure==='climbing_park') return 'climbing';
+  if(t.leisure==='go_kart') return 'karting';
+  if(t.leisure==='miniature_golf') return 'minigolf';
+  if(t.leisure==='ice_rink') return 'ice_rink';
+  if(t.leisure==='sports_centre') return 'sports';
+  if(t.leisure==='escape_room') return 'escape';
+  if(t.amenity==='theatre') return 'theatre';
+  if(t.amenity==='cinema') return 'cinema';
+  if(t.amenity && t.amenity.indexOf('restaurant')>=0) return 'restaurant';
+  if(t.historic==='castle') return 'castle';
+  if(t.historic==='fort') return 'castle';
+  if(t.historic==='windmill' || t.man_made==='windmill') return 'windmill';
+  if(t.historic==='monument' || t.historic==='archaeological_site') return 'monument';
+  if(t.historic==='ship') return 'ship';
+  if(t.historic==='ruins') return 'ruins';
+  if(t.natural==='beach') return 'beach';
+  return 'other';
+}
+
+// ===== Transform data =====
+const VENUES = STATIC_ES_VENUES.map(v=>{
+  const t = v.tags || {};
+  const cat = classify(t);
+  return {
+    id: v.id, lat: v.lat, lon: v.lon,
+    name: t.name || 'Unnamed',
+    zh: t.nameZh || '',
+    cat: cat,
+    emoji: emojiFor(t.name, cat),
+    city: t['addr:city'] || '',
+    street: t['addr:street'] || '',
+    house: t['addr:housenumber'] || '',
+    postcode: t['addr:postcode'] || '',
+    website: t.website || '',
+    hours: t.opening_hours || '',
+    rating: parseFloat(t.rating || '0') || null,
+    reviews: parseInt(t.reviews || '0') || 0,
+  };
+});
+
+// ===== State =====
+const FAV_KEY = 'ke_favs_es';
+const LANG_KEY = 'ke_lang_es';
+const LANGS = ['en','es','zh'];  // cycle: en → nl → zh → en
+const state = {
+  activeCats: new Set(),  // empty = all
+  search: '',
+  sortBy: 'rating',
+  filtered: [],
+  selectedId: null,
+  markers: new Map(),
+  favs: new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')),
+  favsOnly: false,
+  lang: localStorage.getItem(LANG_KEY) || (navigator.language.startsWith('es') ? 'es' : navigator.language.startsWith('zh') ? 'zh' : 'en'),
+};
+
+// ===== i18n =====
+const I18N = {
+  en: {
+    in_view: 'in view', favs: '♡ Favs', filters: '🏷 Category', sort: '↕ Sort',
+    category: 'Category', clear: 'Clear', show_results: 'Show results',
+    near_me: 'Near me', map: '🗺 Map', list: '☰ List',
+    directions: '🗺 Directions', website: '🌐 Website',
+    rating: 'Rating', address: 'Address', city: 'City', hours: 'Hours', reviews: 'reviews',
+    empty: 'No venues in this area. Try moving the map or clearing filters.',
+    search_ph: 'Search places or cities…',
+    lang_next: 'ES',
+  },
+  es: {
+    in_view:'a la vista', favs:'♡ Favoritos', filters:'🏷 Categoría', sort:'↕ Ordenar',
+    category:'Categoría', clear:'Borrar', show_results:'Mostrar resultados',
+    near_me:'Cerca de mí', map:'🗺 Mapa', list:'☰ Lista',
+    directions:'🗺 Direcciones', website:'🌐 Sitio web',
+    rating:'Valoración', address:'Dirección', city:'Ciudad', hours:'Horario', reviews:'reseñas',
+    empty:'No hay lugares en esta zona.',
+    search_ph:'Buscar lugares o ciudades…',
+    lang_next:'中',
+  },
+  zh: {
+    in_view: '可见', favs: '♡ 收藏', filters: '🏷 品类', sort: '↕ 排序',
+    category: '品类', clear: '清空', show_results: '显示结果',
+    near_me: '我附近', map: '🗺 地图', list: '☰ 列表',
+    directions: '🗺 导航', website: '🌐 官网',
+    rating: '评分', address: '地址', city: '城市', hours: '开放时间', reviews: '评价',
+    empty: '当前视口内没有场所。拖动地图或清空筛选。',
+    search_ph: '搜索场所或城市…',
+    lang_next: 'EN',
+  }
+};
+function t(k){return I18N[state.lang][k] || k;}
+
+function toggleLang(){
+  const idx = LANGS.indexOf(state.lang);
+  state.lang = LANGS[(idx+1) % LANGS.length];
+  localStorage.setItem(LANG_KEY, state.lang);
+  applyLang();
+  renderList();
+  buildCatGrid();
+}
+function applyLang(){
+  // Header button shows NEXT language
+  document.getElementById('lang-btn').textContent = t('lang_next');
+  // Update chips
+  document.getElementById('favs-chip').innerHTML = t('favs');
+  document.querySelector('.actions .chip:nth-child(2)').innerHTML = t('filters');
+  document.querySelector('.actions .chip:nth-child(3)').innerHTML = t('sort');
+  // Filter drawer title + section
+  document.querySelector('.filter-hdr h3').textContent = t('category');
+  document.querySelector('.filter-section h4').textContent = t('category');
+  document.querySelector('.btn-clear').textContent = t('clear');
+  document.querySelector('.btn-apply').textContent = t('show_results');
+  // Near me button
+  document.querySelector('.fab.near').innerHTML = `<span>📍</span><span>${t('near_me')}</span>`;
+  // Map/List toggle
+  document.getElementById('tog-map').textContent = t('map');
+  document.getElementById('tog-list').textContent = t('list');
+  // Search placeholder
+  document.getElementById('search').placeholder = t('search_ph');
+  // Count label
+  document.getElementById('count-label').textContent = t('in_view');
+}
+function saveFavs(){localStorage.setItem(FAV_KEY, JSON.stringify([...state.favs]));}
+function toggleFav(){
+  if(state.selectedId == null) return;
+  if(state.favs.has(state.selectedId)) state.favs.delete(state.selectedId);
+  else state.favs.add(state.selectedId);
+  saveFavs();
+  updateFavBtn();
+  renderList();
+}
+function updateFavBtn(){
+  const btn = document.getElementById('ov-fav');
+  if(!btn) return;
+  const on = state.favs.has(state.selectedId);
+  btn.classList.toggle('on', on);
+  btn.textContent = on ? '♥' : '♡';
+}
+function toggleFavsOnly(){
+  state.favsOnly = !state.favsOnly;
+  document.getElementById('favs-chip').classList.toggle('on', state.favsOnly);
+  document.getElementById('favs-chip').style.background = state.favsOnly ? '#fff5f0' : '';
+  document.getElementById('favs-chip').style.color = state.favsOnly ? 'var(--brand)' : '';
+  document.getElementById('favs-chip').style.borderColor = state.favsOnly ? 'var(--brand)' : '';
+  renderList();
+}
+function cardFavClick(ev, id){
+  ev.stopPropagation();
+  if(state.favs.has(id)) state.favs.delete(id); else state.favs.add(id);
+  saveFavs();
+  if(state.selectedId===id) updateFavBtn();
+  renderList();
+}
+
+// ===== Map =====
+const map = L.map('map', {zoomControl:false, attributionControl:false}).setView([40.0,-3.7],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+L.control.attribution({prefix:false}).addTo(map);
+
+const clusterGroup = L.markerClusterGroup({
+  maxClusterRadius: 50,
+  showCoverageOnHover: false,
+});
+map.addLayer(clusterGroup);
+
+function makeIcon(v, selected=false){
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim();
+  return L.divIcon({
+    className: selected ? 'selected' : '',
+    html: `<div class="venue-marker" style="border-color:${color}">${v.emoji}</div>`,
+    iconSize:[36,36], iconAnchor:[18,18]
+  });
+}
+
+VENUES.forEach(v=>{
+  const m = L.marker([v.lat, v.lon], {icon: makeIcon(v)});
+  m.on('click', ()=>openDetail(v));
+  clusterGroup.addLayer(m);
+  state.markers.set(v.id, m);
+});
+
+// ===== Filter + render =====
+function computeFiltered(){
+  const q = state.search.trim().toLowerCase();
+  const bounds = map.getBounds();
+  let list = VENUES.filter(v=>{
+    if(state.favsOnly && !state.favs.has(v.id)) return false;
+    if(state.activeCats.size && !state.activeCats.has(v.cat)) return false;
+    if(q && !(v.name.toLowerCase().includes(q) || v.zh.includes(q) || v.city.toLowerCase().includes(q))) return false;
+    if(!state.favsOnly && !bounds.contains([v.lat, v.lon])) return false;
+    return true;
+  });
+  if(state.sortBy==='rating'){
+    list.sort((a,b)=>(b.rating||0)-(a.rating||0));
+  } else if(state.sortBy==='name'){
+    list.sort((a,b)=>a.name.localeCompare(b.name));
+  }
+  state.filtered = list;
+  return list;
+}
+
+function renderList(){
+  const list = computeFiltered();
+  const el = document.getElementById('list');
+  document.getElementById('count').textContent = list.length;
+  if(!list.length){
+    el.innerHTML = `<div class="empty">No venues in this area. Try moving the map or clearing filters.</div>`;
+    return;
+  }
+  el.innerHTML = list.slice(0,200).map(v=>{
+    const isFav = state.favs.has(v.id);
+    // NL venues: original name is already Dutch → use for en & nl; zh uses nameZh
+    const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+    const secondary = state.lang==='zh' ? v.name : (v.zh || '');
+    const catLabel = CATS[v.cat]?.[state.lang] || v.cat;
+    return `
+    <div class="venue-card" data-id="${v.id}" onclick="openDetail(VENUES.find(x=>x.id===${v.id}))">
+      <div class="venue-thumb cat-${v.cat}">${v.emoji}<button class="card-fav ${isFav?'on':''}" onclick="cardFavClick(event,${v.id})" title="Favorite">${isFav?'♥':'♡'}</button></div>
+      <div class="venue-info">
+        <div class="venue-name">${primary}</div>
+        ${secondary?`<div class="venue-zh">${secondary}</div>`:''}
+        <div class="venue-meta">
+          ${v.rating?`<span class="rating">★ ${v.rating.toFixed(1)}</span><span class="dot">·</span>`:''}
+          <span>${catLabel}</span>
+          ${v.city?`<span class="dot">·</span><span>${v.city}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== Detail overlay =====
+function openDetail(v){
+  if(!v) return;
+  state.selectedId = v.id;
+  const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+  const secondary = state.lang==='zh' && v.zh ? v.name : v.zh;
+  document.getElementById('ov-name').textContent = primary;
+  document.getElementById('ov-zh').textContent = secondary;
+  const rows = [];
+  if(v.rating) rows.push([t('rating'), `★ ${v.rating.toFixed(1)} · ${v.reviews.toLocaleString()} ${t('reviews')}`]);
+  if(v.street) rows.push([t('address'), `${v.street} ${v.house}, ${v.postcode} ${v.city}`.trim()]);
+  else if(v.city) rows.push([t('city'), v.city]);
+  rows.push([t('category'), `${v.emoji} ${CATS[v.cat]?.[state.lang] || v.cat}`]);
+  if(v.hours) rows.push([t('hours'), v.hours]);
+  document.getElementById('ov-body').innerHTML = rows.map(([k,val])=>
+    `<div class="detail-row"><div class="lbl">${k}</div><div>${val}</div></div>`
+  ).join('');
+  document.getElementById('ov-directions').href = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}&destination_place_id=${encodeURIComponent(v.name)}`;
+  document.getElementById('ov-directions').textContent = t('directions');
+  document.getElementById('ov-website').textContent = t('website');
+  const wsBtn = document.getElementById('ov-website');
+  if(v.website){
+    wsBtn.href = v.website; wsBtn.style.display='flex';
+  } else {
+    wsBtn.style.display='none';
+  }
+  updateFavBtn();
+  document.getElementById('overlay').classList.add('open');
+  // pan to marker
+  map.flyTo([v.lat, v.lon], Math.max(map.getZoom(), 13), {duration:.6});
+}
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('open');
+  state.selectedId = null;
+}
+
+// ===== Filter drawer =====
+function buildCatGrid(){
+  const counts = {};
+  VENUES.forEach(v=>counts[v.cat]=(counts[v.cat]||0)+1);
+  const el = document.getElementById('cat-grid');
+  el.innerHTML = Object.entries(CATS)
+    .filter(([k])=>counts[k])
+    .sort(([a],[b])=>(counts[b]||0)-(counts[a]||0))
+    .map(([k,c])=>`<button class="cat-btn ${state.activeCats.has(k)?'active':''}" data-cat="${k}" onclick="toggleCat('${k}')">
+      <span class="emoji">${c.emoji}</span>${c[state.lang]}<span class="count">${counts[k]}</span>
+    </button>`).join('');
+}
+function toggleCat(k){
+  if(state.activeCats.has(k)) state.activeCats.delete(k); else state.activeCats.add(k);
+  buildCatGrid();
+  renderList();
+}
+function clearFilter(){
+  state.activeCats.clear();
+  buildCatGrid();
+  renderList();
+}
+function openFilter(){document.getElementById('filter').classList.add('open');}
+function closeFilter(){document.getElementById('filter').classList.remove('open');}
+
+// ===== Drawer interactions =====
+function toggleDrawer(){
+  const d = document.getElementById('drawer');
+  const s = d.dataset.state;
+  d.dataset.state = s==='peek'?'half':(s==='half'?'full':'peek');
+}
+
+// ===== Near me (geolocation) =====
+function locateMe(){
+  if(!navigator.geolocation) return alert('Geolocation not supported');
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      const {latitude, longitude} = pos.coords;
+      map.flyTo([latitude, longitude], 12, {duration:.8});
+      L.circleMarker([latitude, longitude], {radius:10, color:'#c96442', fillColor:'#c96442', fillOpacity:.3, weight:3}).addTo(map);
+    },
+    (err)=>alert('Could not get location: '+err.message)
+  );
+}
+
+// ===== Zoom =====
+function zoomIn(){map.zoomIn();}
+function zoomOut(){map.zoomOut();}
+
+// ===== Search =====
+document.getElementById('search').addEventListener('input', e=>{
+  state.search = e.target.value;
+  renderList();
+});
+
+// ===== Country picker (placeholder — links to /) =====
+function openCountryPicker(){
+  window.location.href = '/';
+}
+
+// ===== Map/List view toggle (mobile) =====
+function setView(v){
+  document.body.dataset.view = v;
+  document.getElementById('tog-map').classList.toggle('active', v==='map');
+  document.getElementById('tog-list').classList.toggle('active', v==='list');
+  if(v==='map'){
+    setTimeout(()=>map.invalidateSize(), 50);
+  }
+}
+document.body.dataset.view = 'map';
+
+// ===== Sort toggle =====
+function toggleSort(){
+  state.sortBy = state.sortBy==='rating'?'name':'rating';
+  renderList();
+}
+
+// ===== Sync list when map moves =====
+let moveTimer;
+map.on('moveend', ()=>{
+  clearTimeout(moveTimer);
+  moveTimer = setTimeout(renderList, 150);
+});
+
+// ===== Initial render =====
+applyLang();
+buildCatGrid();
+renderList();
+
+// ===== Click outside to close overlays =====
+map.on('click', ()=>{
+  closeOverlay();
+});
+</script>
+</body>
+</html>

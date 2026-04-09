@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Germany Kids Explorer · KidsExplorer.eu</title>
+<meta name="description" content="Family-friendly venues across Germany on one interactive map. Multilingual. Free.">
+<link rel="canonical" href="https://kidsexplorer.eu/de/">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Original Holland Kids palette (restored from v1) */
+  --bg:#F2F4F8;
+  --surface:#FFFFFF;
+  --border:#CBD5E1;
+  --border-strong:#94A3B8;
+  --text:#1A2B4A;
+  --text-soft:#5A6A84;
+  --text-mute:#9AA5B8;
+  --brand:#E05A1E;
+  --brand-dark:#B84515;
+  --brand-light:#FFF0E9;
+  --teal:#0EA5A0;
+  --navy:#1A2B4A;
+  --shadow:0 1px 3px rgba(26,43,74,.12), 0 0 0 1px rgba(26,43,74,.04);
+  --shadow-lg:0 8px 24px rgba(26,43,74,.20), 0 0 0 1px rgba(26,43,74,.08);
+  --radius:14px;
+  --header-h:56px;
+  --safe-bottom:env(safe-area-inset-bottom,0);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input{font-family:inherit;border:none;outline:none;background:none;color:inherit}
+
+/* ===== Top Header ===== */
+.hdr{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);z-index:900;display:flex;align-items:center;gap:10px;padding:0 14px}
+.hdr-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;letter-spacing:-.3px;color:var(--brand);white-space:nowrap}
+.hdr-brand .logo{font-size:20px}
+.hdr-country{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--bg);border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:600;cursor:pointer}
+.hdr-country:hover{border-color:var(--brand)}
+.hdr-country .flag{font-size:16px}
+.hdr-search{flex:1;display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:999px;cursor:text;min-width:0}
+.hdr-search input{flex:1;font-size:14px;min-width:0}
+.hdr-search .icon{color:var(--text-mute);flex-shrink:0}
+.hdr-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--bg);border:1px solid var(--border);font-size:16px;flex-shrink:0}
+.hdr-btn:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ===== Map ===== */
+#map{position:fixed;top:var(--header-h);left:0;right:0;bottom:0;z-index:1}
+.leaflet-popup-content-wrapper{border-radius:14px}
+.leaflet-popup-content{margin:14px 16px;font-family:'Inter',sans-serif;font-size:13px}
+
+/* ===== Map/List Toggle (mobile) ===== */
+.view-toggle{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--header-h) + 12px);z-index:600;display:flex;background:#fff;border:1px solid var(--border);border-radius:999px;box-shadow:var(--shadow);padding:3px}
+.view-toggle button{padding:8px 18px;font-size:13px;font-weight:600;border-radius:999px;color:var(--text-soft)}
+.view-toggle button.active{background:var(--text);color:#fff}
+.view-toggle button:not(.active):hover{color:var(--text)}
+body[data-view="list"] #map{display:none}
+body[data-view="list"] .drawer{transform:translateY(0)!important;top:calc(var(--header-h) + 58px);border-radius:20px 20px 0 0;max-height:calc(100vh - var(--header-h) - 58px);height:calc(100vh - var(--header-h) - 58px)}
+body[data-view="list"] .drawer-handle{display:none}
+body[data-view="list"] .fab-stack{display:none}
+@media (min-width:1024px){
+  .view-toggle{display:none} /* desktop shows both */
+}
+
+/* ===== Floating Action Buttons ===== */
+.fab-stack{position:fixed;right:14px;top:calc(var(--header-h) + 14px);z-index:500;display:flex;flex-direction:column;gap:10px}
+.fab{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s}
+.fab:hover{border-color:var(--brand);color:var(--brand);transform:scale(1.05)}
+.fab.near{background:var(--brand);color:#fff;border-color:var(--brand);width:auto;padding:0 18px;border-radius:22px;font-size:13px;font-weight:600;gap:6px}
+.fab.near:hover{background:var(--brand-dark);color:#fff}
+
+/* ===== Bottom Drawer (List) ===== */
+.drawer{position:fixed;left:0;right:0;bottom:0;z-index:700;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:80vh;display:flex;flex-direction:column}
+.drawer[data-state="peek"]{transform:translateY(calc(100% - 72px))}
+.drawer[data-state="half"]{transform:translateY(calc(100% - 48vh))}
+.drawer[data-state="full"]{transform:translateY(8vh)}
+.drawer-handle{flex-shrink:0;padding:8px 0 4px;text-align:center;cursor:grab;touch-action:none}
+.drawer-handle::before{content:'';display:inline-block;width:40px;height:4px;background:var(--border-strong);border-radius:2px}
+.drawer-hdr{flex-shrink:0;padding:6px 18px 12px;display:flex;align-items:center;justify-content:space-between}
+.drawer-hdr .count{font-weight:700;font-size:14px}
+.drawer-hdr .count small{font-weight:500;color:var(--text-mute);font-size:12px;margin-left:4px}
+.drawer-hdr .actions{display:flex;gap:6px}
+.drawer-hdr .chip{padding:6px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.drawer-hdr .chip:hover{border-color:var(--brand);color:var(--brand)}
+.drawer-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 18px calc(20px + var(--safe-bottom))}
+.venue-card{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.venue-card:last-child{border-bottom:none}
+.venue-card:hover{background:#fafaf7}
+.venue-card:hover .venue-name{color:var(--brand)}
+.venue-thumb{width:56px;height:56px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;position:relative;overflow:hidden}
+.venue-thumb::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.2),transparent)}
+.venue-info{flex:1;min-width:0}
+.venue-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-zh{font-size:12px;color:var(--text-mute);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft)}
+.venue-meta .rating{color:var(--brand);font-weight:600}
+.venue-meta .dot{color:var(--text-mute)}
+.empty{padding:40px 20px;text-align:center;color:var(--text-mute);font-size:14px}
+
+/* ===== Detail Overlay (bottom sheet, half-screen) ===== */
+.overlay{position:fixed;left:0;right:0;bottom:0;z-index:900;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);max-height:50vh;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.overlay.open{transform:translateY(0)}
+.overlay-hdr{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;padding:18px 18px 12px;gap:10px}
+.overlay-title{flex:1;min-width:0}
+.overlay-title h3{font-size:18px;font-weight:700;line-height:1.2;margin-bottom:4px}
+.overlay-title .zh{font-size:13px;color:var(--text-mute)}
+.overlay-close{width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-soft)}
+.overlay-body{flex:1;overflow-y:auto;padding:0 18px 20px}
+.detail-row{display:flex;gap:10px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--text-soft)}
+.detail-row .lbl{min-width:70px;font-weight:600;color:var(--text)}
+.overlay-actions{flex-shrink:0;padding:12px 18px calc(12px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:8px}
+.overlay-actions .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+.overlay-actions .btn-primary{background:var(--brand);color:#fff}
+.overlay-actions .btn-primary:hover{background:var(--brand-dark)}
+.overlay-actions .btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.overlay-actions .btn-secondary:hover{border-color:var(--brand);color:var(--brand)}
+.overlay-fav{width:44px;height:44px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:all .15s}
+.overlay-fav:hover{border-color:var(--brand)}
+.overlay-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.card-fav{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.9);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text-mute);z-index:2;transition:all .15s}
+.card-fav:hover{color:var(--brand);border-color:var(--brand)}
+.card-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.venue-thumb{position:relative}
+
+/* ===== Filter Drawer (slides from right) ===== */
+.filter-drawer{position:fixed;top:var(--header-h);right:0;bottom:0;width:min(360px,92vw);background:#fff;border-left:1px solid var(--border);box-shadow:-10px 0 40px rgba(0,0,0,.12);z-index:950;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;pointer-events:none}
+.filter-drawer.open{pointer-events:auto}
+.filter-drawer.open{transform:translateX(0)}
+.filter-hdr{flex-shrink:0;padding:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.filter-hdr h3{font-size:18px;font-weight:700}
+.filter-body{flex:1;overflow-y:auto;padding:20px}
+.filter-section{margin-bottom:24px}
+.filter-section h4{font-size:12px;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.cat-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:500;color:var(--text)}
+.cat-btn.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.cat-btn:not(.active):hover{border-color:var(--brand);color:var(--brand)}
+.cat-btn .emoji{font-size:16px}
+.cat-btn .count{margin-left:auto;font-size:11px;opacity:.75}
+.filter-footer{flex-shrink:0;padding:16px 20px calc(16px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:10px}
+.filter-footer .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600}
+.filter-footer .btn-clear{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.filter-footer .btn-apply{background:var(--brand);color:#fff}
+
+/* Gradient covers for thumbnails */
+.cat-theme_park{background:linear-gradient(135deg,#ff9a56,#ff6b9d)}
+.cat-zoo{background:linear-gradient(135deg,#22c55e,#059669)}
+.cat-aquarium{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-museum{background:linear-gradient(135deg,#8b5cf6,#4f46e5)}
+.cat-nature{background:linear-gradient(135deg,#84cc16,#15803d)}
+.cat-beach{background:linear-gradient(135deg,#38bdf8,#0ea5e9)}
+.cat-playground{background:linear-gradient(135deg,#fbbf24,#f97316)}
+.cat-indoor_play{background:linear-gradient(135deg,#a855f7,#7e22ce)}
+.cat-trampoline{background:linear-gradient(135deg,#ec4899,#be185d)}
+.cat-swim{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-climbing{background:linear-gradient(135deg,#f59e0b,#b45309)}
+.cat-karting{background:linear-gradient(135deg,#ef4444,#991b1b)}
+.cat-farm{background:linear-gradient(135deg,#a3e635,#65a30d)}
+.cat-attraction{background:linear-gradient(135deg,#fb923c,#c2410c)}
+.cat-theatre{background:linear-gradient(135deg,#d946ef,#86198f)}
+.cat-cinema{background:linear-gradient(135deg,#64748b,#334155)}
+.cat-ice_rink{background:linear-gradient(135deg,#60a5fa,#1d4ed8)}
+.cat-minigolf{background:linear-gradient(135deg,#10b981,#047857)}
+.cat-other{background:linear-gradient(135deg,#94a3b8,#475569)}
+.cat-castle{background:linear-gradient(135deg,#a78bfa,#6d28d9)}
+.cat-windmill{background:linear-gradient(135deg,#bae6fd,#0284c7)}
+.cat-escape{background:linear-gradient(135deg,#fdba74,#c2410c)}
+.cat-sports{background:linear-gradient(135deg,#fde047,#ca8a04)}
+.cat-restaurant{background:linear-gradient(135deg,#f87171,#b91c1c)}
+.cat-monument{background:linear-gradient(135deg,#d6d3d1,#57534e)}
+.cat-ship{background:linear-gradient(135deg,#67e8f9,#0e7490)}
+.cat-ruins{background:linear-gradient(135deg,#fde68a,#92400e)}
+
+/* Marker icons */
+.venue-marker{width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.leaflet-marker-icon.selected .venue-marker{transform:scale(1.2);border-width:4px}
+
+/* Cluster */
+.marker-cluster-small{background:rgba(201,100,66,.25)}
+.marker-cluster-small div{background:rgba(201,100,66,.8)}
+.marker-cluster-medium{background:rgba(201,100,66,.35)}
+.marker-cluster-medium div{background:rgba(201,100,66,.9)}
+.marker-cluster-large{background:rgba(201,100,66,.45)}
+.marker-cluster-large div{background:var(--brand)}
+.marker-cluster div{color:#fff;font-weight:700}
+
+@media (max-width:640px){
+  .hdr-brand span:not(.logo){display:none}
+  .drawer-hdr{padding:6px 14px 10px}
+  .drawer-body{padding:0 14px calc(20px + var(--safe-bottom))}
+  .cat-grid{grid-template-columns:1fr}
+}
+@media (min-width:1024px){
+  /* Desktop: drawer becomes sidebar */
+  .drawer{top:var(--header-h);right:auto;left:0;width:420px;max-width:420px;max-height:none;height:calc(100vh - var(--header-h));border-radius:0;border-right:1px solid var(--border);border-top:none;transform:translateX(0) !important;box-shadow:4px 0 24px rgba(0,0,0,.06)}
+  .drawer-handle{display:none}
+  #map{left:420px}
+  .overlay{left:auto;right:20px;bottom:20px;width:400px;max-width:calc(100vw - 440px);max-height:70vh;border-radius:20px;border:1px solid var(--border)}
+  .fab-stack{top:calc(var(--header-h) + 14px);right:14px}
+}
+</style>
+</head>
+<body>
+
+<!-- Top Header -->
+<header class="hdr">
+  <a href="/" class="hdr-brand"><span class="logo">🌍</span><span>KidsExplorer</span></a>
+  <button class="hdr-country" onclick="openCountryPicker()">
+    <span class="flag">🇩🇪</span><span>DE</span><span style="opacity:.5">▾</span>
+  </button>
+  <div class="hdr-search">
+    <span class="icon">🔍</span>
+    <input id="search" placeholder="Search / 搜索…">
+  </div>
+  <button class="hdr-btn" id="lang-btn" onclick="toggleLang()" title="Language">中</button>
+  <button class="hdr-btn" onclick="openFilter()" title="Category">🏷️</button>
+</header>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- View Toggle (mobile only) -->
+<div class="view-toggle">
+  <button id="tog-map" class="active" onclick="setView('map')">🗺 Map</button>
+  <button id="tog-list" onclick="setView('list')">☰ List</button>
+</div>
+
+<!-- Floating Actions -->
+<div class="fab-stack">
+  <button class="fab near" onclick="locateMe()"><span>📍</span><span>Near me</span></button>
+  <button class="fab" onclick="zoomIn()">+</button>
+  <button class="fab" onclick="zoomOut()">−</button>
+</div>
+
+<!-- Bottom Drawer: Venue list -->
+<section class="drawer" id="drawer" data-state="peek">
+  <div class="drawer-handle" onclick="toggleDrawer()"></div>
+  <div class="drawer-hdr">
+    <div class="count"><span id="count">0</span> <small id="count-label">in view</small></div>
+    <div class="actions">
+      <button class="chip" id="favs-chip" onclick="toggleFavsOnly()">♡ Favs</button>
+      <button class="chip" onclick="openFilter()">🏷 Category</button>
+      <button class="chip" onclick="toggleSort()">↕ Sort</button>
+    </div>
+  </div>
+  <div class="drawer-body" id="list"></div>
+</section>
+
+<!-- Detail Overlay -->
+<aside class="overlay" id="overlay">
+  <div class="overlay-hdr">
+    <div class="overlay-title">
+      <h3 id="ov-name"></h3>
+      <div class="zh" id="ov-zh"></div>
+    </div>
+    <button class="overlay-close" onclick="closeOverlay()">×</button>
+  </div>
+  <div class="overlay-body" id="ov-body"></div>
+  <div class="overlay-actions">
+    <button class="overlay-fav" id="ov-fav" onclick="toggleFav()" title="Save to favorites">♡</button>
+    <a class="btn btn-secondary" id="ov-directions" target="_blank">🗺 Directions</a>
+    <a class="btn btn-primary" id="ov-website" target="_blank">🌐 Website</a>
+  </div>
+</aside>
+
+<!-- Filter Drawer -->
+<aside class="filter-drawer" id="filter">
+  <div class="filter-hdr">
+    <h3>Category</h3>
+    <button class="overlay-close" onclick="closeFilter()">×</button>
+  </div>
+  <div class="filter-body">
+    <div class="filter-section">
+      <h4>Category</h4>
+      <div class="cat-grid" id="cat-grid"></div>
+    </div>
+  </div>
+  <div class="filter-footer">
+    <button class="btn btn-clear" onclick="clearFilter()">Clear</button>
+    <button class="btn btn-apply" onclick="closeFilter()">Show results</button>
+  </div>
+</aside>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+const STATIC_DE_VENUES = [
+  // ══════════════════════════════════════════════════════════════
+  // THEME PARKS (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1,lat:48.264986,lon:7.720728, tags:{nameZh:'欧洲公园',name:'Europa-Park',tourism:'theme_park',website:'https://www.europapark.de','addr:city':'Rust',opening_hours:'Mo-Su 09:00-18:00 (seasonal)',rating:'4.7',reviews:'182453'}},
+  { type:'node',id:2,lat:50.800508,lon:6.879255, tags:{nameZh:'梦幻乐园',name:'Phantasialand',tourism:'theme_park',website:'https://www.phantasialand.de','addr:city':'Brühl',opening_hours:'Mo-Su 09:00-18:00 (seasonal)',rating:'4.6',reviews:'54218'}},
+  { type:'node',id:3,lat:48.424144,lon:10.301736, tags:{nameZh:'乐高乐园德国',name:'LEGOLAND Deutschland',tourism:'theme_park',website:'https://www.legoland.de','addr:city':'Günzburg',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.3',reviews:'38724'}},
+  { type:'node',id:4,lat:51.622315,lon:6.974916, tags:{nameZh:'电影公园德国',name:'Movie Park Germany',tourism:'theme_park',website:'https://www.movieparkgermany.de','addr:city':'Bottrop',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.1',reviews:'24831'}},
+  { type:'node',id:5,lat:53.021556,lon:9.873196, tags:{nameZh:'海德公园',name:'Heide Park',tourism:'theme_park',website:'https://www.heide-park.de','addr:city':'Soltau',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.2',reviews:'31247'}},
+  { type:'node',id:6,lat:49.430673,lon:10.943433, tags:{nameZh:'摩比世界乐园',name:'Playmobil FunPark',tourism:'theme_park',website:'https://www.playmobil-funpark.de','addr:city':'Zirndorf',opening_hours:'Mo-Su 09:00-18:00 (seasonal)',rating:'4.3',reviews:'11842'}},
+  { type:'node',id:7,lat:49.035945,lon:9.053903, tags:{nameZh:'特里普斯德里尔',name:'Erlebnispark Tripsdrill',tourism:'theme_park',website:'https://www.tripsdrill.de','addr:city':'Cleebronn',opening_hours:'Mo-Su 09:00-18:00 (seasonal)',rating:'4.5',reviews:'21436'}},
+  { type:'node',id:8,lat:54.074740,lon:10.779610, tags:{nameZh:'汉萨公园',name:'Hansa-Park',tourism:'theme_park',website:'https://www.hansapark.de','addr:city':'Sierksdorf',opening_hours:'Mo-Su 09:00-18:00 (seasonal)',rating:'4.4',reviews:'18924'}},
+  { type:'node',id:9,lat:47.712105,lon:9.595824, tags:{nameZh:'拉文斯堡游乐园',name:'Ravensburger Spieleland',tourism:'theme_park',website:'https://www.spieleland.de','addr:city':'Meckenbeuren',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.3',reviews:'9827'}},
+  { type:'node',id:10,lat:49.318660,lon:8.296063, tags:{nameZh:'假日公园',name:'Holiday Park',tourism:'theme_park',website:'https://www.holidaypark.de','addr:city':'Haßloch',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.1',reviews:'16243'}},
+  { type:'node',id:11,lat:51.312227,lon:8.435289, tags:{nameZh:'福特乐园',name:'Fort Fun Abenteuerland',tourism:'theme_park',website:'https://www.fortfun.de','addr:city':'Bestwig',opening_hours:'Mo-Su 10:00-17:00 (seasonal)',rating:'4.2',reviews:'7421'}},
+  { type:'node',id:12,lat:52.029588,lon:13.739224, tags:{nameZh:'热带岛屿',name:'Tropical Islands',tourism:'theme_park',website:'https://www.tropical-islands.de','addr:city':'Krausnick',opening_hours:'Mo-Su 06:00-00:00',rating:'4.1',reviews:'42318'}},
+  { type:'node',id:13,lat:53.543823,lon:9.988945, tags:{nameZh:'微缩景观世界',name:'Miniatur Wunderland',tourism:'theme_park',website:'https://www.miniatur-wunderland.de','addr:city':'Hamburg','addr:street':'Kehrwieder 2',opening_hours:'Mo-Su 09:00-18:00',rating:'4.8',reviews:'68247'}},
+  { type:'node',id:14,lat:48.3972,lon:11.7419, tags:{nameZh:'慕尼黑乐高探索中心',name:'LEGOLAND Discovery Centre München',tourism:'theme_park',website:'https://www.legolanddiscoverycentre.de','addr:city':'Munich',opening_hours:'Mo-Su 10:00-18:00',rating:'4.0',reviews:'5842'}},
+  { type:'node',id:15,lat:51.493264,lon:6.879271, tags:{nameZh:'杜伊斯堡乐高探索中心',name:'LEGOLAND Discovery Centre Oberhausen',tourism:'theme_park',website:'https://www.legolanddiscoverycentre.de','addr:city':'Oberhausen',opening_hours:'Mo-Su 10:00-18:00',rating:'4.0',reviews:'6124'}},
+  { type:'node',id:16,lat:52.509699,lon:13.372049, tags:{nameZh:'柏林乐高探索中心',name:'LEGOLAND Discovery Centre Berlin',tourism:'theme_park',website:'https://www.legolanddiscoverycentre.de','addr:city':'Berlin',opening_hours:'Mo-Su 10:00-18:00',rating:'4.1',reviews:'7218'}},
+  { type:'node',id:17,lat:49.318827,lon:8.447353, tags:{nameZh:'施派尔海洋世界',name:'SEA LIFE Speyer',tourism:'aquarium',website:'https://www.sealife.de','addr:city':'Speyer',opening_hours:'Mo-Su 10:00-17:00',rating:'4.0',reviews:'4327'}},
+  { type:'node',id:18,lat:51.052736,lon:7.129593, tags:{nameZh:'阿尔腾贝格冒险乐园',name:'Abenteuerland Altenberg',tourism:'theme_park','addr:city':'Odenthal',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:19,lat:48.173805,lon:11.556217, tags:{nameZh:'慕尼黑SEA LIFE水族馆',name:'SEA LIFE München',tourism:'aquarium',website:'https://www.sealife.de','addr:city':'Munich',opening_hours:'Mo-Su 10:00-17:00',rating:'3.9',reviews:'5421'}},
+  { type:'node',id:20,lat:52.5200,lon:13.4050, tags:{nameZh:'柏林SEA LIFE水族馆',name:'AquaDom & SEA LIFE Berlin',tourism:'aquarium',website:'https://www.sealife.de','addr:city':'Berlin',opening_hours:'Mo-Su 10:00-19:00',rating:'4.2',reviews:'12847'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // ZOOS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:30,lat:52.508449,lon:13.339231, tags:{nameZh:'柏林动物园',name:'Zoologischer Garten Berlin',tourism:'zoo',website:'https://www.zoo-berlin.de','addr:city':'Berlin','addr:street':'Hardenbergplatz 8',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'72431'}},
+  { type:'node',id:31,lat:52.501554,lon:13.531267, tags:{nameZh:'柏林动物公园',name:'Tierpark Berlin',tourism:'zoo',website:'https://www.tierpark-berlin.de','addr:city':'Berlin','addr:street':'Am Tierpark 125',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'28347'}},
+  { type:'node',id:32,lat:53.5967,lon:9.9375, tags:{nameZh:'哈根贝克动物园',name:'Tierpark Hagenbeck',tourism:'zoo',website:'https://www.hagenbeck.de','addr:city':'Hamburg',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'24218'}},
+  { type:'node',id:33,lat:48.805854,lon:9.204674, tags:{nameZh:'威廉玛动植物园',name:'Wilhelma Stuttgart',tourism:'zoo',website:'https://www.wilhelma.de','addr:city':'Stuttgart',opening_hours:'Mo-Su 08:15-17:30',rating:'4.4',reviews:'31247'}},
+  { type:'node',id:34,lat:50.961292,lon:6.976571, tags:{nameZh:'科隆动物园',name:'Kölner Zoo',tourism:'zoo',website:'https://www.koelnerzoo.de','addr:city':'Cologne',opening_hours:'Mo-Su 09:00-18:00',rating:'4.3',reviews:'27841'}},
+  { type:'node',id:35,lat:48.096281,lon:11.554197, tags:{nameZh:'海拉布伦动物园',name:'Tierpark Hellabrunn',tourism:'zoo',website:'https://www.hellabrunn.de','addr:city':'Munich',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'42318'}},
+  { type:'node',id:36,lat:51.350895,lon:12.369009, tags:{nameZh:'莱比锡动物园',name:'Zoo Leipzig',tourism:'zoo',website:'https://www.zoo-leipzig.de','addr:city':'Leipzig',opening_hours:'Mo-Su 09:00-18:00',rating:'4.6',reviews:'28924'}},
+  { type:'node',id:37,lat:49.447428,lon:11.144813, tags:{nameZh:'纽伦堡动物园',name:'Tiergarten Nürnberg',tourism:'zoo',website:'https://www.tiergarten.nuernberg.de','addr:city':'Nuremberg',opening_hours:'Mo-Su 09:00-17:30',rating:'4.4',reviews:'12847'}},
+  { type:'node',id:38,lat:51.256510,lon:6.749814, tags:{nameZh:'杜塞尔多夫水族动物园',name:'Aquazoo Düsseldorf',tourism:'zoo',website:'https://www.aquazoo.de','addr:city':'Düsseldorf',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'8421'}},
+  { type:'node',id:39,lat:51.037000,lon:13.755069, tags:{nameZh:'德累斯顿动物园',name:'Zoo Dresden',tourism:'zoo',website:'https://www.zoo-dresden.de','addr:city':'Dresden',opening_hours:'Mo-Su 08:30-17:30',rating:'4.4',reviews:'9247'}},
+  { type:'node',id:40,lat:52.381073,lon:9.770736, tags:{nameZh:'汉诺威冒险动物园',name:'Erlebnis-Zoo Hannover',tourism:'zoo',website:'https://www.zoo-hannover.de','addr:city':'Hannover',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'21436'}},
+  { type:'node',id:41,lat:50.115642,lon:8.701960, tags:{nameZh:'法兰克福动物园',name:'Zoo Frankfurt',tourism:'zoo',website:'https://www.zoo-frankfurt.de','addr:city':'Frankfurt',opening_hours:'Mo-Su 09:00-19:00',rating:'4.3',reviews:'16842'}},
+  { type:'node',id:42,lat:48.806253,lon:9.206498, tags:{nameZh:'威廉玛水族馆',name:'Wilhelma Aquarium',tourism:'aquarium',website:'https://www.wilhelma.de','addr:city':'Stuttgart',opening_hours:'Mo-Su 08:15-17:30',rating:'4.4',reviews:'8214'}},
+  { type:'node',id:43,lat:54.077978,lon:12.080662, tags:{nameZh:'罗斯托克动物园',name:'Zoo Rostock',tourism:'zoo',website:'https://www.zoo-rostock.de','addr:city':'Rostock',opening_hours:'Mo-Su 09:00-17:00',rating:'4.5',reviews:'8924'}},
+  { type:'node',id:44,lat:47.6667,lon:9.1750, tags:{nameZh:'拉芬斯堡动物园',name:'Wildpark Ravensburg',tourism:'zoo','addr:city':'Ravensburg',opening_hours:'Mo-Su 09:00-17:00',rating:'4.2',reviews:'2148'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // MUSEUMS (~25)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:50,lat:48.1300,lon:11.5833, tags:{nameZh:'德意志博物馆',name:'Deutsches Museum',tourism:'museum',website:'https://www.deutsches-museum.de','addr:city':'Munich','addr:street':'Museumsinsel 1',opening_hours:'Mo-Su 09:00-17:00',rating:'4.5',reviews:'52847'}},
+  { type:'node',id:51,lat:49.311428,lon:8.447396, tags:{nameZh:'施派尔技术博物馆',name:'Technik Museum Speyer',tourism:'museum',website:'https://www.technik-museum.de','addr:city':'Speyer',opening_hours:'Mo-Su 09:00-18:00',rating:'4.6',reviews:'18924'}},
+  { type:'node',id:52,lat:49.239767,lon:8.899093, tags:{nameZh:'辛斯海姆汽车技术博物馆',name:'Auto & Technik Museum Sinsheim',tourism:'museum',website:'https://www.technik-museum.de','addr:city':'Sinsheim',opening_hours:'Mo-Su 09:00-18:00',rating:'4.6',reviews:'21436'}},
+  { type:'node',id:53,lat:52.530490,lon:13.379115, tags:{nameZh:'柏林自然历史博物馆',name:'Museum für Naturkunde Berlin',tourism:'museum',website:'https://www.museumfuernaturkunde.berlin','addr:city':'Berlin','addr:street':'Invalidenstraße 43',opening_hours:'Tu-Fr 09:30-18:00; Sa-Su 10:00-18:00',rating:'4.5',reviews:'38247'}},
+  { type:'node',id:54,lat:52.509012,lon:13.379294, tags:{nameZh:'德国间谍博物馆',name:'Deutsches Spionagemuseum',tourism:'museum',website:'https://www.deutsches-spionagemuseum.de','addr:city':'Berlin','addr:street':'Leipziger Platz 9',opening_hours:'Mo-Su 10:00-20:00',rating:'4.3',reviews:'12847'}},
+  { type:'node',id:55,lat:50.9325,lon:6.9639, tags:{nameZh:'科隆巧克力博物馆',name:'Schokoladenmuseum Köln',tourism:'museum',website:'https://www.schokoladenmuseum.de','addr:city':'Cologne','addr:street':'Am Schokoladenmuseum 1A',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'28431'}},
+  { type:'node',id:56,lat:48.176903,lon:11.559069, tags:{nameZh:'宝马博物馆',name:'BMW Museum',tourism:'museum',website:'https://www.bmw-welt.com','addr:city':'Munich','addr:street':'Am Olympiapark 2',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'24218'}},
+  { type:'node',id:57,lat:48.177219,lon:11.556376, tags:{nameZh:'宝马世界',name:'BMW Welt',tourism:'museum',website:'https://www.bmw-welt.com','addr:city':'Munich','addr:street':'Am Olympiapark 1',opening_hours:'Mo-Su 07:30-00:00',rating:'4.6',reviews:'42318'}},
+  { type:'node',id:58,lat:48.788201,lon:9.233992, tags:{nameZh:'梅赛德斯-奔驰博物馆',name:'Mercedes-Benz Museum',tourism:'museum',website:'https://www.mercedes-benz.com/museum','addr:city':'Stuttgart','addr:street':'Mercedesstraße 100',opening_hours:'Tu-Su 09:00-18:00',rating:'4.7',reviews:'38924'}},
+  { type:'node',id:59,lat:48.834299,lon:9.152447, tags:{nameZh:'保时捷博物馆',name:'Porsche Museum',tourism:'museum',website:'https://www.porsche.com/museum','addr:city':'Stuttgart','addr:street':'Porscheplatz 1',opening_hours:'Tu-Su 09:00-18:00',rating:'4.6',reviews:'18247'}},
+  { type:'node',id:60,lat:50.361878,lon:11.177452, tags:{nameZh:'德国玩具博物馆',name:'Deutsches Spielzeugmuseum',tourism:'museum',website:'https://www.deutschesspielzeugmuseum.de','addr:city':'Sonneberg',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'1847'}},
+  { type:'node',id:61,lat:52.5208,lon:13.3969, tags:{nameZh:'佩加蒙博物馆',name:'Pergamonmuseum',tourism:'museum',website:'https://www.smb.museum','addr:city':'Berlin','addr:street':'Bodestraße 1-3',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'62847'}},
+  { type:'node',id:62,lat:51.052621,lon:13.736290, tags:{nameZh:'绿穹珍宝馆',name:'Grünes Gewölbe Dresden',tourism:'museum',website:'https://www.skd.museum','addr:city':'Dresden','addr:street':'Residenzschloss',opening_hours:'We-Mo 10:00-18:00',rating:'4.5',reviews:'8924'}},
+  { type:'node',id:63,lat:50.117542,lon:8.651665, tags:{nameZh:'森肯堡自然博物馆',name:'Senckenberg Naturmuseum',tourism:'museum',website:'https://www.senckenberg.de','addr:city':'Frankfurt','addr:street':'Senckenberganlage 25',opening_hours:'Mo-Su 09:00-17:00',rating:'4.5',reviews:'16847'}},
+  { type:'node',id:64,lat:48.132699,lon:11.542066, tags:{nameZh:'德意志博物馆交通中心',name:'Deutsches Museum Verkehrszentrum',tourism:'museum',website:'https://www.deutsches-museum.de','addr:city':'Munich','addr:street':'Am Bavariapark 5',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'7218'}},
+  { type:'node',id:65,lat:51.309132,lon:9.489371, tags:{nameZh:'格林兄弟博物馆',name:'Grimmwelt Kassel',tourism:'museum',website:'https://www.grimmwelt.de','addr:city':'Kassel',opening_hours:'Tu-Su 10:00-18:00',rating:'4.3',reviews:'3842'}},
+  { type:'node',id:66,lat:50.940835,lon:6.960022, tags:{nameZh:'路德维希博物馆',name:'Museum Ludwig Köln',tourism:'museum',website:'https://www.museum-ludwig.de','addr:city':'Cologne',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'12847'}},
+  { type:'node',id:67,lat:52.519440,lon:13.402238, tags:{nameZh:'DDR博物馆',name:'DDR Museum',tourism:'museum',website:'https://www.ddr-museum.de','addr:city':'Berlin','addr:street':'Karl-Liebknecht-Str. 1',opening_hours:'Mo-Su 10:00-20:00',rating:'4.3',reviews:'24218'}},
+  { type:'node',id:68,lat:48.805329,lon:9.190166, tags:{nameZh:'斯图加特自然历史博物馆',name:'Naturkundemuseum Stuttgart',tourism:'museum',website:'https://www.naturkundemuseum-bw.de','addr:city':'Stuttgart',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'5842'}},
+  { type:'node',id:69,lat:51.485864,lon:7.042187, tags:{nameZh:'鲁尔博物馆',name:'Ruhr Museum',tourism:'museum',website:'https://www.ruhrmuseum.de','addr:city':'Essen','addr:street':'Gelsenkirchener Str. 181',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'7842'}},
+  { type:'node',id:70,lat:50.940572,lon:6.958659, tags:{nameZh:'科隆罗马-日耳曼博物馆',name:'Römisch-Germanisches Museum',tourism:'museum',website:'https://www.rfroemisch-germanisches-museum.de','addr:city':'Cologne',opening_hours:'Tu-Su 10:00-18:00',rating:'4.2',reviews:'8247'}},
+  { type:'node',id:71,lat:52.520170,lon:13.397717, tags:{nameZh:'新博物馆',name:'Neues Museum Berlin',tourism:'museum',website:'https://www.smb.museum','addr:city':'Berlin',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'31247'}},
+  { type:'node',id:72,lat:51.052095,lon:13.739432, tags:{nameZh:'德累斯顿交通博物馆',name:'Verkehrsmuseum Dresden',tourism:'museum',website:'https://www.verkehrsmuseum-dresden.de','addr:city':'Dresden',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'4218'}},
+  { type:'node',id:73,lat:49.410919,lon:8.715826, tags:{nameZh:'海德堡药房博物馆',name:'Deutsches Apotheken-Museum',tourism:'museum',website:'https://www.deutsches-apotheken-museum.de','addr:city':'Heidelberg',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'3218'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // CHINESE RESTAURANTS (~35)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:80,lat:52.5117,lon:13.3898, tags:{nameZh:'老友记',name:'Good Friends Restaurant',amenity:'chinese_restaurant',website:'https://www.goodfriendsberlin.de','addr:city':'Berlin','addr:street':'Kantstraße 30',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:81,lat:52.5049,lon:13.3296, tags:{nameZh:'龙门',name:'Long Men\'s Noodle House',amenity:'chinese_restaurant','addr:city':'Berlin','addr:street':'Kantstraße 33',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:82,lat:52.5139,lon:13.3866, tags:{nameZh:'天府',name:'Tian Fu Berlin',amenity:'chinese_restaurant','addr:city':'Berlin','addr:street':'Uhlandstraße 142',opening_hours:'Mo-Su 12:00-22:30'}},
+  { type:'node',id:83,lat:52.5078,lon:13.3291, tags:{nameZh:'大食代',name:'Aroma Restaurant Berlin',amenity:'chinese_restaurant','addr:city':'Berlin','addr:street':'Kantstraße 35',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:84,lat:48.1351,lon:11.5730, tags:{nameZh:'御膳坊',name:'Man-Thei München',amenity:'chinese_restaurant','addr:city':'Munich','addr:street':'Rosenstraße 4',opening_hours:'Mo-Su 12:00-22:30'}},
+  { type:'node',id:85,lat:48.1400,lon:11.5700, tags:{nameZh:'满堂红',name:'China Garden München',amenity:'chinese_restaurant','addr:city':'Munich','addr:street':'Schwanthalerstraße 75',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:86,lat:53.5544,lon:9.9903, tags:{nameZh:'金城',name:'Jin Cheng Hamburg',amenity:'chinese_restaurant','addr:city':'Hamburg','addr:street':'Schmilinskystraße 28',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:87,lat:53.5560,lon:9.9900, tags:{nameZh:'鼎泰丰',name:'Dim Sum Haus Hamburg',amenity:'chinese_restaurant',website:'https://www.dimsumhaus.de','addr:city':'Hamburg','addr:street':'Kirchenallee 37',opening_hours:'Mo-Su 11:30-23:00'}},
+  { type:'node',id:88,lat:50.1150,lon:8.6750, tags:{nameZh:'天香楼',name:'Tian Xiang Frankfurt',amenity:'chinese_restaurant','addr:city':'Frankfurt','addr:street':'Kaiserstraße 72',opening_hours:'Mo-Su 12:00-22:30'}},
+  { type:'node',id:89,lat:50.1130,lon:8.6800, tags:{nameZh:'蜀乡鱼庄',name:'Shu Xiang Frankfurt',amenity:'chinese_restaurant','addr:city':'Frankfurt','addr:street':'Münchener Straße 18',opening_hours:'Tu-Su 12:00-22:00'}},
+  { type:'node',id:90,lat:51.2277,lon:6.7735, tags:{nameZh:'永利',name:'Wing Lai Düsseldorf',amenity:'chinese_restaurant','addr:city':'Düsseldorf','addr:street':'Immermannstraße 33',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:91,lat:51.2280,lon:6.7730, tags:{nameZh:'鹿鸣',name:'Lu Ming Düsseldorf',amenity:'chinese_restaurant','addr:city':'Düsseldorf','addr:street':'Immermannstraße 21',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:92,lat:51.2275,lon:6.7740, tags:{nameZh:'大上海',name:'Shanghai Düsseldorf',amenity:'chinese_restaurant','addr:city':'Düsseldorf','addr:street':'Immermannstraße 48',opening_hours:'Mo-Su 12:00-22:30'}},
+  { type:'node',id:93,lat:50.9374,lon:6.9597, tags:{nameZh:'金龙',name:'Golden Dragon Köln',amenity:'chinese_restaurant','addr:city':'Cologne','addr:street':'Eigelstein 111',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:94,lat:48.7758,lon:9.1829, tags:{nameZh:'川味居',name:'Chuan Wei Ju Stuttgart',amenity:'chinese_restaurant','addr:city':'Stuttgart','addr:street':'Eberhardstraße 35',opening_hours:'Tu-Su 12:00-22:00'}},
+  { type:'node',id:95,lat:51.0500,lon:13.7400, tags:{nameZh:'蜀风园',name:'Shu Feng Yuan Dresden',amenity:'chinese_restaurant','addr:city':'Dresden','addr:street':'Prager Straße 8',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:96,lat:51.3396,lon:12.3713, tags:{nameZh:'中华楼',name:'China Restaurant Leipzig',amenity:'chinese_restaurant','addr:city':'Leipzig','addr:street':'Gottschedstraße 4',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:97,lat:52.3759,lon:9.7320, tags:{nameZh:'龙城',name:'China Town Hannover',amenity:'chinese_restaurant','addr:city':'Hannover','addr:street':'Lister Meile 40',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:98,lat:49.4500,lon:11.0833, tags:{nameZh:'大酒楼纽伦堡',name:'China Palast Nürnberg',amenity:'chinese_restaurant','addr:city':'Nuremberg','addr:street':'Königstraße 50',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:99,lat:53.0800,lon:8.8100, tags:{nameZh:'不莱梅中华园',name:'China Garden Bremen',amenity:'chinese_restaurant','addr:city':'Bremen','addr:street':'Am Markt 4',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:100,lat:52.5130,lon:13.3950, tags:{nameZh:'老四川',name:'Lao Sichuan Berlin',amenity:'chinese_restaurant','addr:city':'Berlin','addr:street':'Wilmersdorfer Str. 78',opening_hours:'Tu-Su 12:00-22:30'}},
+  { type:'node',id:101,lat:51.2285,lon:6.7745, tags:{nameZh:'琥珀',name:'Amber Restaurant Düsseldorf',amenity:'chinese_restaurant','addr:city':'Düsseldorf','addr:street':'Klosterstraße 12',opening_hours:'Mo-Su 12:00-22:30'}},
+  { type:'node',id:102,lat:50.1125,lon:8.6820, tags:{nameZh:'湘味馆',name:'Hunan Küche Frankfurt',amenity:'chinese_restaurant','addr:city':'Frankfurt','addr:street':'Moselstraße 22',opening_hours:'Tu-Su 12:00-22:00'}},
+  { type:'node',id:103,lat:48.1380,lon:11.5750, tags:{nameZh:'翠园',name:'Cui Yuan München',amenity:'chinese_restaurant','addr:city':'Munich','addr:street':'Bayerstraße 13',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:104,lat:52.5200,lon:13.4100, tags:{nameZh:'香满楼',name:'Xiang Man Lou Berlin',amenity:'chinese_restaurant','addr:city':'Berlin','addr:street':'Torstraße 100',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:105,lat:51.2290,lon:6.7750, tags:{nameZh:'拉面道',name:'Ramen-Do Düsseldorf',amenity:'chinese_restaurant','addr:city':'Düsseldorf','addr:street':'Immermannstraße 35',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:106,lat:50.7750,lon:6.0833, tags:{nameZh:'亚琛中华楼',name:'China Restaurant Aachen',amenity:'chinese_restaurant','addr:city':'Aachen','addr:street':'Pontstraße 46',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:107,lat:49.4000,lon:8.6750, tags:{nameZh:'海德堡金龙',name:'Golden Dragon Heidelberg',amenity:'chinese_restaurant','addr:city':'Heidelberg','addr:street':'Hauptstraße 72',opening_hours:'Tu-Su 12:00-22:00'}},
+  { type:'node',id:108,lat:50.7350,lon:7.1000, tags:{nameZh:'波恩中华园',name:'China Garden Bonn',amenity:'chinese_restaurant','addr:city':'Bonn','addr:street':'Münsterstraße 8',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:109,lat:52.5100,lon:13.3880, tags:{nameZh:'麻辣香锅',name:'Mala Xiang Guo Berlin',amenity:'chinese_restaurant','addr:city':'Berlin','addr:street':'Oranienburger Str. 52',opening_hours:'Mo-Su 12:00-22:30'}},
+  { type:'node',id:110,lat:53.5580,lon:9.9850, tags:{nameZh:'汉堡福满楼',name:'Fu Man Lou Hamburg',amenity:'chinese_restaurant','addr:city':'Hamburg','addr:street':'Steindamm 14',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:111,lat:48.7780,lon:9.1800, tags:{nameZh:'味之道',name:'Wei Zhi Dao Stuttgart',amenity:'chinese_restaurant','addr:city':'Stuttgart','addr:street':'Tübinger Str. 22',opening_hours:'Tu-Su 12:00-22:00'}},
+  { type:'node',id:112,lat:50.1140,lon:8.6850, tags:{nameZh:'川府人家',name:'Chuan Fu Ren Jia Frankfurt',amenity:'chinese_restaurant','addr:city':'Frankfurt','addr:street':'Elbestraße 15',opening_hours:'Tu-Su 12:00-22:30'}},
+  { type:'node',id:113,lat:51.9625,lon:7.6256, tags:{nameZh:'明斯特中华园',name:'China Garden Münster',amenity:'chinese_restaurant','addr:city':'Münster','addr:street':'Windthorststraße 8',opening_hours:'Mo-Su 11:30-22:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // BUFFET / ALL-YOU-CAN-EAT (~25)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:120,lat:52.5060,lon:13.3320, tags:{nameZh:'亚洲铁板王(柏林)',name:'Asia Wok Berlin Kudamm',amenity:'buffet_restaurant','addr:city':'Berlin','addr:street':'Kurfürstendamm 98',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:121,lat:48.1360,lon:11.5650, tags:{nameZh:'运来铁板(慕尼黑)',name:'Mongolian Wok München',amenity:'buffet_restaurant','addr:city':'Munich','addr:street':'Arnulfstraße 19',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:122,lat:53.5530,lon:9.9950, tags:{nameZh:'铁板王(汉堡)',name:'Mongol Wok Hamburg',amenity:'buffet_restaurant','addr:city':'Hamburg','addr:street':'Mönckebergstraße 5',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:123,lat:50.1100,lon:8.6900, tags:{nameZh:'亚洲自助(法兰克福)',name:'Asia Buffet Frankfurt',amenity:'buffet_restaurant','addr:city':'Frankfurt','addr:street':'Hanauer Landstraße 127',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:124,lat:51.2250,lon:6.7800, tags:{nameZh:'亚洲铁板(杜塞)',name:'Running Wok Düsseldorf',amenity:'buffet_restaurant','addr:city':'Düsseldorf','addr:street':'Berliner Allee 52',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:125,lat:50.9350,lon:6.9450, tags:{nameZh:'科隆铁板',name:'Okinii Köln',amenity:'buffet_restaurant',website:'https://www.okinii.de','addr:city':'Cologne','addr:street':'Benzmühlenstraße 1',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:126,lat:48.7750,lon:9.1850, tags:{nameZh:'斯图加特铁板',name:'Wok & Roll Stuttgart',amenity:'buffet_restaurant','addr:city':'Stuttgart','addr:street':'Calwer Str. 18',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:127,lat:51.0500,lon:13.7350, tags:{nameZh:'德累斯顿铁板',name:'Asian Wok Dresden',amenity:'buffet_restaurant','addr:city':'Dresden','addr:street':'Wilsdruffer Str. 12',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:128,lat:51.3400,lon:12.3750, tags:{nameZh:'莱比锡铁板',name:'Wok House Leipzig',amenity:'buffet_restaurant','addr:city':'Leipzig','addr:street':'Petersstraße 28',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:129,lat:52.3750,lon:9.7350, tags:{nameZh:'汉诺威铁板',name:'MoschMosch Hannover',amenity:'buffet_restaurant','addr:city':'Hannover','addr:street':'Georgstraße 39',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:130,lat:49.4480,lon:11.0780, tags:{nameZh:'纽伦堡铁板',name:'Asia Wok Nürnberg',amenity:'buffet_restaurant','addr:city':'Nuremberg','addr:street':'Breite Gasse 38',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:131,lat:53.0750,lon:8.8050, tags:{nameZh:'不莱梅铁板',name:'Asia Wok Bremen',amenity:'buffet_restaurant','addr:city':'Bremen','addr:street':'Obernstraße 18',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:132,lat:51.4500,lon:7.0150, tags:{nameZh:'埃森铁板',name:'Asia Wok Essen',amenity:'buffet_restaurant','addr:city':'Essen','addr:street':'Kettwiger Straße 5',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:133,lat:51.5130,lon:7.4650, tags:{nameZh:'多特蒙德铁板',name:'Running Wok Dortmund',amenity:'buffet_restaurant','addr:city':'Dortmund','addr:street':'Westenhellweg 30',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:134,lat:50.0782,lon:8.2398, tags:{nameZh:'威斯巴登铁板',name:'Asia Wok Wiesbaden',amenity:'buffet_restaurant','addr:city':'Wiesbaden','addr:street':'Kirchgasse 30',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:135,lat:48.4011,lon:9.9876, tags:{nameZh:'乌尔姆铁板',name:'Asia Wok Ulm',amenity:'buffet_restaurant','addr:city':'Ulm','addr:street':'Hirschstraße 18',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:136,lat:52.2689,lon:8.0478, tags:{nameZh:'比勒费尔德铁板',name:'Asia Wok Bielefeld',amenity:'buffet_restaurant','addr:city':'Bielefeld','addr:street':'Bahnhofstraße 15',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:137,lat:47.9990,lon:7.8421, tags:{nameZh:'弗赖堡铁板',name:'Mongol Wok Freiburg',amenity:'buffet_restaurant','addr:city':'Freiburg','addr:street':'Kaiser-Joseph-Str. 237',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:138,lat:50.9800,lon:11.3350, tags:{nameZh:'耶拿铁板',name:'Asia Buffet Jena',amenity:'buffet_restaurant','addr:city':'Jena','addr:street':'Leutragraben 1',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:139,lat:51.7500,lon:14.3333, tags:{nameZh:'科特布斯铁板',name:'Asia Wok Cottbus',amenity:'buffet_restaurant','addr:city':'Cottbus','addr:street':'Spremberger Str. 8',opening_hours:'Mo-Su 11:30-22:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // INDOOR PLAYGROUNDS (~25)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:150,lat:52.583185,lon:13.311898, tags:{nameZh:'蹦蹦世界柏林',name:'JUMP House Berlin',leisure:'indoor_playground',website:'https://www.jumphouse.de','addr:city':'Berlin',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:151,lat:53.600741,lon:9.916716, tags:{nameZh:'蹦蹦世界汉堡',name:'JUMP House Hamburg',leisure:'indoor_playground',website:'https://www.jumphouse.de','addr:city':'Hamburg',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:152,lat:48.055227,lon:11.607293, tags:{nameZh:'蹦蹦世界慕尼黑',name:'AirHop Trampolinpark München',leisure:'indoor_playground',website:'https://www.airhop.de','addr:city':'Munich',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:153,lat:50.976556,lon:6.898553, tags:{nameZh:'蹦床乐园科隆',name:'JUMP House Köln',leisure:'indoor_playground',website:'https://www.jumphouse.de','addr:city':'Cologne',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:154,lat:51.223013,lon:6.795010, tags:{nameZh:'杜塞尔多夫蹦床',name:'JUMP House Düsseldorf',leisure:'indoor_playground','addr:city':'Düsseldorf',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:155,lat:48.689259,lon:8.988862, tags:{nameZh:'斯图加特室内乐园',name:'Sensapolis Stuttgart',leisure:'indoor_playground',website:'https://www.sensapolis.de','addr:city':'Böblingen',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:156,lat:52.5350,lon:13.4200, tags:{nameZh:'丛林世界柏林',name:'Jacks Fun World Berlin',leisure:'indoor_playground',website:'https://www.jacksfunworld.de','addr:city':'Berlin',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:157,lat:50.1000,lon:8.7500, tags:{nameZh:'法兰克福室内乐园',name:'Rebstockbad Fun Area Frankfurt',leisure:'indoor_playground','addr:city':'Frankfurt',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:158,lat:51.037122,lon:13.783358, tags:{nameZh:'德累斯顿室内乐园',name:'Kinderwelt Dresden',leisure:'indoor_playground','addr:city':'Dresden',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:159,lat:51.325672,lon:12.328701, tags:{nameZh:'莱比锡蹦床',name:'JUMP House Leipzig',leisure:'indoor_playground','addr:city':'Leipzig',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:160,lat:52.424841,lon:9.659838, tags:{nameZh:'汉诺威室内乐园',name:'Kinderwald Hannover',leisure:'indoor_playground','addr:city':'Hannover',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:161,lat:49.453872,lon:11.077298, tags:{nameZh:'纽伦堡室内乐园',name:'KiMaPa Nürnberg',leisure:'indoor_playground','addr:city':'Nuremberg',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:162,lat:50.9300,lon:6.9700, tags:{nameZh:'科隆室内乐园',name:'Bubenheimer Spieleland',leisure:'indoor_playground',website:'https://www.bubenheimer-spieleland.de','addr:city':'Nörvenich',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:163,lat:53.072778,lon:8.855013, tags:{nameZh:'不莱梅室内乐园',name:'Indoor Spielplatz Bremen',leisure:'indoor_playground','addr:city':'Bremen',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:164,lat:54.322708,lon:10.135555, tags:{nameZh:'基尔室内乐园',name:'Kinderspielparadies Kiel',leisure:'indoor_playground','addr:city':'Kiel',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:165,lat:52.264682,lon:10.523781, tags:{nameZh:'布伦瑞克蹦床',name:'Trampolino Braunschweig',leisure:'indoor_playground','addr:city':'Braunschweig',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:166,lat:51.434954,lon:6.770874, tags:{nameZh:'杜伊斯堡室内乐园',name:'Kinderwelt Duisburg',leisure:'indoor_playground','addr:city':'Duisburg',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:167,lat:50.358830,lon:7.604459, tags:{nameZh:'科布伦茨室内乐园',name:'Kinderspielpark Koblenz',leisure:'indoor_playground','addr:city':'Koblenz',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:168,lat:48.391965,lon:10.003982, tags:{nameZh:'奥格斯堡蹦床',name:'AirHop Augsburg',leisure:'indoor_playground','addr:city':'Augsburg',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:169,lat:47.6600,lon:9.1750, tags:{nameZh:'拉文斯堡室内乐园',name:'Kinderwelt Ravensburg',leisure:'indoor_playground','addr:city':'Ravensburg',opening_hours:'Mo-Su 10:00-18:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // CHILDREN'S FARMS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:180,lat:52.4900,lon:13.4200, tags:{nameZh:'柏林动物农场',name:'Kinderbauernhof Görlitzer Park',tourism:'children_farm','addr:city':'Berlin',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:181,lat:53.5700,lon:10.0200, tags:{nameZh:'汉堡儿童农场',name:'Kinderbauernhof Kirchdorf',tourism:'children_farm','addr:city':'Hamburg',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:182,lat:48.1500,lon:11.5300, tags:{nameZh:'慕尼黑儿童农场',name:'Kinder- und Jugendfarm Ramersdorf',tourism:'children_farm','addr:city':'Munich',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:183,lat:50.9400,lon:6.9200, tags:{nameZh:'科隆儿童农场',name:'Kinderbauernhof Köln',tourism:'children_farm','addr:city':'Cologne',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:184,lat:50.1200,lon:8.6500, tags:{nameZh:'法兰克福儿童农场',name:'Kinderbauernhof Frankfurt',tourism:'children_farm','addr:city':'Frankfurt',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:185,lat:48.7900,lon:9.2000, tags:{nameZh:'斯图加特儿童农场',name:'Kinder- und Jugendfarm Stuttgart',tourism:'children_farm','addr:city':'Stuttgart',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:186,lat:51.2300,lon:6.7900, tags:{nameZh:'杜塞尔多夫儿童农场',name:'Kinderbauernhof Düsseldorf',tourism:'children_farm','addr:city':'Düsseldorf',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:187,lat:52.3800,lon:9.7400, tags:{nameZh:'汉诺威儿童农场',name:'Kinderbauernhof Hannover',tourism:'children_farm','addr:city':'Hannover',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:188,lat:51.0500,lon:13.7200, tags:{nameZh:'德累斯顿儿童农场',name:'Kinderbauernhof Dresden',tourism:'children_farm','addr:city':'Dresden',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:189,lat:51.3400,lon:12.3500, tags:{nameZh:'莱比锡儿童农场',name:'Kinderbauernhof Leipzig',tourism:'children_farm','addr:city':'Leipzig',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:190,lat:49.4500,lon:11.0800, tags:{nameZh:'纽伦堡儿童农场',name:'Kinderbauernhof Nürnberg',tourism:'children_farm','addr:city':'Nuremberg',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:191,lat:52.4200,lon:10.7900, tags:{nameZh:'沃尔夫斯堡儿童农场',name:'Kinderbauernhof Wolfsburg',tourism:'children_farm','addr:city':'Wolfsburg',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:192,lat:50.7300,lon:7.1000, tags:{nameZh:'波恩儿童农场',name:'Kinderbauernhof Bonn',tourism:'children_farm','addr:city':'Bonn',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:193,lat:54.0900,lon:12.1400, tags:{nameZh:'罗斯托克儿童农场',name:'Kinderbauernhof Rostock',tourism:'children_farm','addr:city':'Rostock',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:194,lat:52.3900,lon:13.0700, tags:{nameZh:'波茨坦儿童农场',name:'Kinderbauernhof Potsdam',tourism:'children_farm','addr:city':'Potsdam',opening_hours:'Mo-Su 10:00-17:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // BEACHES (~10)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:200,lat:54.9097,lon:8.3211, tags:{nameZh:'叙尔特岛海滩',name:'Sylt Strand Westerland',natural:'beach','addr:city':'Westerland'}},
+  { type:'node',id:201,lat:53.7150,lon:7.1500, tags:{nameZh:'诺德奈岛海滩',name:'Norderney Strand',natural:'beach','addr:city':'Norderney'}},
+  { type:'node',id:202,lat:54.3000,lon:8.6333, tags:{nameZh:'圣彼得奥丁海滩',name:'St. Peter-Ording Strand',natural:'beach','addr:city':'St. Peter-Ording'}},
+  { type:'node',id:203,lat:54.3933,lon:13.3700, tags:{nameZh:'吕根岛海滩',name:'Rügen Binz Strand',natural:'beach','addr:city':'Binz'}},
+  { type:'node',id:204,lat:54.0000,lon:14.0000, tags:{nameZh:'乌泽多姆岛海滩',name:'Usedom Heringsdorf Strand',natural:'beach','addr:city':'Heringsdorf'}},
+  { type:'node',id:205,lat:54.1700,lon:12.0900, tags:{nameZh:'瓦尔内明德海滩',name:'Warnemünde Strand',natural:'beach','addr:city':'Rostock'}},
+  { type:'node',id:206,lat:53.9800,lon:10.8800, tags:{nameZh:'蒂门多弗海滩',name:'Timmendorfer Strand',natural:'beach','addr:city':'Timmendorfer Strand'}},
+  { type:'node',id:207,lat:54.0767,lon:10.0317, tags:{nameZh:'格罗米茨海滩',name:'Grömitz Strand',natural:'beach','addr:city':'Grömitz'}},
+  { type:'node',id:208,lat:53.9200,lon:8.7000, tags:{nameZh:'库克斯港海滩',name:'Cuxhaven Strand',natural:'beach','addr:city':'Cuxhaven'}},
+  { type:'node',id:209,lat:53.8600,lon:10.7500, tags:{nameZh:'特拉维蒙德海滩',name:'Travemünde Strand',natural:'beach','addr:city':'Lübeck'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // HISTORIC (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:220,lat:47.5575,lon:10.7498, tags:{nameZh:'新天鹅堡',name:'Schloss Neuschwanstein',historic:'castle',website:'https://www.neuschwanstein.de','addr:city':'Schwangau',opening_hours:'Mo-Su 09:00-18:00 (seasonal)'}},
+  { type:'node',id:221,lat:49.4114,lon:8.7153, tags:{nameZh:'海德堡城堡',name:'Heidelberger Schloss',historic:'castle',website:'https://www.schloss-heidelberg.de','addr:city':'Heidelberg',opening_hours:'Mo-Su 08:00-18:00'}},
+  { type:'node',id:222,lat:52.5163,lon:13.3777, tags:{nameZh:'勃兰登堡门',name:'Brandenburger Tor',historic:'monument','addr:city':'Berlin','addr:street':'Pariser Platz'}},
+  { type:'node',id:223,lat:50.9675,lon:10.3167, tags:{nameZh:'瓦尔特堡',name:'Wartburg',historic:'castle',website:'https://www.wartburg.de','addr:city':'Eisenach',opening_hours:'Mo-Su 08:30-17:00'}},
+  { type:'node',id:224,lat:48.3232,lon:8.9671, tags:{nameZh:'霍亨索伦城堡',name:'Burg Hohenzollern',historic:'castle',website:'https://www.burg-hohenzollern.com','addr:city':'Bisingen',opening_hours:'Mo-Su 10:00-17:30'}},
+  { type:'node',id:225,lat:50.9400,lon:6.9575, tags:{nameZh:'科隆大教堂',name:'Kölner Dom',historic:'monument',website:'https://www.koelner-dom.de','addr:city':'Cologne','addr:street':'Domkloster 4',opening_hours:'Mo-Su 06:00-21:00'}},
+  { type:'node',id:226,lat:51.0504,lon:13.7373, tags:{nameZh:'德累斯顿茨温格宫',name:'Zwinger Dresden',historic:'monument',website:'https://www.der-dresdner-zwinger.de','addr:city':'Dresden',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:227,lat:52.5206,lon:13.3739, tags:{nameZh:'国会大厦',name:'Reichstag Berlin',historic:'monument',website:'https://www.bundestag.de','addr:city':'Berlin','addr:street':'Platz der Republik 1',opening_hours:'Mo-Su 08:00-00:00'}},
+  { type:'node',id:228,lat:49.8917,lon:10.8867, tags:{nameZh:'班贝格老市政厅',name:'Altes Rathaus Bamberg',historic:'monument','addr:city':'Bamberg',opening_hours:'Tu-Su 09:30-16:30'}},
+  { type:'node',id:229,lat:49.3758,lon:10.1786, tags:{nameZh:'罗腾堡老城',name:'Rothenburg ob der Tauber Altstadt',historic:'monument','addr:city':'Rothenburg ob der Tauber'}},
+  { type:'node',id:230,lat:52.3906,lon:13.0653, tags:{nameZh:'无忧宫',name:'Schloss Sanssouci',historic:'castle',website:'https://www.spsg.de','addr:city':'Potsdam',opening_hours:'Tu-Su 10:00-17:30'}},
+  { type:'node',id:231,lat:50.6419,lon:6.6317, tags:{nameZh:'特里尔大黑门',name:'Porta Nigra',historic:'monument','addr:city':'Trier',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:232,lat:50.9800,lon:11.3300, tags:{nameZh:'魏玛歌德故居',name:'Goethes Wohnhaus Weimar',historic:'monument',website:'https://www.klassik-stiftung.de','addr:city':'Weimar',opening_hours:'Tu-Su 09:30-18:00'}},
+  { type:'node',id:233,lat:48.1372,lon:11.5755, tags:{nameZh:'慕尼黑宫殿',name:'Münchner Residenz',historic:'castle',website:'https://www.residenz-muenchen.de','addr:city':'Munich',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:234,lat:49.9458,lon:7.2550, tags:{nameZh:'莱茵河畔城堡',name:'Burg Eltz',historic:'castle',website:'https://www.burg-eltz.de','addr:city':'Wierschem',opening_hours:'Mo-Su 09:30-17:30 (seasonal)'}},
+  { type:'node',id:235,lat:51.0533,lon:13.7422, tags:{nameZh:'圣母教堂',name:'Frauenkirche Dresden',historic:'monument','addr:city':'Dresden',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:236,lat:48.7758,lon:9.1829, tags:{nameZh:'斯图加特老宫殿',name:'Altes Schloss Stuttgart',historic:'castle','addr:city':'Stuttgart',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:237,lat:50.3569,lon:7.5986, tags:{nameZh:'马克斯堡',name:'Marksburg',historic:'castle',website:'https://www.marksburg.de','addr:city':'Braubach',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:238,lat:47.5542,lon:10.7497, tags:{nameZh:'高天鹅堡',name:'Schloss Hohenschwangau',historic:'castle','addr:city':'Schwangau',opening_hours:'Mo-Su 09:00-17:30'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // NATURE (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:250,lat:48.263444,lon:8.164749, tags:{nameZh:'黑森林',name:'Schwarzwald / Black Forest',leisure:'nature_reserve','addr:city':'Freiburg'}},
+  { type:'node',id:251,lat:50.893256,lon:14.234753, tags:{nameZh:'萨克森小瑞士',name:'Sächsische Schweiz',leisure:'nature_reserve',website:'https://www.saechsische-schweiz.de','addr:city':'Bad Schandau'}},
+  { type:'node',id:252,lat:47.625611,lon:12.991286, tags:{nameZh:'贝希特斯加登国家公园',name:'Nationalpark Berchtesgaden',leisure:'nature_reserve',website:'https://www.nationalpark-berchtesgaden.bayern.de','addr:city':'Berchtesgaden'}},
+  { type:'node',id:253,lat:51.851202,lon:13.906379, tags:{nameZh:'施普雷瓦尔德',name:'Spreewald',leisure:'nature_reserve','addr:city':'Lübbenau'}},
+  { type:'node',id:254,lat:47.478280,lon:11.065545, tags:{nameZh:'巴伐利亚阿尔卑斯',name:'Bayerische Alpen',leisure:'nature_reserve','addr:city':'Garmisch-Partenkirchen'}},
+  { type:'node',id:255,lat:47.555105,lon:12.976567, tags:{nameZh:'国王湖',name:'Königssee',leisure:'nature_reserve','addr:city':'Schönau am Königssee'}},
+  { type:'node',id:256,lat:48.8500,lon:8.3833, tags:{nameZh:'黑森林国家公园',name:'Nationalpark Schwarzwald',leisure:'nature_reserve',website:'https://www.nationalpark-schwarzwald.de','addr:city':'Seebach'}},
+  { type:'node',id:257,lat:51.768076,lon:10.654113, tags:{nameZh:'哈茨山国家公园',name:'Nationalpark Harz',leisure:'nature_reserve',website:'https://www.nationalpark-harz.de','addr:city':'Wernigerode'}},
+  { type:'node',id:258,lat:54.386559,lon:12.532058, tags:{nameZh:'前波莫瑞泻湖国家公园',name:'Nationalpark Vorpommersche Boddenlandschaft',leisure:'nature_reserve','addr:city':'Born a. Darß'}},
+  { type:'node',id:259,lat:53.671216,lon:8.486422, tags:{nameZh:'下萨克森瓦登海',name:'Nationalpark Niedersächsisches Wattenmeer',leisure:'nature_reserve','addr:city':'Wilhelmshaven'}},
+  { type:'node',id:260,lat:47.4500,lon:11.3833, tags:{nameZh:'楚格峰',name:'Zugspitze',leisure:'nature_reserve','addr:city':'Garmisch-Partenkirchen'}},
+  { type:'node',id:261,lat:49.3500,lon:12.1500, tags:{nameZh:'巴伐利亚森林国家公园',name:'Nationalpark Bayerischer Wald',leisure:'nature_reserve',website:'https://www.nationalpark-bayerischer-wald.bayern.de','addr:city':'Grafenau'}},
+  { type:'node',id:262,lat:50.212854,lon:6.840147, tags:{nameZh:'埃费尔火山群',name:'Eifel Vulkanland',leisure:'nature_reserve','addr:city':'Daun'}},
+  { type:'node',id:263,lat:54.560786,lon:8.871647, tags:{nameZh:'北弗里斯兰瓦登海',name:'Nationalpark Schleswig-Holsteinisches Wattenmeer',leisure:'nature_reserve','addr:city':'Tönning'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // PLAYGROUNDS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:270,lat:52.496579,lon:13.437605, tags:{nameZh:'柏林格尔利茨公园游乐场',name:'Spielplatz Görlitzer Park',leisure:'playground','addr:city':'Berlin'}},
+  { type:'node',id:271,lat:48.153115,lon:11.592817, tags:{nameZh:'慕尼黑英国花园游乐场',name:'Spielplatz Englischer Garten',leisure:'playground','addr:city':'Munich'}},
+  { type:'node',id:272,lat:53.595619,lon:10.017669, tags:{nameZh:'汉堡城市公园游乐场',name:'Spielplatz Stadtpark',leisure:'playground','addr:city':'Hamburg'}},
+  { type:'node',id:273,lat:50.949017,lon:6.973736, tags:{nameZh:'科隆莱茵公园游乐场',name:'Spielplatz Rheinpark',leisure:'playground','addr:city':'Cologne'}},
+  { type:'node',id:274,lat:50.123231,lon:8.657736, tags:{nameZh:'法兰克福棕榈园游乐场',name:'Spielplatz Palmengarten',leisure:'playground','addr:city':'Frankfurt'}},
+  { type:'node',id:275,lat:48.782337,lon:9.182486, tags:{nameZh:'斯图加特宫殿花园游乐场',name:'Spielplatz Schlossgarten',leisure:'playground','addr:city':'Stuttgart'}},
+  { type:'node',id:276,lat:51.041449,lon:13.744986, tags:{nameZh:'德累斯顿大花园游乐场',name:'Spielplatz Großer Garten',leisure:'playground','addr:city':'Dresden'}},
+  { type:'node',id:277,lat:51.330505,lon:12.358851, tags:{nameZh:'莱比锡克拉拉公园游乐场',name:'Spielplatz Clara-Zetkin-Park',leisure:'playground','addr:city':'Leipzig'}},
+  { type:'node',id:278,lat:52.363513,lon:9.737141, tags:{nameZh:'汉诺威马施湖游乐场',name:'Spielplatz Maschsee',leisure:'playground','addr:city':'Hannover'}},
+  { type:'node',id:279,lat:49.465426,lon:11.093477, tags:{nameZh:'纽伦堡城市公园游乐场',name:'Spielplatz Stadtpark',leisure:'playground','addr:city':'Nuremberg'}},
+  { type:'node',id:280,lat:53.0700,lon:8.8200, tags:{nameZh:'不莱梅市民公园游乐场',name:'Spielplatz Bürgerpark',leisure:'playground','addr:city':'Bremen'}},
+  { type:'node',id:281,lat:51.229574,lon:6.784190, tags:{nameZh:'杜塞尔多夫宫廷花园游乐场',name:'Spielplatz Hofgarten',leisure:'playground','addr:city':'Düsseldorf'}},
+  { type:'node',id:282,lat:52.402988,lon:13.029866, tags:{nameZh:'波茨坦无忧宫公园游乐场',name:'Spielplatz Sanssouci Park',leisure:'playground','addr:city':'Potsdam'}},
+  { type:'node',id:283,lat:54.140216,lon:12.082007, tags:{nameZh:'罗斯托克IGA公园游乐场',name:'Spielplatz IGA Park',leisure:'playground','addr:city':'Rostock'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // SWIMMING POOLS (~10)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:291,lat:48.289706,lon:11.887215, tags:{nameZh:'埃尔丁温泉',name:'Therme Erding',leisure:'swimming_pool',website:'https://www.therme-erding.de','addr:city':'Erding',opening_hours:'Mo-Su 10:00-23:00'}},
+  { type:'node',id:292,lat:48.798310,lon:9.210904, tags:{nameZh:'斯图加特矿泉浴场',name:'Mineralbad Leuze Stuttgart',leisure:'swimming_pool','addr:city':'Stuttgart',opening_hours:'Mo-Su 06:00-21:00'}},
+  { type:'node',id:293,lat:51.026742,lon:6.908565, tags:{nameZh:'科隆水上乐园',name:'Aqualand Köln',leisure:'swimming_pool',website:'https://www.aqualand.de','addr:city':'Cologne',opening_hours:'Mo-Su 09:00-23:00'}},
+  { type:'node',id:294,lat:53.555112,lon:10.000604, tags:{nameZh:'汉堡体验浴场',name:'Arriba Erlebnisbad Hamburg',leisure:'swimming_pool','addr:city':'Hamburg',opening_hours:'Mo-Su 10:00-23:00'}},
+  { type:'node',id:295,lat:50.112059,lon:8.618452, tags:{nameZh:'法兰克福游泳馆',name:'Rebstockbad Frankfurt',leisure:'swimming_pool','addr:city':'Frankfurt',opening_hours:'Mo-Su 07:00-21:00'}},
+  { type:'node',id:296,lat:51.347985,lon:12.468432, tags:{nameZh:'莱比锡萨克森温泉',name:'Sachsen-Therme Leipzig',leisure:'swimming_pool','addr:city':'Leipzig',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:297,lat:52.406022,lon:9.751276, tags:{nameZh:'汉诺威游泳馆',name:'Lister Bad Hannover',leisure:'swimming_pool','addr:city':'Hannover',opening_hours:'Mo-Su 06:30-20:00'}},
+  { type:'node',id:298,lat:48.763834,lon:8.244759, tags:{nameZh:'巴登巴登温泉',name:'Caracalla Therme Baden-Baden',leisure:'swimming_pool',website:'https://www.carasana.de','addr:city':'Baden-Baden',opening_hours:'Mo-Su 08:00-22:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // THEATRES, SPORTS, ATTRACTIONS (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:310,lat:52.520828,lon:13.409421, tags:{nameZh:'柏林电视塔',name:'Berliner Fernsehturm',tourism:'attraction',website:'https://www.tv-turm.de','addr:city':'Berlin','addr:street':'Panoramastraße 1A',opening_hours:'Mo-Su 10:00-00:00'}},
+  { type:'node',id:311,lat:48.164861,lon:11.606404, tags:{nameZh:'慕尼黑英国花园',name:'Englischer Garten',tourism:'attraction','addr:city':'Munich'}},
+  { type:'node',id:312,lat:53.544015,lon:9.986979, tags:{nameZh:'汉堡港',name:'Hamburger Hafen & Speicherstadt',tourism:'attraction','addr:city':'Hamburg'}},
+  { type:'node',id:313,lat:50.123671,lon:8.655960, tags:{nameZh:'法兰克福棕榈园',name:'Palmengarten Frankfurt',tourism:'attraction',website:'https://www.palmengarten.de','addr:city':'Frankfurt',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:314,lat:48.1370,lon:11.5760, tags:{nameZh:'慕尼黑玛利恩广场',name:'Marienplatz & Glockenspiel',tourism:'attraction','addr:city':'Munich','addr:street':'Marienplatz'}},
+  { type:'node',id:315,lat:51.516232,lon:7.457923, tags:{nameZh:'德国足球博物馆',name:'Deutsches Fußballmuseum',tourism:'museum',website:'https://www.fussballmuseum.de','addr:city':'Dortmund',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:316,lat:52.506003,lon:13.340852, tags:{nameZh:'柏林动物园水族馆',name:'Aquarium Berlin',tourism:'aquarium',website:'https://www.aquarium-berlin.de','addr:city':'Berlin',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:317,lat:48.168706,lon:11.550364, tags:{nameZh:'奥林匹克公园',name:'Olympiapark München',tourism:'attraction',website:'https://www.olympiapark.de','addr:city':'Munich'}},
+  { type:'node',id:318,lat:50.953581,lon:6.977046, tags:{nameZh:'科隆缆车',name:'Kölner Seilbahn',tourism:'attraction',website:'https://www.koelnerseilbahn.de','addr:city':'Cologne',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:319,lat:52.5163,lon:13.3888, tags:{nameZh:'柏林大教堂',name:'Berliner Dom',historic:'monument','addr:city':'Berlin','addr:street':'Am Lustgarten',opening_hours:'Mo-Su 09:00-20:00'}},
+  { type:'node',id:320,lat:51.0500,lon:13.7500, tags:{nameZh:'德累斯顿歌剧院',name:'Semperoper Dresden',amenity:'theatre',website:'https://www.semperoper.de','addr:city':'Dresden',opening_hours:'Check schedule'}},
+  { type:'node',id:321,lat:48.1350,lon:11.5700, tags:{nameZh:'巴伐利亚国家歌剧院',name:'Bayerische Staatsoper',amenity:'theatre',website:'https://www.staatsoper.de','addr:city':'Munich',opening_hours:'Check schedule'}},
+  { type:'node',id:322,lat:52.5100,lon:13.3800, tags:{nameZh:'柏林德意志歌剧院',name:'Deutsche Oper Berlin',amenity:'theatre',website:'https://www.deutscheoperberlin.de','addr:city':'Berlin'}},
+  { type:'node',id:323,lat:53.5560,lon:9.9880, tags:{nameZh:'汉堡易北爱乐厅',name:'Elbphilharmonie',amenity:'theatre',website:'https://www.elbphilharmonie.de','addr:city':'Hamburg','addr:street':'Platz der Deutschen Einheit 4'}},
+  { type:'node',id:324,lat:47.4210,lon:10.9860, tags:{nameZh:'加米施高山滑道',name:'Garmisch-Partenkirchen Sommerrodelbahn',leisure:'sports_centre','addr:city':'Garmisch-Partenkirchen',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+  { type:'node',id:325,lat:47.5600,lon:10.7500, tags:{nameZh:'菲森城堡',name:'Hohes Schloss Füssen',historic:'castle','addr:city':'Füssen',opening_hours:'Tu-Su 11:00-17:00'}},
+  { type:'node',id:326,lat:50.110210,lon:8.682166, tags:{nameZh:'法兰克福老城',name:'Römerberg Frankfurt',tourism:'attraction','addr:city':'Frankfurt'}},
+  { type:'node',id:327,lat:47.559440,lon:9.684701, tags:{nameZh:'林道灯塔',name:'Lindau Leuchtturm',tourism:'attraction','addr:city':'Lindau'}},
+  { type:'node',id:328,lat:47.662045,lon:9.175114, tags:{nameZh:'康斯坦茨老城',name:'Konstanz Altstadt',tourism:'attraction','addr:city':'Konstanz'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // ADDITIONAL VENUES TO REACH 250+
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:330,lat:52.518017,lon:13.399379, tags:{nameZh:'柏林博物馆岛',name:'Museumsinsel Berlin',tourism:'attraction','addr:city':'Berlin'}},
+  { type:'node',id:331,lat:48.218790,lon:11.623623, tags:{nameZh:'安联球场',name:'Allianz Arena Tour',tourism:'attraction',website:'https://www.allianz-arena.com','addr:city':'Munich',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:332,lat:51.490760,lon:7.457874, tags:{nameZh:'多特蒙德足球场',name:'Signal Iduna Park Tour',tourism:'attraction','addr:city':'Dortmund'}},
+  { type:'node',id:333,lat:50.109603,lon:8.682443, tags:{nameZh:'法兰克福儿童博物馆',name:'Kinder Museum Frankfurt',tourism:'museum',website:'https://www.kindermuseum.frankfurt.de','addr:city':'Frankfurt',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:334,lat:52.540529,lon:13.422672, tags:{nameZh:'柏林儿童博物馆',name:'MACHmit! Museum für Kinder',tourism:'museum',website:'https://www.machmitmuseum.de','addr:city':'Berlin',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:335,lat:53.587688,lon:9.848347, tags:{nameZh:'汉堡儿童博物馆',name:'KL!CK Kindermuseum Hamburg',tourism:'museum','addr:city':'Hamburg',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:336,lat:48.4000,lon:10.0100, tags:{nameZh:'莱赫费尔德野生公园',name:'Wildpark Lechfeld',tourism:'zoo','addr:city':'Augsburg',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:337,lat:51.946565,lon:7.590299, tags:{nameZh:'明斯特全天候动物园',name:'Allwetterzoo Münster',tourism:'zoo',website:'https://www.allwetterzoo.de','addr:city':'Münster',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:338,lat:54.330002,lon:10.148917, tags:{nameZh:'基尔水族馆',name:'Aquarium GEOMAR Kiel',tourism:'aquarium','addr:city':'Kiel',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:339,lat:52.386581,lon:13.116087, tags:{nameZh:'波茨坦影视公园',name:'Filmpark Babelsberg',tourism:'theme_park',website:'https://www.filmpark-babelsberg.de','addr:city':'Potsdam',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:340,lat:51.839619,lon:10.788771, tags:{nameZh:'哈茨窄轨蒸汽火车',name:'Harzer Schmalspurbahnen',tourism:'attraction',website:'https://www.hsb-wr.de','addr:city':'Wernigerode',opening_hours:'Mo-Su (seasonal)'}},
+  { type:'node',id:341,lat:50.957046,lon:6.966878, tags:{nameZh:'科隆体育冰场',name:'Lentpark Eisbahn Köln',leisure:'ice_rink','addr:city':'Cologne',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:342,lat:52.484243,lon:13.300688, tags:{nameZh:'柏林冰场',name:'Horst-Dohm-Eisstadion Berlin',leisure:'ice_rink','addr:city':'Berlin',opening_hours:'Mo-Su 09:00-22:00'}},
+  { type:'node',id:343,lat:48.177877,lon:11.550058, tags:{nameZh:'慕尼黑冰场',name:'Olympia-Eisstadion München',leisure:'ice_rink','addr:city':'Munich',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:344,lat:50.9500,lon:11.3300, tags:{nameZh:'魏玛歌剧院',name:'Deutsches Nationaltheater Weimar',amenity:'theatre','addr:city':'Weimar'}},
+  { type:'node',id:345,lat:51.350432,lon:12.371387, tags:{nameZh:'莱比锡动物主题乐园',name:'Gondwanaland Leipzig',tourism:'theme_park',website:'https://www.zoo-leipzig.de','addr:city':'Leipzig',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:346,lat:47.900990,lon:7.921329, tags:{nameZh:'弗赖堡黑森林探险乐园',name:'Steinwasen Park',tourism:'theme_park',website:'https://www.steinwasen-park.de','addr:city':'Oberried',opening_hours:'Mo-Su 09:00-18:00 (seasonal)'}},
+  { type:'node',id:347,lat:49.893614,lon:10.883862, tags:{nameZh:'班贝格小威尼斯',name:'Klein Venedig Bamberg',tourism:'attraction','addr:city':'Bamberg'}},
+  { type:'node',id:348,lat:53.911929,lon:10.733076, tags:{nameZh:'吕贝克糖果工厂',name:'Niederegger Marzipan Museum',tourism:'museum',website:'https://www.niederegger.de','addr:city':'Lübeck',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:349,lat:50.6400,lon:6.6300, tags:{nameZh:'特里尔罗马浴场',name:'Kaiserthermen Trier',historic:'ruins','addr:city':'Trier',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:350,lat:48.763120,lon:8.242224, tags:{nameZh:'巴登巴登弗里德里希温泉',name:'Friedrichsbad Baden-Baden',leisure:'swimming_pool',website:'https://www.carasana.de','addr:city':'Baden-Baden',opening_hours:'Mo-Su 09:00-22:00'}},
+  { type:'node',id:351,lat:47.656951,lon:9.180064, tags:{nameZh:'康斯坦茨SEA LIFE',name:'SEA LIFE Konstanz',tourism:'aquarium',website:'https://www.sealife.de','addr:city':'Konstanz',opening_hours:'Mo-Su 10:00-17:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: ZOOS & WILDLIFE PARKS (~15 more)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:400,lat:49.414268,lon:8.662448, tags:{nameZh:'海德堡动物园',name:'Zoo Heidelberg',tourism:'zoo',website:'https://www.zoo-heidelberg.de','addr:city':'Heidelberg',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:401,lat:51.947451,lon:7.587595, tags:{nameZh:'明斯特全天候动物园自然博物馆',name:'Westfälisches Pferdemuseum Münster',tourism:'museum',website:'https://www.pferdemuseum.de','addr:city':'Münster',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:402,lat:52.167552,lon:11.641472, tags:{nameZh:'马格德堡动物园',name:'Zoo Magdeburg',tourism:'zoo',website:'https://www.zoo-magdeburg.de','addr:city':'Magdeburg',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:403,lat:51.845163,lon:12.235439, tags:{nameZh:'德绍动物园',name:'Tierpark Dessau',tourism:'zoo','addr:city':'Dessau-Roßlau',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:404,lat:50.818606,lon:12.835099, tags:{nameZh:'开姆尼茨动物园',name:'Tierpark Chemnitz',tourism:'zoo',website:'https://www.tierpark-chemnitz.de','addr:city':'Chemnitz',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:405,lat:51.023236,lon:11.023586, tags:{nameZh:'爱尔福特动物园',name:'Thüringer Zoopark Erfurt',tourism:'zoo',website:'https://www.zoopark-erfurt.de','addr:city':'Erfurt',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:406,lat:54.079052,lon:12.077516, tags:{nameZh:'罗斯托克达高动物公园',name:'Darwineum Rostock',tourism:'zoo',website:'https://www.zoo-rostock.de','addr:city':'Rostock',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:407,lat:49.230213,lon:7.040470, tags:{nameZh:'萨尔布吕肯动物园',name:'Zoo Saarbrücken',tourism:'zoo',website:'https://www.zoo.saarbruecken.de','addr:city':'Saarbrücken',opening_hours:'Mo-Su 08:30-18:00'}},
+  { type:'node',id:408,lat:51.8167,lon:10.3333, tags:{nameZh:'哈茨山野生公园',name:'Wildpark Christianental',tourism:'zoo','addr:city':'Wernigerode',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:409,lat:53.606187,lon:11.441456, tags:{nameZh:'什未林动物园',name:'Zoo Schwerin',tourism:'zoo',website:'https://www.zoo-schwerin.de','addr:city':'Schwerin',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:410,lat:51.743114,lon:14.349736, tags:{nameZh:'科特布斯动物公园',name:'Tierpark Cottbus',tourism:'zoo',website:'https://www.tierpark-cottbus.de','addr:city':'Cottbus',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:411,lat:52.2689,lon:8.0478, tags:{nameZh:'比勒费尔德动物公园',name:'Tierpark Olderdissen',tourism:'zoo','addr:city':'Bielefeld',opening_hours:'Mo-Su 08:00-19:00'}},
+  { type:'node',id:412,lat:48.998351,lon:8.401427, tags:{nameZh:'卡尔斯鲁厄动物园',name:'Zoologischer Stadtgarten Karlsruhe',tourism:'zoo',website:'https://www.karlsruhe.de/zoo','addr:city':'Karlsruhe',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:413,lat:51.506799,lon:11.965030, tags:{nameZh:'哈勒动物园',name:'Bergzoo Halle',tourism:'zoo',website:'https://www.zoo-halle.de','addr:city':'Halle (Saale)',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:414,lat:54.315598,lon:13.097071, tags:{nameZh:'施特拉尔松德海洋博物馆',name:'Ozeaneum Stralsund',tourism:'aquarium',website:'https://www.ozeaneum.de','addr:city':'Stralsund',opening_hours:'Mo-Su 09:30-18:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MUSEUMS (~25 more)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:420,lat:52.428852,lon:10.790441, tags:{nameZh:'菲诺科学中心',name:'phaeno Wolfsburg',tourism:'museum',website:'https://www.phaeno.de','addr:city':'Wolfsburg',opening_hours:'Tu-Fr 09:00-17:00; Sa-Su 10:00-18:00'}},
+  { type:'node',id:421,lat:52.372567,lon:10.734890, tags:{nameZh:'大众汽车城',name:'Autostadt Wolfsburg',tourism:'museum',website:'https://www.autostadt.de','addr:city':'Wolfsburg',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:422,lat:50.115424,lon:8.647827, tags:{nameZh:'法兰克福探索博物馆',name:'Experiminta ScienceCenter Frankfurt',tourism:'museum',website:'https://www.experiminta.de','addr:city':'Frankfurt','addr:street':'Hamburger Allee 22-24',opening_hours:'We-Fr 09:00-14:00; Sa-Su 10:00-18:00'}},
+  { type:'node',id:423,lat:48.1351,lon:11.5820, tags:{nameZh:'慕尼黑儿童世界博物馆',name:'Kinderreich im Deutschen Museum',tourism:'museum',website:'https://www.deutsches-museum.de','addr:city':'Munich',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:424,lat:49.411367,lon:8.702896, tags:{nameZh:'海德堡德国药房博物馆',name:'Kurpfälzisches Museum Heidelberg',tourism:'museum',website:'https://www.museum-heidelberg.de','addr:city':'Heidelberg',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:425,lat:52.362806,lon:9.740121, tags:{nameZh:'汉诺威斯普伦格尔博物馆',name:'Sprengel Museum Hannover',tourism:'museum',website:'https://www.sprengel-museum.de','addr:city':'Hannover',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:426,lat:50.931180,lon:6.964650, tags:{nameZh:'科隆体育与奥运博物馆',name:'Deutsches Sport & Olympia Museum Köln',tourism:'museum',website:'https://www.sportmuseum.de','addr:city':'Cologne',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:427,lat:53.543353,lon:9.999824, tags:{nameZh:'汉堡国际海事博物馆',name:'Internationales Maritimes Museum Hamburg',tourism:'museum',website:'https://www.imm-hamburg.de','addr:city':'Hamburg',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:428,lat:50.927749,lon:11.579303, tags:{nameZh:'耶拿光学博物馆',name:'Optisches Museum Jena',tourism:'museum','addr:city':'Jena',opening_hours:'Tu-Fr 10:00-16:30; Sa 11:00-17:00'}},
+  { type:'node',id:429,lat:49.006985,lon:8.400144, tags:{nameZh:'卡尔斯鲁厄自然博物馆',name:'Staatliches Museum für Naturkunde Karlsruhe',tourism:'museum',website:'https://www.smnk.de','addr:city':'Karlsruhe',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:430,lat:52.103768,lon:11.625808, tags:{nameZh:'马格德堡技术博物馆',name:'Technikmuseum Magdeburg',tourism:'museum','addr:city':'Magdeburg',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:431,lat:50.976628,lon:11.025992, tags:{nameZh:'爱尔福特自然博物馆',name:'Naturkundemuseum Erfurt',tourism:'museum','addr:city':'Erfurt',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:432,lat:54.312788,lon:13.086921, tags:{nameZh:'施特拉尔松德德国海洋博物馆',name:'Deutsches Meeresmuseum Stralsund',tourism:'museum',website:'https://www.meeresmuseum.de','addr:city':'Stralsund',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:433,lat:52.510478,lon:13.370821, tags:{nameZh:'柏林乐器博物馆',name:'Musikinstrumenten-Museum Berlin',tourism:'museum',website:'https://www.simpk.de','addr:city':'Berlin',opening_hours:'Tu-Fr 09:00-17:00; Sa-Su 10:00-17:00'}},
+  { type:'node',id:434,lat:51.313262,lon:9.498957, tags:{nameZh:'卡塞尔自然博物馆',name:'Naturkundemuseum Kassel',tourism:'museum','addr:city':'Kassel',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:435,lat:49.4428,lon:7.7689, tags:{nameZh:'凯泽斯劳滕恐龙公园',name:'Dinosaurierpark Kaiserslautern',tourism:'museum','addr:city':'Kaiserslautern',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+  { type:'node',id:436,lat:51.459648,lon:6.729862, tags:{nameZh:'杜伊斯堡内河航运博物馆',name:'Museum der Deutschen Binnenschifffahrt',tourism:'museum',website:'https://www.binnenschifffahrtsmuseum.de','addr:city':'Duisburg',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:437,lat:53.547953,lon:10.002535, tags:{nameZh:'汉堡微缩世界博物馆旁糖果博物馆',name:'Chocoversum Hamburg',tourism:'museum',website:'https://www.chocoversum.de','addr:city':'Hamburg','addr:street':'Meßberg 1',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:438,lat:50.364428,lon:7.605741, tags:{nameZh:'科布伦茨德意志角',name:'Deutsches Eck Koblenz',tourism:'attraction','addr:city':'Koblenz'}},
+  { type:'node',id:439,lat:48.999375,lon:8.385953, tags:{nameZh:'卡尔斯鲁厄ZKM媒体艺术中心',name:'ZKM Karlsruhe',tourism:'museum',website:'https://www.zkm.de','addr:city':'Karlsruhe',opening_hours:'We-Fr 10:00-18:00; Sa-Su 11:00-18:00'}},
+  { type:'node',id:440,lat:51.044387,lon:13.746802, tags:{nameZh:'德累斯顿卫生博物馆',name:'Deutsches Hygiene-Museum Dresden',tourism:'museum',website:'https://www.dhmd.de','addr:city':'Dresden',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:441,lat:53.874008,lon:10.689600, tags:{nameZh:'吕贝克欧洲汉萨博物馆',name:'Europäisches Hansemuseum Lübeck',tourism:'museum',website:'https://www.hansemuseum.eu','addr:city':'Lübeck',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:442,lat:49.448083,lon:11.076160, tags:{nameZh:'纽伦堡日耳曼国家博物馆',name:'Germanisches Nationalmuseum',tourism:'museum',website:'https://www.gnm.de','addr:city':'Nuremberg',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:443,lat:50.941161,lon:6.993564, tags:{nameZh:'科隆ODYSSEUM探索中心',name:'Odysseum Köln',tourism:'museum',website:'https://www.odysseum.de','addr:city':'Cologne',opening_hours:'Tu-Fr 09:00-18:00; Sa-Su 10:00-19:00'}},
+  { type:'node',id:444,lat:49.229895,lon:6.991754, tags:{nameZh:'萨尔布吕肯历史博物馆',name:'Historisches Museum Saar',tourism:'museum',website:'https://www.historisches-museum.org','addr:city':'Saarbrücken',opening_hours:'Tu-Su 10:00-18:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: OUTDOOR PLAYGROUNDS (~40 more)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:450,lat:51.965192,lon:11.874083, tags:{nameZh:'马格德堡冒险游乐场',name:'Abenteuerspielplatz Magdeburg',leisure:'playground','addr:city':'Magdeburg'}},
+  { type:'node',id:451,lat:50.969926,lon:11.039706, tags:{nameZh:'爱尔福特城市公园游乐场',name:'Spielplatz Stadtpark Erfurt',leisure:'playground','addr:city':'Erfurt'}},
+  { type:'node',id:452,lat:50.842394,lon:12.912793, tags:{nameZh:'开姆尼茨城堡公园游乐场',name:'Spielplatz Schlossteich Chemnitz',leisure:'playground','addr:city':'Chemnitz'}},
+  { type:'node',id:453,lat:49.000215,lon:8.402095, tags:{nameZh:'卡尔斯鲁厄城市花园游乐场',name:'Spielplatz Stadtgarten Karlsruhe',leisure:'playground','addr:city':'Karlsruhe'}},
+  { type:'node',id:454,lat:49.989142,lon:8.245943, tags:{nameZh:'美因茨城市公园游乐场',name:'Spielplatz Stadtpark Mainz',leisure:'playground','addr:city':'Mainz'}},
+  { type:'node',id:455,lat:49.258532,lon:6.859178, tags:{nameZh:'萨尔布吕肯市民公园游乐场',name:'Spielplatz Bürgerpark Saarbrücken',leisure:'playground','addr:city':'Saarbrücken'}},
+  { type:'node',id:456,lat:53.605522,lon:11.429434, tags:{nameZh:'什未林城堡花园游乐场',name:'Spielplatz Schlossgarten Schwerin',leisure:'playground','addr:city':'Schwerin'}},
+  { type:'node',id:457,lat:54.328362,lon:10.122134, tags:{nameZh:'基尔奥林匹克公园游乐场',name:'Spielplatz Schrevenpark Kiel',leisure:'playground','addr:city':'Kiel'}},
+  { type:'node',id:458,lat:51.496849,lon:11.954217, tags:{nameZh:'哈勒河岸游乐场',name:'Spielplatz Riveufer Halle',leisure:'playground','addr:city':'Halle (Saale)'}},
+  { type:'node',id:459,lat:52.2689,lon:8.0500, tags:{nameZh:'比勒费尔德北公园游乐场',name:'Spielplatz Nordpark Bielefeld',leisure:'playground','addr:city':'Bielefeld'}},
+  { type:'node',id:460,lat:51.511146,lon:7.452820, tags:{nameZh:'多特蒙德西公园游乐场',name:'Spielplatz Westpark Dortmund',leisure:'playground','addr:city':'Dortmund'}},
+  { type:'node',id:461,lat:51.423882,lon:6.986735, tags:{nameZh:'埃森格鲁加公园游乐场',name:'Spielplatz Grugapark Essen',leisure:'playground','addr:city':'Essen'}},
+  { type:'node',id:462,lat:51.481754,lon:6.783961, tags:{nameZh:'杜伊斯堡北景观公园游乐场',name:'Spielplatz Landschaftspark Duisburg-Nord',leisure:'playground','addr:city':'Duisburg'}},
+  { type:'node',id:463,lat:50.712897,lon:7.139884, tags:{nameZh:'波恩莱茵河畔游乐场',name:'Spielplatz Rheinaue Bonn',leisure:'playground','addr:city':'Bonn'}},
+  { type:'node',id:464,lat:50.779587,lon:6.084223, tags:{nameZh:'亚琛城市公园游乐场',name:'Spielplatz Stadtpark Aachen',leisure:'playground','addr:city':'Aachen'}},
+  { type:'node',id:465,lat:48.406002,lon:10.014164, tags:{nameZh:'乌尔姆多瑙河畔游乐场',name:'Spielplatz Friedrichsau Ulm',leisure:'playground','addr:city':'Ulm'}},
+  { type:'node',id:466,lat:47.997573,lon:7.858615, tags:{nameZh:'弗赖堡城市花园游乐场',name:'Spielplatz Stadtgarten Freiburg',leisure:'playground','addr:city':'Freiburg'}},
+  { type:'node',id:467,lat:48.346701,lon:10.915867, tags:{nameZh:'奥格斯堡动物园游乐场',name:'Spielplatz Zoo Augsburg',leisure:'playground','addr:city':'Augsburg'}},
+  { type:'node',id:468,lat:49.413305,lon:8.691818, tags:{nameZh:'海德堡内卡河畔游乐场',name:'Spielplatz Neckarwiese Heidelberg',leisure:'playground','addr:city':'Heidelberg'}},
+  { type:'node',id:469,lat:49.449652,lon:7.755171, tags:{nameZh:'凯泽斯劳滕花园展游乐场',name:'Spielplatz Gartenschau Kaiserslautern',leisure:'playground','addr:city':'Kaiserslautern'}},
+  { type:'node',id:470,lat:48.475262,lon:9.142003, tags:{nameZh:'罗伊特林根冒险游乐场',name:'Abenteuerspielplatz Reutlingen',leisure:'playground','addr:city':'Reutlingen'}},
+  { type:'node',id:471,lat:49.882454,lon:10.899725, tags:{nameZh:'班贝格海因公园游乐场',name:'Spielplatz Hainpark Bamberg',leisure:'playground','addr:city':'Bamberg'}},
+  { type:'node',id:472,lat:52.415781,lon:12.547555, tags:{nameZh:'勃兰登堡城市游乐场',name:'Spielplatz Marienberg Brandenburg',leisure:'playground','addr:city':'Brandenburg an der Havel'}},
+  { type:'node',id:473,lat:52.843774,lon:13.773609, tags:{nameZh:'埃伯斯瓦尔德动物公园游乐场',name:'Spielplatz Familiengarten Eberswalde',leisure:'playground','addr:city':'Eberswalde'}},
+  { type:'node',id:474,lat:53.4300,lon:14.5500, tags:{nameZh:'什切青边境游乐场',name:'Spielplatz Stadtpark Schwedt',leisure:'playground','addr:city':'Schwedt'}},
+  { type:'node',id:475,lat:51.177196,lon:10.093555, tags:{nameZh:'埃施韦格冒险游乐场',name:'Abenteuerspielplatz Eschwege',leisure:'playground','addr:city':'Eschwege'}},
+  { type:'node',id:476,lat:50.6400,lon:6.6317, tags:{nameZh:'特里尔帕拉蒂花园游乐场',name:'Spielplatz Palastgarten Trier',leisure:'playground','addr:city':'Trier'}},
+  { type:'node',id:477,lat:49.476032,lon:11.205674, tags:{nameZh:'纽伦堡佩格尼茨河畔游乐场',name:'Spielplatz Pegnitzaue Nürnberg',leisure:'playground','addr:city':'Nuremberg'}},
+  { type:'node',id:478,lat:53.863635,lon:10.677810, tags:{nameZh:'吕贝克城墙公园游乐场',name:'Spielplatz Wallanlagen Lübeck',leisure:'playground','addr:city':'Lübeck'}},
+  { type:'node',id:479,lat:54.081245,lon:12.098477, tags:{nameZh:'罗斯托克巴恩斯多夫森林游乐场',name:'Spielplatz Barnstorfer Wald Rostock',leisure:'playground','addr:city':'Rostock'}},
+  { type:'node',id:480,lat:53.560271,lon:8.587905, tags:{nameZh:'不莱梅港城市公园游乐场',name:'Spielplatz Stadtpark Bremerhaven',leisure:'playground','addr:city':'Bremerhaven'}},
+  { type:'node',id:481,lat:51.743117,lon:14.362930, tags:{nameZh:'科特布斯花园游乐场',name:'Spielplatz Branitzer Park Cottbus',leisure:'playground','addr:city':'Cottbus'}},
+  { type:'node',id:482,lat:50.345272,lon:7.594730, tags:{nameZh:'科布伦茨莱茵河畔游乐场',name:'Spielplatz Rheinanlagen Koblenz',leisure:'playground','addr:city':'Koblenz'}},
+  { type:'node',id:483,lat:50.095835,lon:8.260385, tags:{nameZh:'威斯巴登城市公园游乐场',name:'Spielplatz Kurpark Wiesbaden',leisure:'playground','addr:city':'Wiesbaden'}},
+  { type:'node',id:484,lat:48.772860,lon:9.182298, tags:{nameZh:'斯图加特基尔斯堡游乐场',name:'Spielplatz Killesbergpark Stuttgart',leisure:'playground','addr:city':'Stuttgart'}},
+  { type:'node',id:485,lat:50.126119,lon:8.661451, tags:{nameZh:'法兰克福格林堡公园游乐场',name:'Spielplatz Grüneburgpark Frankfurt',leisure:'playground','addr:city':'Frankfurt'}},
+  { type:'node',id:486,lat:52.528824,lon:13.356332, tags:{nameZh:'柏林莫阿比特游乐场',name:'Spielplatz Fritz-Schloss-Park Berlin',leisure:'playground','addr:city':'Berlin'}},
+  { type:'node',id:487,lat:48.123127,lon:11.527019, tags:{nameZh:'慕尼黑威斯特公园游乐场',name:'Spielplatz Westpark München',leisure:'playground','addr:city':'Munich'}},
+  { type:'node',id:488,lat:53.595619,lon:10.017669, tags:{nameZh:'汉堡城市公园冒险游乐场',name:'Abenteuerspielplatz Stadtpark Hamburg',leisure:'playground','addr:city':'Hamburg'}},
+  { type:'node',id:489,lat:50.927416,lon:6.906655, tags:{nameZh:'科隆城市森林游乐场',name:'Spielplatz Stadtwald Köln',leisure:'playground','addr:city':'Cologne'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: SWIMMING POOLS & THERMAL BATHS (~30 more)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:500,lat:52.530903,lon:13.351097, tags:{nameZh:'柏林蓝色泻湖浴场',name:'Blub Badeparadies Berlin',leisure:'swimming_pool','addr:city':'Berlin',opening_hours:'Mo-Su 10:00-23:00'}},
+  { type:'node',id:501,lat:48.118349,lon:11.631823, tags:{nameZh:'慕尼黑米夏埃利浴场',name:'Michaelibad München',leisure:'swimming_pool','addr:city':'Munich',opening_hours:'Mo-Su 09:00-23:00'}},
+  { type:'node',id:502,lat:53.560315,lon:10.021545, tags:{nameZh:'汉堡阿尔斯特游泳馆',name:'Alster-Schwimmhalle Hamburg',leisure:'swimming_pool','addr:city':'Hamburg',opening_hours:'Mo-Su 06:30-22:00'}},
+  { type:'node',id:503,lat:51.222777,lon:6.811326, tags:{nameZh:'杜塞尔多夫水上乐园',name:'Düsselstrand Düsseldorf',leisure:'swimming_pool','addr:city':'Düsseldorf',opening_hours:'Mo-Su 09:00-21:00'}},
+  { type:'node',id:504,lat:50.158246,lon:8.631733, tags:{nameZh:'法兰克福蒂特斯温泉',name:'Titus Thermen Frankfurt',leisure:'swimming_pool',website:'https://www.tfrankfurt.de','addr:city':'Frankfurt',opening_hours:'Mo-Su 10:00-23:00'}},
+  { type:'node',id:505,lat:48.795824,lon:9.206298, tags:{nameZh:'斯图加特矿泉浴场贝格',name:'Mineralbad Berg Stuttgart',leisure:'swimming_pool','addr:city':'Stuttgart',opening_hours:'Mo-Su 06:00-21:00'}},
+  { type:'node',id:506,lat:48.995629,lon:8.376099, tags:{nameZh:'卡尔斯鲁厄欧洲浴场',name:'Europabad Karlsruhe',leisure:'swimming_pool',website:'https://www.ka-baeder.de','addr:city':'Karlsruhe',opening_hours:'Mo-Su 09:00-23:00'}},
+  { type:'node',id:507,lat:52.376877,lon:9.739561, tags:{nameZh:'汉诺威体验浴场',name:'Erlebnisbad Hannover Lister',leisure:'swimming_pool','addr:city':'Hannover',opening_hours:'Mo-Su 06:30-21:00'}},
+  { type:'node',id:508,lat:49.459250,lon:11.097949, tags:{nameZh:'纽伦堡棕榈海滩浴场',name:'Palm Beach Nürnberg',leisure:'swimming_pool',website:'https://www.palm-beach.de','addr:city':'Nuremberg',opening_hours:'Mo-Su 10:00-23:00'}},
+  { type:'node',id:509,lat:53.106976,lon:8.868752, tags:{nameZh:'不莱梅体验浴场',name:'Horner Bad Bremen',leisure:'swimming_pool','addr:city':'Bremen',opening_hours:'Mo-Su 06:30-21:00'}},
+  { type:'node',id:510,lat:51.042644,lon:13.749275, tags:{nameZh:'德累斯顿乔治浴场',name:'Georg-Arnhold-Bad Dresden',leisure:'swimming_pool','addr:city':'Dresden',opening_hours:'Mo-Su 06:00-22:00'}},
+  { type:'node',id:511,lat:51.315073,lon:12.291681, tags:{nameZh:'莱比锡格鲁瑙体验浴场',name:'Grünauer Welle Leipzig',leisure:'swimming_pool','addr:city':'Leipzig',opening_hours:'Mo-Su 08:00-22:00'}},
+  { type:'node',id:512,lat:52.134005,lon:11.664003, tags:{nameZh:'马格德堡体验浴场',name:'Nemo Magdeburg',leisure:'swimming_pool','addr:city':'Magdeburg',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:513,lat:50.963640,lon:11.039556, tags:{nameZh:'爱尔福特城市浴场',name:'Roland-Matthes-Bad Erfurt',leisure:'swimming_pool','addr:city':'Erfurt',opening_hours:'Mo-Su 06:00-22:00'}},
+  { type:'node',id:514,lat:54.313031,lon:10.142869, tags:{nameZh:'基尔奥林匹克游泳馆',name:'Schwimmhalle Kiel',leisure:'swimming_pool','addr:city':'Kiel',opening_hours:'Mo-Su 06:00-21:00'}},
+  { type:'node',id:515,lat:53.627426,lon:11.392886, tags:{nameZh:'什未林体验浴场',name:'Sport- und Kongresshalle Schwerin',leisure:'swimming_pool','addr:city':'Schwerin',opening_hours:'Mo-Su 06:00-21:00'}},
+  { type:'node',id:516,lat:49.231185,lon:6.963604, tags:{nameZh:'萨尔布吕肯热带浴场',name:'Calypso Saarbrücken',leisure:'swimming_pool','addr:city':'Saarbrücken',opening_hours:'Mo-Su 09:00-22:00'}},
+  { type:'node',id:517,lat:47.7100,lon:10.3100, tags:{nameZh:'阿尔高温泉',name:'Therme Bad Wörishofen',leisure:'swimming_pool',website:'https://www.therme-badwoerishofen.de','addr:city':'Bad Wörishofen',opening_hours:'Mo-Su 09:00-22:00'}},
+  { type:'node',id:518,lat:47.5800,lon:11.8700, tags:{nameZh:'巴特艾布灵温泉',name:'Therme Bad Aibling',leisure:'swimming_pool',website:'https://www.therme-bad-aibling.de','addr:city':'Bad Aibling',opening_hours:'Mo-Su 09:00-23:00'}},
+  { type:'node',id:519,lat:50.878451,lon:10.522129, tags:{nameZh:'弗里德里希罗达温泉',name:'Tabbs Tabarz',leisure:'swimming_pool','addr:city':'Tabarz',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:520,lat:52.2689,lon:8.0500, tags:{nameZh:'比勒费尔德石浴场',name:'Ishara Bielefeld',leisure:'swimming_pool','addr:city':'Bielefeld',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:521,lat:51.373632,lon:7.476650, tags:{nameZh:'多特蒙德体验浴场',name:'Westfalenbad Hagen',leisure:'swimming_pool','addr:city':'Hagen',opening_hours:'Mo-Su 09:00-22:00'}},
+  { type:'node',id:522,lat:50.084605,lon:8.239316, tags:{nameZh:'威斯巴登温泉',name:'Kaiser-Friedrich-Therme Wiesbaden',leisure:'swimming_pool',website:'https://www.wiesbaden.de','addr:city':'Wiesbaden',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:523,lat:47.906858,lon:8.159966, tags:{nameZh:'蒂蒂湖体验浴场',name:'Badeparadies Schwarzwald Titisee',leisure:'swimming_pool',website:'https://www.badeparadies-schwarzwald.de','addr:city':'Titisee-Neustadt',opening_hours:'Mo-Su 09:00-23:00'}},
+  { type:'node',id:524,lat:51.172598,lon:14.411714, tags:{nameZh:'包岑体验浴场',name:'Spreebad Bautzen',leisure:'swimming_pool','addr:city':'Bautzen',opening_hours:'Mo-Su 10:00-21:00'}},
+  { type:'node',id:525,lat:51.770960,lon:14.327500, tags:{nameZh:'科特布斯泻湖浴场',name:'Lagune Cottbus',leisure:'swimming_pool',website:'https://www.lagune-cottbus.de','addr:city':'Cottbus',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:526,lat:53.553379,lon:8.580863, tags:{nameZh:'不莱梅港海水浴场',name:'Erlebnisbad Bremerhaven',leisure:'swimming_pool','addr:city':'Bremerhaven',opening_hours:'Mo-Su 10:00-21:00'}},
+  { type:'node',id:527,lat:54.776984,lon:9.452506, tags:{nameZh:'弗伦斯堡体验浴场',name:'Campusbad Flensburg',leisure:'swimming_pool','addr:city':'Flensburg',opening_hours:'Mo-Su 06:30-21:00'}},
+  { type:'node',id:528,lat:50.366324,lon:7.575439, tags:{nameZh:'科布伦茨体验浴场',name:'Moselbad Koblenz',leisure:'swimming_pool','addr:city':'Koblenz',opening_hours:'Mo-Su 06:30-21:00'}},
+  { type:'node',id:529,lat:49.313974,lon:8.451360, tags:{nameZh:'施派尔体验浴场',name:'Bademaxx Speyer',leisure:'swimming_pool',website:'https://www.bademaxx.de','addr:city':'Speyer',opening_hours:'Mo-Su 09:00-22:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: NATURE & NATIONAL PARKS (~20 more)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:540,lat:50.540015,lon:6.394385, tags:{nameZh:'埃菲尔国家公园',name:'Nationalpark Eifel',leisure:'nature_reserve',website:'https://www.nationalpark-eifel.de','addr:city':'Schleiden'}},
+  { type:'node',id:541,lat:53.0500,lon:13.2000, tags:{nameZh:'下奥德河谷国家公园',name:'Nationalpark Unteres Odertal',leisure:'nature_reserve','addr:city':'Schwedt'}},
+  { type:'node',id:542,lat:53.2000,lon:12.8500, tags:{nameZh:'米里茨国家公园',name:'Müritz-Nationalpark',leisure:'nature_reserve',website:'https://www.mueritz-nationalpark.de','addr:city':'Waren (Müritz)'}},
+  { type:'node',id:543,lat:54.2500,lon:12.6000, tags:{nameZh:'亚斯蒙德国家公园',name:'Nationalpark Jasmund',leisure:'nature_reserve','addr:city':'Sassnitz'}},
+  { type:'node',id:544,lat:50.939348,lon:14.094075, tags:{nameZh:'萨克森瑞士国家公园',name:'Nationalpark Sächsische Schweiz',leisure:'nature_reserve',website:'https://www.nationalpark-saechsische-schweiz.de','addr:city':'Bad Schandau'}},
+  { type:'node',id:545,lat:54.8000,lon:8.5000, tags:{nameZh:'石勒苏益格-荷尔施泰因瓦登海',name:'Wattenmeer Nordfriesland',leisure:'nature_reserve','addr:city':'Husum'}},
+  { type:'node',id:546,lat:49.2000,lon:12.8000, tags:{nameZh:'巴伐利亚森林国家公园游客中心',name:'Haus zur Wildnis',leisure:'nature_reserve',website:'https://www.nationalpark-bayerischer-wald.bayern.de','addr:city':'Lindberg',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:547,lat:54.521232,lon:13.652001, tags:{nameZh:'吕根岛白垩悬崖',name:'Kreidefelsen Rügen',leisure:'nature_reserve','addr:city':'Sassnitz'}},
+  { type:'node',id:548,lat:50.747264,lon:10.656496, tags:{nameZh:'图林根森林',name:'Thüringer Wald',leisure:'nature_reserve','addr:city':'Oberhof'}},
+  { type:'node',id:549,lat:49.159231,lon:7.737188, tags:{nameZh:'普法尔茨森林',name:'Pfälzerwald',leisure:'nature_reserve','addr:city':'Dahn'}},
+  { type:'node',id:550,lat:47.386390,lon:10.297727, tags:{nameZh:'阿尔高阿尔卑斯',name:'Allgäuer Alpen',leisure:'nature_reserve','addr:city':'Oberstdorf'}},
+  { type:'node',id:551,lat:48.6000,lon:13.2500, tags:{nameZh:'巴伐利亚森林树冠步道',name:'Baumwipfelpfad Bayerischer Wald',leisure:'nature_reserve',website:'https://www.baumwipfelpfade.de','addr:city':'Neuschönau',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:552,lat:51.5000,lon:10.4500, tags:{nameZh:'海因尼希国家公园',name:'Nationalpark Hainich',leisure:'nature_reserve',website:'https://www.nationalpark-hainich.de','addr:city':'Bad Langensalza'}},
+  { type:'node',id:553,lat:51.5300,lon:10.4300, tags:{nameZh:'海因尼希树冠步道',name:'Baumkronenpfad Hainich',leisure:'nature_reserve',website:'https://www.baumkronen-pfad.de','addr:city':'Bad Langensalza',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:554,lat:51.799125,lon:10.615637, tags:{nameZh:'布罗肯山',name:'Brocken (Harz)',leisure:'nature_reserve','addr:city':'Wernigerode'}},
+  { type:'node',id:555,lat:49.4500,lon:10.9800, tags:{nameZh:'弗兰肯自然公园',name:'Naturpark Fränkische Schweiz',leisure:'nature_reserve','addr:city':'Pottenstein'}},
+  { type:'node',id:556,lat:47.5833,lon:12.1667, tags:{nameZh:'奇姆湖',name:'Chiemsee',leisure:'nature_reserve','addr:city':'Prien am Chiemsee'}},
+  { type:'node',id:557,lat:47.657868,lon:9.501635, tags:{nameZh:'博登湖',name:'Bodensee / Lake Constance',leisure:'nature_reserve','addr:city':'Friedrichshafen'}},
+  { type:'node',id:558,lat:53.1500,lon:12.7200, tags:{nameZh:'米里茨湖',name:'Müritz-See',leisure:'nature_reserve','addr:city':'Waren (Müritz)'}},
+  { type:'node',id:559,lat:50.195226,lon:6.841488, tags:{nameZh:'努尔堡环赛道自然公园',name:'Naturpark Vulkaneifel',leisure:'nature_reserve','addr:city':'Daun'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: CHILDREN'S FARMS (~20 more)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:570,lat:52.1400,lon:11.6200, tags:{nameZh:'马格德堡儿童农场',name:'Kinderbauernhof Magdeburg',tourism:'children_farm','addr:city':'Magdeburg',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:571,lat:50.9800,lon:11.0300, tags:{nameZh:'爱尔福特儿童农场',name:'Kinderbauernhof Erfurt',tourism:'children_farm','addr:city':'Erfurt',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:572,lat:49.0069,lon:8.4037, tags:{nameZh:'卡尔斯鲁厄儿童农场',name:'Kinderbauernhof Karlsruhe',tourism:'children_farm','addr:city':'Karlsruhe',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:573,lat:49.9929,lon:8.2473, tags:{nameZh:'美因茨儿童农场',name:'Kinderbauernhof Mainz',tourism:'children_farm','addr:city':'Mainz',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:574,lat:49.2300,lon:7.0000, tags:{nameZh:'萨尔布吕肯儿童农场',name:'Kinderbauernhof Saarbrücken',tourism:'children_farm','addr:city':'Saarbrücken',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:575,lat:53.6400,lon:11.4000, tags:{nameZh:'什未林儿童农场',name:'Kinderbauernhof Schwerin',tourism:'children_farm','addr:city':'Schwerin',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:576,lat:54.3233,lon:10.1228, tags:{nameZh:'基尔儿童农场',name:'Kinderbauernhof Kiel',tourism:'children_farm','addr:city':'Kiel',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:577,lat:51.4775,lon:11.9700, tags:{nameZh:'哈勒儿童农场',name:'Kinderbauernhof Halle',tourism:'children_farm','addr:city':'Halle (Saale)',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:578,lat:52.2689,lon:8.0500, tags:{nameZh:'比勒费尔德儿童农场',name:'Kinderbauernhof Bielefeld',tourism:'children_farm','addr:city':'Bielefeld',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:579,lat:50.8278,lon:12.9214, tags:{nameZh:'开姆尼茨儿童农场',name:'Kinderbauernhof Chemnitz',tourism:'children_farm','addr:city':'Chemnitz',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:580,lat:50.7300,lon:7.1000, tags:{nameZh:'波恩冒险农场',name:'Abenteuerbauernhof Bonn',tourism:'children_farm','addr:city':'Bonn',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:581,lat:47.9990,lon:7.8500, tags:{nameZh:'弗赖堡儿童农场',name:'Kinderbauernhof Freiburg',tourism:'children_farm','addr:city':'Freiburg',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:582,lat:48.4000,lon:10.0000, tags:{nameZh:'奥格斯堡儿童农场',name:'Kinderbauernhof Augsburg',tourism:'children_farm','addr:city':'Augsburg',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:583,lat:54.7900,lon:9.4400, tags:{nameZh:'弗伦斯堡儿童农场',name:'Kinderbauernhof Flensburg',tourism:'children_farm','addr:city':'Flensburg',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:584,lat:53.8650,lon:10.6950, tags:{nameZh:'吕贝克儿童农场',name:'Kinderbauernhof Lübeck',tourism:'children_farm','addr:city':'Lübeck',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:585,lat:51.9600,lon:7.6300, tags:{nameZh:'明斯特儿童农场',name:'Kinderbauernhof Münster',tourism:'children_farm','addr:city':'Münster',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:586,lat:50.3600,lon:7.6000, tags:{nameZh:'科布伦茨儿童农场',name:'Kinderbauernhof Koblenz',tourism:'children_farm','addr:city':'Koblenz',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:587,lat:51.5100,lon:7.4600, tags:{nameZh:'多特蒙德儿童农场',name:'Kinderbauernhof Dortmund',tourism:'children_farm','addr:city':'Dortmund',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:588,lat:51.4500,lon:7.0150, tags:{nameZh:'埃森儿童农场',name:'Kinderbauernhof Essen',tourism:'children_farm','addr:city':'Essen',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:589,lat:50.0782,lon:8.2398, tags:{nameZh:'威斯巴登儿童农场',name:'Kinderbauernhof Wiesbaden',tourism:'children_farm','addr:city':'Wiesbaden',opening_hours:'Mo-Su 10:00-17:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: CHINESE RESTAURANTS (~15 more)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:600,lat:48.3705,lon:10.8978, tags:{nameZh:'奥格斯堡金龙',name:'Golden Dragon Augsburg',amenity:'chinese_restaurant','addr:city':'Augsburg','addr:street':'Maximilianstraße 36',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:601,lat:49.4800,lon:8.4700, tags:{nameZh:'海德堡小食代',name:'Dim Sum Restaurant Heidelberg',amenity:'chinese_restaurant','addr:city':'Heidelberg','addr:street':'Bergheimer Str. 24',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:602,lat:49.4428,lon:7.7689, tags:{nameZh:'凯泽斯劳滕中华楼',name:'China Restaurant Kaiserslautern',amenity:'chinese_restaurant','addr:city':'Kaiserslautern','addr:street':'Fackelstraße 20',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:603,lat:49.0069,lon:8.4037, tags:{nameZh:'卡尔斯鲁厄中华城',name:'China City Karlsruhe',amenity:'chinese_restaurant','addr:city':'Karlsruhe','addr:street':'Kaiserstraße 150',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:604,lat:49.9929,lon:8.2473, tags:{nameZh:'美因茨中华园',name:'China Garden Mainz',amenity:'chinese_restaurant','addr:city':'Mainz','addr:street':'Große Bleiche 20',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:605,lat:49.2344,lon:7.0022, tags:{nameZh:'萨尔布吕肯金龙',name:'Golden Dragon Saarbrücken',amenity:'chinese_restaurant','addr:city':'Saarbrücken','addr:street':'Bahnhofstraße 50',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:606,lat:48.5200,lon:9.0500, tags:{nameZh:'罗伊特林根中华楼',name:'China Restaurant Reutlingen',amenity:'chinese_restaurant','addr:city':'Reutlingen','addr:street':'Wilhelmstraße 45',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:607,lat:49.4500,lon:11.0833, tags:{nameZh:'纽伦堡川味阁',name:'Sichuan Gourmet Nürnberg',amenity:'chinese_restaurant','addr:city':'Nuremberg','addr:street':'Breite Gasse 28',opening_hours:'Tu-Su 12:00-22:30'}},
+  { type:'node',id:608,lat:47.9990,lon:7.8500, tags:{nameZh:'弗赖堡中华城',name:'China Town Freiburg',amenity:'chinese_restaurant','addr:city':'Freiburg','addr:street':'Bertoldstraße 12',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:609,lat:49.4800,lon:8.4700, tags:{nameZh:'曼海姆中华阁',name:'China Pavilion Mannheim',amenity:'chinese_restaurant','addr:city':'Mannheim','addr:street':'Planken O5',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:610,lat:52.1400,lon:11.6200, tags:{nameZh:'马格德堡中华园',name:'China Garden Magdeburg',amenity:'chinese_restaurant','addr:city':'Magdeburg','addr:street':'Breiter Weg 200',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:611,lat:50.9700,lon:11.0300, tags:{nameZh:'爱尔福特中华楼',name:'China Restaurant Erfurt',amenity:'chinese_restaurant','addr:city':'Erfurt','addr:street':'Anger 50',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:612,lat:54.3233,lon:10.1228, tags:{nameZh:'基尔中华园',name:'China Garden Kiel',amenity:'chinese_restaurant','addr:city':'Kiel','addr:street':'Holstenstraße 30',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:613,lat:51.4300,lon:6.7600, tags:{nameZh:'杜伊斯堡中华城',name:'China City Duisburg',amenity:'chinese_restaurant','addr:city':'Duisburg','addr:street':'Königstraße 48',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:614,lat:48.4011,lon:9.9876, tags:{nameZh:'乌尔姆中华楼',name:'China Restaurant Ulm',amenity:'chinese_restaurant','addr:city':'Ulm','addr:street':'Hirschstraße 22',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:850,lat:52.3759,lon:9.7320, tags:{nameZh:'南京酒家',name:'China Restaurant Nanking Hannover',amenity:'chinese_restaurant',website:'https://nanking-restaurant.de','addr:city':'Hannover','addr:street':'Bödekerstraße 1',opening_hours:'Mo-Su 12:00-14:30, 17:30-22:30'}},
+  { type:'node',id:851,lat:52.3740,lon:9.7380, tags:{nameZh:'太白',name:'Tai Pai Hannover',amenity:'chinese_restaurant',website:'https://www.tai-pai.de','addr:city':'Hannover','addr:street':'Hildesheimer Straße 73',opening_hours:'Tu-Su 12:00-14:30, 18:00-22:00'}},
+  { type:'node',id:852,lat:53.0793,lon:8.8017, tags:{nameZh:'不莱梅金龙',name:'Golden Dragon Bremen',amenity:'chinese_restaurant','addr:city':'Bremen','addr:street':'Sögestraße 48',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:853,lat:49.4530,lon:11.0770, tags:{nameZh:'纽伦堡味道',name:'China Gourmet Nürnberg',amenity:'chinese_restaurant','addr:city':'Nuremberg','addr:street':'Johannesgasse 38',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:854,lat:48.3650,lon:10.8980, tags:{nameZh:'奥格斯堡凤凰楼',name:'Phoenix Augsburg',amenity:'chinese_restaurant','addr:city':'Augsburg','addr:street':'Annastraße 18',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:855,lat:49.4870,lon:8.4660, tags:{nameZh:'曼海姆金筷子',name:'Goldene Stäbchen Mannheim',amenity:'chinese_restaurant','addr:city':'Mannheim','addr:street':'Planken O6, 3',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:856,lat:49.0069,lon:8.4037, tags:{nameZh:'卡尔斯鲁厄明珠',name:'Ming Zhu Karlsruhe',amenity:'chinese_restaurant','addr:city':'Karlsruhe','addr:street':'Waldstraße 50',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:857,lat:47.9990,lon:7.8421, tags:{nameZh:'弗赖堡顺风',name:'Shun Feng Freiburg',amenity:'chinese_restaurant',website:'https://www.shunfeng-freiburg.de','addr:city':'Freiburg','addr:street':'Haslacher Straße 15',opening_hours:'Mo-Su 11:30-14:30, 17:30-22:00'}},
+  { type:'node',id:858,lat:49.9929,lon:8.2473, tags:{nameZh:'美因茨福满楼',name:'Fu Man Lou Mainz',amenity:'chinese_restaurant','addr:city':'Mainz','addr:street':'Schillerstraße 44',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:859,lat:54.3233,lon:10.1228, tags:{nameZh:'基尔龙宫',name:'Dragon Palace Kiel',amenity:'chinese_restaurant','addr:city':'Kiel','addr:street':'Bergstraße 15',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:860,lat:54.0887,lon:12.1407, tags:{nameZh:'罗斯托克中华城',name:'China City Rostock',amenity:'chinese_restaurant','addr:city':'Rostock','addr:street':'Kröpeliner Straße 82',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:861,lat:50.9780,lon:11.0290, tags:{nameZh:'爱尔福特万宝',name:'Wan Bao Erfurt',amenity:'chinese_restaurant',website:'https://www.chinarestaurantwanbao-erfurt.de','addr:city':'Erfurt','addr:street':'Juri-Gagarin-Ring 60',opening_hours:'Mo-Su 11:30-14:30, 17:30-22:00'}},
+  { type:'node',id:862,lat:50.9270,lon:11.5860, tags:{nameZh:'耶拿中华阁',name:'China Pavilion Jena',amenity:'chinese_restaurant','addr:city':'Jena','addr:street':'Löbdergraben 8',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:863,lat:51.4828,lon:11.9700, tags:{nameZh:'哈勒金龙',name:'Golden Dragon Halle',amenity:'chinese_restaurant','addr:city':'Halle','addr:street':'Leipziger Straße 45',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:864,lat:52.1317,lon:11.6400, tags:{nameZh:'马格德堡凤凰',name:'Phoenix Magdeburg',amenity:'chinese_restaurant','addr:city':'Magdeburg','addr:street':'Ernst-Reuter-Allee 12',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:865,lat:52.3906,lon:13.0645, tags:{nameZh:'波茨坦翠竹园',name:'Bamboo Garden Potsdam',amenity:'chinese_restaurant','addr:city':'Potsdam','addr:street':'Brandenburger Straße 30',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:866,lat:50.0782,lon:8.2398, tags:{nameZh:'威斯巴登四季',name:'Four Seasons Wiesbaden',amenity:'chinese_restaurant',website:'https://fourseasons-wiesbaden.de','addr:city':'Wiesbaden','addr:street':'Taunusstraße 22',opening_hours:'Mo-Su 11:30-14:30, 17:30-22:30'}},
+  { type:'node',id:867,lat:49.8728,lon:8.6512, tags:{nameZh:'达姆施塔特中华城',name:'China City Darmstadt',amenity:'chinese_restaurant','addr:city':'Darmstadt','addr:street':'Heinrichstraße 68',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:868,lat:51.3127,lon:9.4797, tags:{nameZh:'卡塞尔龙城',name:'Dragon City Kassel',amenity:'chinese_restaurant','addr:city':'Kassel','addr:street':'Lutherstraße 1',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:869,lat:52.4227,lon:10.7865, tags:{nameZh:'蒙古花园',name:'Mongus Garden Wolfsburg',amenity:'chinese_restaurant',website:'https://www.mongus-garden.de','addr:city':'Wolfsburg','addr:street':'Porschestraße 48',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:870,lat:52.2689,lon:10.5268, tags:{nameZh:'不伦瑞克蒙古花园',name:'Mongus Garden Braunschweig',amenity:'chinese_restaurant',website:'https://www.mongus-garden.de','addr:city':'Braunschweig','addr:street':'Bohlweg 30',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:871,lat:49.0195,lon:12.0977, tags:{nameZh:'雷根斯堡中华楼',name:'China Restaurant Regensburg',amenity:'chinese_restaurant','addr:city':'Regensburg','addr:street':'Maximilianstraße 10',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:872,lat:49.7913,lon:9.9534, tags:{nameZh:'维尔茨堡金龙',name:'Golden Dragon Würzburg',amenity:'chinese_restaurant','addr:city':'Würzburg','addr:street':'Kaiserstraße 14',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:873,lat:47.6633,lon:9.1753, tags:{nameZh:'康斯坦茨华宫',name:'China Palast Konstanz',amenity:'chinese_restaurant','addr:city':'Konstanz','addr:street':'Hussenstraße 16',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:874,lat:49.2344,lon:7.0022, tags:{nameZh:'萨尔布吕肯福满楼',name:'Fu Man Lou Saarbrücken',amenity:'chinese_restaurant','addr:city':'Saarbrücken','addr:street':'Dudweiler Straße 10',opening_hours:'Mo-Su 11:30-22:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: BUFFET RESTAURANTS (~15 more)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:620,lat:49.0069,lon:8.3800, tags:{nameZh:'卡尔斯鲁厄亚洲自助',name:'Asia Buffet Karlsruhe',amenity:'buffet_restaurant','addr:city':'Karlsruhe','addr:street':'Kaiserstraße 180',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:621,lat:49.9929,lon:8.2473, tags:{nameZh:'美因茨铁板王',name:'Mongol Wok Mainz',amenity:'buffet_restaurant','addr:city':'Mainz','addr:street':'Am Brand 26',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:622,lat:49.2300,lon:7.0000, tags:{nameZh:'萨尔布吕肯铁板',name:'Asia Wok Saarbrücken',amenity:'buffet_restaurant','addr:city':'Saarbrücken','addr:street':'Bahnhofstraße 70',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:623,lat:52.1400,lon:11.6200, tags:{nameZh:'马格德堡铁板',name:'Running Wok Magdeburg',amenity:'buffet_restaurant','addr:city':'Magdeburg','addr:street':'Breiter Weg 210',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:624,lat:50.9700,lon:11.0300, tags:{nameZh:'爱尔福特铁板',name:'Asia Wok Erfurt',amenity:'buffet_restaurant','addr:city':'Erfurt','addr:street':'Anger 66',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:625,lat:54.3233,lon:10.1228, tags:{nameZh:'基尔铁板',name:'Asia Wok Kiel',amenity:'buffet_restaurant','addr:city':'Kiel','addr:street':'Holstenstraße 50',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:626,lat:53.6300,lon:11.4000, tags:{nameZh:'什未林铁板',name:'Asia Wok Schwerin',amenity:'buffet_restaurant','addr:city':'Schwerin','addr:street':'Marienplatz 8',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:627,lat:50.8278,lon:12.9214, tags:{nameZh:'开姆尼茨铁板',name:'Running Wok Chemnitz',amenity:'buffet_restaurant','addr:city':'Chemnitz','addr:street':'Zwickauer Str. 30',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:628,lat:51.4775,lon:11.9700, tags:{nameZh:'哈勒铁板',name:'Asia Wok Halle',amenity:'buffet_restaurant','addr:city':'Halle (Saale)','addr:street':'Große Ulrichstraße 15',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:629,lat:54.0900,lon:12.1400, tags:{nameZh:'罗斯托克铁板',name:'Asia Wok Rostock',amenity:'buffet_restaurant','addr:city':'Rostock','addr:street':'Kröpeliner Str. 44',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:630,lat:49.4800,lon:8.4700, tags:{nameZh:'曼海姆铁板',name:'Asia Wok Mannheim',amenity:'buffet_restaurant','addr:city':'Mannheim','addr:street':'Planken P5',opening_hours:'Mo-Su 11:30-22:30'}},
+  { type:'node',id:631,lat:50.7300,lon:7.1000, tags:{nameZh:'波恩铁板',name:'Asia Wok Bonn',amenity:'buffet_restaurant','addr:city':'Bonn','addr:street':'Remigiusstraße 10',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:632,lat:47.9990,lon:7.8500, tags:{nameZh:'弗赖堡亚洲自助',name:'Asia Buffet Freiburg',amenity:'buffet_restaurant','addr:city':'Freiburg','addr:street':'Kaiser-Joseph-Str. 200',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:633,lat:53.5500,lon:8.5833, tags:{nameZh:'不莱梅港铁板',name:'Asia Wok Bremerhaven',amenity:'buffet_restaurant','addr:city':'Bremerhaven','addr:street':'Bürgermeister-Smidt-Str. 80',opening_hours:'Mo-Su 11:30-22:00'}},
+  { type:'node',id:634,lat:48.4011,lon:9.9876, tags:{nameZh:'乌尔姆亚洲自助',name:'Asia Buffet Ulm',amenity:'buffet_restaurant','addr:city':'Ulm','addr:street':'Bahnhofstraße 10',opening_hours:'Mo-Su 11:30-22:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: INDOOR PLAYGROUNDS (~20 more)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:650,lat:52.124654,lon:11.634719, tags:{nameZh:'马格德堡蹦床',name:'Trampolinhalle Magdeburg',leisure:'indoor_playground','addr:city':'Magdeburg',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:651,lat:50.983746,lon:11.026863, tags:{nameZh:'爱尔福特室内乐园',name:'Kinderwelt Erfurt',leisure:'indoor_playground','addr:city':'Erfurt',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:652,lat:50.855992,lon:12.921687, tags:{nameZh:'开姆尼茨室内乐园',name:'Kinderspielland Chemnitz',leisure:'indoor_playground','addr:city':'Chemnitz',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:653,lat:49.002096,lon:8.462254, tags:{nameZh:'卡尔斯鲁厄室内乐园',name:'Kindorado Karlsruhe',leisure:'indoor_playground','addr:city':'Karlsruhe',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:654,lat:50.013003,lon:8.243877, tags:{nameZh:'美因茨室内乐园',name:'Kinderspielparadies Mainz',leisure:'indoor_playground','addr:city':'Mainz',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:655,lat:49.230564,lon:6.980274, tags:{nameZh:'萨尔布吕肯室内乐园',name:'Kinder Galaxy Saarbrücken',leisure:'indoor_playground','addr:city':'Saarbrücken',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:656,lat:53.629722,lon:11.414431, tags:{nameZh:'什未林室内乐园',name:'Kinderwelt Schwerin',leisure:'indoor_playground','addr:city':'Schwerin',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:657,lat:51.428595,lon:11.965780, tags:{nameZh:'哈勒室内乐园',name:'Maya Mare Halle',leisure:'indoor_playground',website:'https://www.mayamare.de','addr:city':'Halle (Saale)',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:658,lat:49.484252,lon:8.472752, tags:{nameZh:'曼海姆蹦床',name:'JUMP House Mannheim',leisure:'indoor_playground','addr:city':'Mannheim',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:659,lat:50.736895,lon:7.101275, tags:{nameZh:'波恩蹦床',name:'JUMP House Bonn',leisure:'indoor_playground','addr:city':'Bonn',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:660,lat:51.955128,lon:7.629699, tags:{nameZh:'明斯特室内乐园',name:'Kinderspielparadies Münster',leisure:'indoor_playground','addr:city':'Münster',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:661,lat:53.868267,lon:10.675954, tags:{nameZh:'吕贝克蹦床',name:'Trampolinhalle Lübeck',leisure:'indoor_playground','addr:city':'Lübeck',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:662,lat:54.089775,lon:12.122015, tags:{nameZh:'罗斯托克室内乐园',name:'Kinderwelt Rostock',leisure:'indoor_playground','addr:city':'Rostock',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:663,lat:50.7750,lon:6.0833, tags:{nameZh:'亚琛蹦床',name:'AirHop Trampolinpark Aachen',leisure:'indoor_playground','addr:city':'Aachen',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:664,lat:47.992243,lon:7.797249, tags:{nameZh:'弗赖堡室内乐园',name:'Kinderspielparadies Freiburg',leisure:'indoor_playground','addr:city':'Freiburg',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:665,lat:48.391965,lon:10.003982, tags:{nameZh:'奥格斯堡室内乐园',name:'Kinderspielland Augsburg',leisure:'indoor_playground','addr:city':'Augsburg',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:666,lat:50.358830,lon:7.604459, tags:{nameZh:'科布伦茨室内探险乐园',name:'Abenteuerwelt Koblenz',leisure:'indoor_playground','addr:city':'Koblenz',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:667,lat:51.725834,lon:14.318928, tags:{nameZh:'科特布斯室内乐园',name:'Kinderwelt Cottbus',leisure:'indoor_playground','addr:city':'Cottbus',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:668,lat:52.385126,lon:13.096453, tags:{nameZh:'波茨坦蹦床',name:'JUMP House Potsdam',leisure:'indoor_playground','addr:city':'Potsdam',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:669,lat:50.073703,lon:8.243112, tags:{nameZh:'威斯巴登室内乐园',name:'Kinderspielparadies Wiesbaden',leisure:'indoor_playground','addr:city':'Wiesbaden',opening_hours:'Mo-Su 10:00-19:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: BEACHES (~10 more)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:680,lat:53.7600,lon:7.3600, tags:{nameZh:'博尔库姆岛海滩',name:'Borkum Strand',natural:'beach','addr:city':'Borkum'}},
+  { type:'node',id:681,lat:53.6000,lon:6.7300, tags:{nameZh:'尤伊斯特岛海滩',name:'Juist Strand',natural:'beach','addr:city':'Juist'}},
+  { type:'node',id:682,lat:54.6300,lon:8.3700, tags:{nameZh:'阿姆鲁姆岛海滩',name:'Amrum Strand Kniepsand',natural:'beach','addr:city':'Amrum'}},
+  { type:'node',id:683,lat:54.0400,lon:11.3900, tags:{nameZh:'博尔滕哈根海滩',name:'Boltenhagen Strand',natural:'beach','addr:city':'Boltenhagen'}},
+  { type:'node',id:684,lat:54.1500,lon:11.0600, tags:{nameZh:'特拉夫明德海滩',name:'Niendorf Strand',natural:'beach','addr:city':'Niendorf'}},
+  { type:'node',id:685,lat:54.4100,lon:12.2000, tags:{nameZh:'齐恩斯特海滩',name:'Zingst Strand',natural:'beach','addr:city':'Zingst'}},
+  { type:'node',id:686,lat:54.1800,lon:12.0800, tags:{nameZh:'库伦斯博恩海滩',name:'Kühlungsborn Strand',natural:'beach','addr:city':'Kühlungsborn'}},
+  { type:'node',id:687,lat:53.9600,lon:14.0200, tags:{nameZh:'阿尔贝克海滩',name:'Ahlbeck Strand',natural:'beach','addr:city':'Ahlbeck'}},
+  { type:'node',id:688,lat:54.8400,lon:8.3000, tags:{nameZh:'叙尔特岛坎彭海滩',name:'Kampen Strand Sylt',natural:'beach','addr:city':'Kampen'}},
+  { type:'node',id:689,lat:53.8900,lon:8.1100, tags:{nameZh:'黑尔戈兰岛',name:'Helgoland Strand',natural:'beach','addr:city':'Helgoland'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: HISTORIC / CASTLES (~20 more)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:700,lat:49.7628,lon:6.6428, tags:{nameZh:'特里尔主教座堂',name:'Trierer Dom',historic:'monument',website:'https://www.dominformation.de','addr:city':'Trier',opening_hours:'Mo-Su 06:30-18:00'}},
+  { type:'node',id:701,lat:50.7751,lon:6.0839, tags:{nameZh:'亚琛大教堂',name:'Aachener Dom',historic:'monument',website:'https://www.aachenerdom.de','addr:city':'Aachen',opening_hours:'Mo-Su 07:00-19:00'}},
+  { type:'node',id:702,lat:47.7578,lon:10.6206, tags:{nameZh:'维斯教堂',name:'Wieskirche',historic:'monument','addr:city':'Steingaden',opening_hours:'Mo-Su 08:00-17:00'}},
+  { type:'node',id:703,lat:50.9408,lon:6.9578, tags:{nameZh:'科隆罗马博物馆地下',name:'Praetorium Köln',historic:'ruins','addr:city':'Cologne',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:704,lat:49.9458,lon:7.2600, tags:{nameZh:'科赫姆城堡',name:'Reichsburg Cochem',historic:'castle',website:'https://www.reichsburg-cochem.de','addr:city':'Cochem',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:705,lat:50.2500,lon:7.6100, tags:{nameZh:'莱茵斯坦因城堡',name:'Burg Rheinstein',historic:'castle',website:'https://www.burg-rheinstein.de','addr:city':'Trechtingshausen',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+  { type:'node',id:706,lat:53.8667,lon:10.6833, tags:{nameZh:'吕贝克荷尔施泰因门',name:'Holstentor Lübeck',historic:'monument','addr:city':'Lübeck'}},
+  { type:'node',id:707,lat:51.0504,lon:13.7300, tags:{nameZh:'德累斯顿布吕尔台阶',name:'Brühlsche Terrasse Dresden',historic:'monument','addr:city':'Dresden'}},
+  { type:'node',id:708,lat:53.5500,lon:9.9900, tags:{nameZh:'汉堡市政厅',name:'Hamburger Rathaus',historic:'monument',website:'https://www.hamburgische-buergerschaft.de','addr:city':'Hamburg',opening_hours:'Mo-Fr 07:00-19:00'}},
+  { type:'node',id:709,lat:52.5200,lon:13.3800, tags:{nameZh:'柏林查理检查站',name:'Checkpoint Charlie',historic:'monument','addr:city':'Berlin','addr:street':'Friedrichstraße 43-45'}},
+  { type:'node',id:710,lat:52.5200,lon:13.3780, tags:{nameZh:'柏林犹太人大屠杀纪念碑',name:'Holocaust-Mahnmal Berlin',historic:'monument','addr:city':'Berlin'}},
+  { type:'node',id:711,lat:48.1372,lon:11.5755, tags:{nameZh:'慕尼黑新市政厅',name:'Neues Rathaus München',historic:'monument','addr:city':'Munich','addr:street':'Marienplatz 8'}},
+  { type:'node',id:712,lat:51.0775,lon:13.7675, tags:{nameZh:'德累斯顿壁画廊',name:'Gemäldegalerie Alte Meister',historic:'monument',website:'https://www.skd.museum','addr:city':'Dresden',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:713,lat:52.3906,lon:13.0400, tags:{nameZh:'波茨坦新宫',name:'Neues Palais Potsdam',historic:'castle',website:'https://www.spsg.de','addr:city':'Potsdam',opening_hours:'We-Mo 10:00-17:30'}},
+  { type:'node',id:714,lat:48.0400,lon:10.0700, tags:{nameZh:'新天鹅堡附近林德霍夫宫',name:'Schloss Linderhof',historic:'castle',website:'https://www.linderhof.de','addr:city':'Ettal',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:715,lat:47.8600,lon:12.3300, tags:{nameZh:'奇姆湖宫殿',name:'Herrenchiemsee',historic:'castle',website:'https://www.herrenchiemsee.de','addr:city':'Prien am Chiemsee',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:716,lat:50.3200,lon:11.9400, tags:{nameZh:'哥达弗里登斯坦城堡',name:'Schloss Friedenstein Gotha',historic:'castle','addr:city':'Gotha',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:717,lat:51.8100,lon:11.1300, tags:{nameZh:'奎德林堡城堡',name:'Stiftskirche Quedlinburg',historic:'monument','addr:city':'Quedlinburg',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:718,lat:53.6400,lon:11.4100, tags:{nameZh:'什未林城堡',name:'Schweriner Schloss',historic:'castle',website:'https://www.museum-schwerin.de','addr:city':'Schwerin',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:719,lat:50.6406,lon:6.6339, tags:{nameZh:'特里尔选帝侯宫',name:'Kurfürstliches Palais Trier',historic:'castle','addr:city':'Trier'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: THEME PARKS & ATTRACTIONS (~15 more)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:730,lat:51.477798,lon:12.009050, tags:{nameZh:'哈勒巧克力博物馆',name:'Halloren Schokoladenfabrik',tourism:'museum',website:'https://www.halloren.de','addr:city':'Halle (Saale)',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:731,lat:49.2344,lon:7.0022, tags:{nameZh:'萨尔布吕肯缆车',name:'Saarbrücker Schloss',historic:'castle','addr:city':'Saarbrücken'}},
+  { type:'node',id:732,lat:52.4100,lon:12.5300, tags:{nameZh:'勃兰登堡海因里希桥',name:'Brandenburger Tor (BRB)',historic:'monument','addr:city':'Brandenburg an der Havel'}},
+  { type:'node',id:733,lat:50.8000,lon:8.7667, tags:{nameZh:'马尔堡城堡',name:'Landgrafenschloss Marburg',historic:'castle','addr:city':'Marburg',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:734,lat:51.314385,lon:9.414982, tags:{nameZh:'卡塞尔威廉高地公园',name:'Bergpark Wilhelmshöhe',tourism:'attraction',website:'https://www.museum-kassel.de','addr:city':'Kassel'}},
+  { type:'node',id:735,lat:53.553829,lon:9.935145, tags:{nameZh:'汉堡热气球',name:'Highflyer Hamburg',tourism:'attraction','addr:city':'Hamburg',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:736,lat:50.362428,lon:7.605437, tags:{nameZh:'莱茵河缆车科布伦茨',name:'Seilbahn Koblenz',tourism:'attraction',website:'https://www.seilbahn-koblenz.de','addr:city':'Koblenz',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:737,lat:49.249003,lon:6.843914, tags:{nameZh:'弗尔克林根钢铁厂',name:'Völklinger Hütte',tourism:'museum',website:'https://www.voelklinger-huette.org','addr:city':'Völklingen',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:738,lat:51.481754,lon:6.783961, tags:{nameZh:'杜伊斯堡北景观公园',name:'Landschaftspark Duisburg-Nord',tourism:'attraction',website:'https://www.landschaftspark.de','addr:city':'Duisburg'}},
+  { type:'node',id:739,lat:51.488001,lon:7.038687, tags:{nameZh:'埃森关税同盟矿业区',name:'Zeche Zollverein',tourism:'museum',website:'https://www.zollverein.de','addr:city':'Essen',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:740,lat:52.504454,lon:13.440839, tags:{nameZh:'柏林东边画廊',name:'East Side Gallery',tourism:'attraction','addr:city':'Berlin'}},
+  { type:'node',id:741,lat:48.142679,lon:11.580472, tags:{nameZh:'慕尼黑皇宫花园',name:'Hofgarten München',tourism:'attraction','addr:city':'Munich'}},
+  { type:'node',id:742,lat:49.3200,lon:8.4400, tags:{nameZh:'施派尔大教堂',name:'Speyerer Dom',historic:'monument',website:'https://www.dom-zu-speyer.de','addr:city':'Speyer',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:743,lat:50.931829,lon:11.586953, tags:{nameZh:'耶拿蔡司天文馆',name:'Zeiss-Planetarium Jena',tourism:'attraction',website:'https://www.planetarium-jena.de','addr:city':'Jena',opening_hours:'Check schedule'}},
+  { type:'node',id:744,lat:54.0767,lon:10.0317, tags:{nameZh:'格罗米茨潜水艇',name:'U-Boot Museum Fehmarn',tourism:'museum','addr:city':'Fehmarn',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: SAARLAND, MECK-POMM, SACHSEN-ANHALT, THÜRINGEN FOCUS
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:760,lat:49.494024,lon:6.594388, tags:{nameZh:'梅特拉赫陶瓷厂',name:'Villeroy & Boch Erlebniszentrum',tourism:'museum',website:'https://www.villeroy-boch.com','addr:city':'Mettlach',opening_hours:'Mo-Sa 09:30-18:00'}},
+  { type:'node',id:761,lat:49.501395,lon:6.545451, tags:{nameZh:'萨尔河大弯',name:'Saarschleife',leisure:'nature_reserve','addr:city':'Mettlach'}},
+  { type:'node',id:762,lat:49.3500,lon:7.3000, tags:{nameZh:'洪堡矿山',name:'Besucherbergwerk Velsen',tourism:'attraction','addr:city':'Saarbrücken',opening_hours:'Check schedule'}},
+  { type:'node',id:763,lat:53.7800,lon:12.2600, tags:{nameZh:'古斯特罗城堡',name:'Schloss Güstrow',historic:'castle','addr:city':'Güstrow',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:764,lat:53.893020,lon:11.465839, tags:{nameZh:'维斯马老城',name:'Altstadt Wismar',tourism:'attraction','addr:city':'Wismar'}},
+  { type:'node',id:765,lat:54.095816,lon:13.370425, tags:{nameZh:'格赖夫斯瓦尔德海洋馆',name:'Greifswald Tierpark',tourism:'zoo','addr:city':'Greifswald',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:766,lat:51.789867,lon:11.146540, tags:{nameZh:'奎德林堡老城',name:'Altstadt Quedlinburg',tourism:'attraction','addr:city':'Quedlinburg'}},
+  { type:'node',id:767,lat:51.478110,lon:12.008632, tags:{nameZh:'哈勒巧克力工厂',name:'Halloren Schokoladenmuseum',tourism:'museum','addr:city':'Halle (Saale)',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:768,lat:51.750657,lon:11.039057, tags:{nameZh:'哈茨山缆车',name:'Seilbahnen Thale',tourism:'attraction',website:'https://www.seilbahnen-thale.de','addr:city':'Thale',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:769,lat:52.1300,lon:11.6300, tags:{nameZh:'马格德堡大教堂',name:'Magdeburger Dom',historic:'monument','addr:city':'Magdeburg',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:770,lat:52.137947,lon:11.678377, tags:{nameZh:'马格德堡艾尔布公园',name:'Elbauenpark Magdeburg',tourism:'attraction',website:'https://www.mvgm-online.de','addr:city':'Magdeburg',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:771,lat:50.931109,lon:11.585551, tags:{nameZh:'耶拿植物园',name:'Botanischer Garten Jena',tourism:'attraction','addr:city':'Jena',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:772,lat:50.634634,lon:11.339360, tags:{nameZh:'萨尔费尔德仙女洞',name:'Saalfelder Feengrotten',tourism:'attraction',website:'https://www.feengrotten.de','addr:city':'Saalfeld',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:773,lat:50.695726,lon:10.711489, tags:{nameZh:'图林根森林小径',name:'Rennsteig Wanderweg',leisure:'nature_reserve','addr:city':'Oberhof'}},
+  { type:'node',id:774,lat:51.845522,lon:12.422046, tags:{nameZh:'沃尔利茨花园',name:'Gartenreich Dessau-Wörlitz',tourism:'attraction','addr:city':'Wörlitz'}},
+  { type:'node',id:775,lat:52.403629,lon:13.024870, tags:{nameZh:'波茨坦植物园',name:'Botanischer Garten Potsdam',tourism:'attraction','addr:city':'Potsdam',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:776,lat:51.3083,lon:9.4847, tags:{nameZh:'卡塞尔大力神像',name:'Herkules Kassel',historic:'monument','addr:city':'Kassel'}},
+  { type:'node',id:777,lat:50.924225,lon:11.583686, tags:{nameZh:'耶拿大学植物标本室',name:'Phyletisches Museum Jena',tourism:'museum','addr:city':'Jena',opening_hours:'Tu-Su 09:00-16:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: ADDITIONAL ATTRACTIONS ACROSS ALL STATES
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:790,lat:51.060812,lon:13.703457, tags:{nameZh:'德累斯顿老城',name:'Altstadt Dresden',tourism:'attraction','addr:city':'Dresden'}},
+  { type:'node',id:791,lat:49.4500,lon:11.0750, tags:{nameZh:'纽伦堡城堡',name:'Kaiserburg Nürnberg',historic:'castle',website:'https://www.kaiserburg-nuernberg.de','addr:city':'Nuremberg',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:792,lat:49.445503,lon:11.074361, tags:{nameZh:'纽伦堡交通博物馆',name:'DB Museum Nürnberg',tourism:'museum',website:'https://www.dbmuseum.de','addr:city':'Nuremberg',opening_hours:'Tu-Su 09:00-17:00'}},
+  { type:'node',id:793,lat:54.793108,lon:9.433297, tags:{nameZh:'弗伦斯堡航海博物馆',name:'Schifffahrtsmuseum Flensburg',tourism:'museum','addr:city':'Flensburg',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:794,lat:53.545329,lon:8.574034, tags:{nameZh:'不莱梅港移民博物馆',name:'Deutsches Auswandererhaus',tourism:'museum',website:'https://www.dah-bremerhaven.de','addr:city':'Bremerhaven',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:795,lat:53.543213,lon:8.574460, tags:{nameZh:'不莱梅港气候馆',name:'Klimahaus Bremerhaven',tourism:'museum',website:'https://www.klimahaus-bremerhaven.de','addr:city':'Bremerhaven',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:796,lat:53.0758,lon:8.8071, tags:{nameZh:'不莱梅音乐家铜像',name:'Bremer Stadtmusikanten',tourism:'attraction','addr:city':'Bremen'}},
+  { type:'node',id:797,lat:52.391088,lon:9.695880, tags:{nameZh:'汉诺威皇家花园',name:'Herrenhäuser Gärten',tourism:'attraction',website:'https://www.herrenhaeuser-gaerten.de','addr:city':'Hannover',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:798,lat:50.111201,lon:8.677593, tags:{nameZh:'法兰克福歌德故居',name:'Goethe-Haus Frankfurt',tourism:'museum',website:'https://www.goethehaus-frankfurt.de','addr:city':'Frankfurt',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:799,lat:48.148284,lon:11.569980, tags:{nameZh:'慕尼黑老绘画陈列馆',name:'Alte Pinakothek München',tourism:'museum',website:'https://www.pinakothek.de','addr:city':'Munich',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:800,lat:49.2333,lon:6.9956, tags:{nameZh:'萨尔布吕肯州立剧院',name:'Saarländisches Staatstheater',amenity:'theatre',website:'https://www.staatstheater.saarland','addr:city':'Saarbrücken'}},
+  { type:'node',id:801,lat:54.337582,lon:10.164010, tags:{nameZh:'基尔峡湾渡轮',name:'Kieler Förde Schifffahrt',tourism:'attraction','addr:city':'Kiel'}},
+  { type:'node',id:802,lat:53.618957,lon:11.416138, tags:{nameZh:'什未林城堡花园',name:'Schlossgarten Schwerin',tourism:'attraction','addr:city':'Schwerin'}},
+  { type:'node',id:803,lat:52.126616,lon:11.634002, tags:{nameZh:'马格德堡绿色城堡',name:'Grüne Zitadelle Magdeburg',tourism:'attraction','addr:city':'Magdeburg'}},
+  { type:'node',id:804,lat:50.928873,lon:11.584756, tags:{nameZh:'耶拿光之塔',name:'JenTower',tourism:'attraction','addr:city':'Jena'}},
+  { type:'node',id:805,lat:50.984774,lon:11.324381, tags:{nameZh:'魏玛包豪斯博物馆',name:'Bauhaus-Museum Weimar',tourism:'museum',website:'https://www.klassik-stiftung.de','addr:city':'Weimar',opening_hours:'We-Mo 09:30-18:00'}},
+  { type:'node',id:806,lat:51.863836,lon:12.640918, tags:{nameZh:'路德城维滕贝格',name:'Lutherstadt Wittenberg Altstadt',tourism:'attraction','addr:city':'Wittenberg'}},
+  { type:'node',id:807,lat:51.751911,lon:11.439868, tags:{nameZh:'阿舍斯雷本动物园',name:'Zoo Aschersleben',tourism:'zoo','addr:city':'Aschersleben',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:808,lat:54.314498,lon:13.091735, tags:{nameZh:'施特拉尔松德老城',name:'Altstadt Stralsund',tourism:'attraction','addr:city':'Stralsund'}},
+  { type:'node',id:809,lat:53.106728,lon:8.845005, tags:{nameZh:'不莱梅宇宙科学中心',name:'Universum Bremen',tourism:'museum',website:'https://www.universum-bremen.de','addr:city':'Bremen',opening_hours:'Mo-Fr 09:00-18:00; Sa-Su 10:00-18:00'}},
+  { type:'node',id:810,lat:52.2689,lon:8.0500, tags:{nameZh:'比勒费尔德施帕伦堡城堡',name:'Sparrenburg Bielefeld',historic:'castle','addr:city':'Bielefeld',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:811,lat:51.949413,lon:7.591185, tags:{nameZh:'明斯特自然博物馆',name:'LWL-Museum für Naturkunde Münster',tourism:'museum',website:'https://www.lwl-naturkundemuseum-muenster.de','addr:city':'Münster',opening_hours:'Tu-Su 09:00-18:00'}},
+  { type:'node',id:812,lat:50.3569,lon:7.5986, tags:{nameZh:'科布伦茨选帝侯宫',name:'Kurfürstliches Schloss Koblenz',historic:'castle','addr:city':'Koblenz'}},
+  { type:'node',id:813,lat:50.003673,lon:8.270947, tags:{nameZh:'美因茨古腾堡博物馆',name:'Gutenberg-Museum Mainz',tourism:'museum',website:'https://www.gutenberg-museum.de','addr:city':'Mainz',opening_hours:'Tu-Sa 09:00-17:00; Su 11:00-17:00'}},
+  { type:'node',id:814,lat:50.377810,lon:7.592178, tags:{nameZh:'科布伦茨莱茵博物馆',name:'Rhein-Museum Koblenz',tourism:'museum','addr:city':'Koblenz',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:815,lat:48.4011,lon:9.9876, tags:{nameZh:'乌尔姆大教堂',name:'Ulmer Münster',historic:'monument','addr:city':'Ulm',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:816,lat:48.360574,lon:10.903263, tags:{nameZh:'奥格斯堡傀儡剧场',name:'Augsburger Puppenkiste',tourism:'attraction',website:'https://www.augsburger-puppenkiste.de','addr:city':'Augsburg',opening_hours:'Check schedule'}},
+  { type:'node',id:817,lat:47.706249,lon:9.191556, tags:{nameZh:'美瑙岛花园',name:'Insel Mainau',tourism:'attraction',website:'https://www.mainau.de','addr:city':'Konstanz',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:818,lat:51.472822,lon:7.470909, tags:{nameZh:'多特蒙德动物园',name:'Zoo Dortmund',tourism:'zoo',website:'https://www.dortmund.de/zoo','addr:city':'Dortmund',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:819,lat:52.2800,lon:8.0200, tags:{nameZh:'比勒费尔德儿童博物馆',name:'Historisches Museum Bielefeld',tourism:'museum','addr:city':'Bielefeld',opening_hours:'We-Fr 10:00-17:00; Sa-Su 11:00-18:00'}},
+  { type:'node',id:820,lat:49.476437,lon:8.497593, tags:{nameZh:'曼海姆技术博物馆',name:'Technoseum Mannheim',tourism:'museum',website:'https://www.technoseum.de','addr:city':'Mannheim',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:875,lat:48.1500,lon:11.5800, tags:{nameZh:'慕尼黑卡丁车',name:'Kart-Palast München',leisure:'sports_centre',website:'https://www.kartpalast.de','addr:city':'München',opening_hours:'Mo-Su 12:00-22:00'}},
+  { type:'node',id:876,lat:52.5200,lon:13.3800, tags:{nameZh:'柏林卡丁车',name:'Kart World Berlin',leisure:'sports_centre',website:'https://www.kartworld-berlin.de','addr:city':'Berlin',opening_hours:'Mo-Su 12:00-22:00'}},
+  { type:'node',id:877,lat:53.5500,lon:10.0000, tags:{nameZh:'汉堡卡丁车',name:'Kart Center Hamburg',leisure:'sports_centre','addr:city':'Hamburg',opening_hours:'Mo-Su 12:00-22:00'}},
+  { type:'node',id:878,lat:50.9400,lon:6.9500, tags:{nameZh:'科隆卡丁车',name:'Michael Schumacher Kart & Event Center',leisure:'sports_centre',website:'https://www.ms-kartcenter.de','addr:city':'Kerpen',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:879,lat:48.7800,lon:9.1800, tags:{nameZh:'斯图加特蹦床公园',name:'JUMP House Stuttgart',leisure:'indoor_playground',website:'https://www.jumphouse.de','addr:city':'Stuttgart',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:880,lat:50.112014,lon:8.674382, tags:{nameZh:'法兰克福蹦床公园',name:'JUMP House Frankfurt',leisure:'indoor_playground',website:'https://www.jumphouse.de','addr:city':'Frankfurt',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:881,lat:49.476693,lon:11.115205, tags:{nameZh:'纽伦堡蹦床公园',name:'AirHop Trampolinpark Nürnberg',leisure:'indoor_playground',website:'https://www.airhop.de','addr:city':'Nürnberg',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:882,lat:51.051804,lon:13.742459, tags:{nameZh:'德累斯顿蹦床公园',name:'JUMP House Dresden',leisure:'indoor_playground','addr:city':'Dresden',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:883,lat:52.529243,lon:13.456080, tags:{nameZh:'柏林密室逃脱',name:'Escape Berlin',tourism:'attraction',website:'https://www.escape-berlin.de','addr:city':'Berlin',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:884,lat:48.1400,lon:11.5600, tags:{nameZh:'慕尼黑密室逃脱',name:'Escape Room München',tourism:'attraction',website:'https://www.escape-room-muenchen.de','addr:city':'München',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:885,lat:53.554726,lon:10.001249, tags:{nameZh:'汉堡密室逃脱',name:'Escape Room Hamburg',tourism:'attraction','addr:city':'Hamburg',opening_hours:'Mo-Su 10:00-23:00'}},
+  { type:'node',id:886,lat:50.930186,lon:6.965007, tags:{nameZh:'科隆密室逃脱',name:'TeamEscape Köln',tourism:'attraction',website:'https://www.teamescape.com','addr:city':'Köln',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:887,lat:52.526402,lon:13.356393, tags:{nameZh:'柏林迷你高尔夫',name:'Schwarzlicht Minigolf Berlin',leisure:'miniature_golf','addr:city':'Berlin',opening_hours:'Mo-Su 12:00-22:00'}},
+  { type:'node',id:888,lat:48.199404,lon:11.411747, tags:{nameZh:'慕尼黑迷你高尔夫',name:'Schwarzlicht Minigolf München',leisure:'miniature_golf','addr:city':'München',opening_hours:'Mo-Su 12:00-22:00'}},
+  { type:'node',id:889,lat:53.599850,lon:9.915536, tags:{nameZh:'汉堡迷你高尔夫',name:'Schwarzlicht Minigolf Hamburg',leisure:'miniature_golf','addr:city':'Hamburg',opening_hours:'Mo-Su 12:00-22:00'}},
+  { type:'node',id:890,lat:51.202437,lon:6.849480, tags:{nameZh:'杜塞尔多夫迷你高尔夫',name:'Schwarzlicht Minigolf Düsseldorf',leisure:'miniature_golf','addr:city':'Düsseldorf',opening_hours:'Mo-Su 12:00-22:00'}},
+  { type:'node',id:891,lat:48.827411,lon:9.153447, tags:{nameZh:'斯图加特攀爬公园',name:'Waldklettergarten Stuttgart',tourism:'theme_park',website:'https://www.waldklettergarten-stuttgart.de','addr:city':'Stuttgart',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:892,lat:52.542146,lon:13.290410, tags:{nameZh:'柏林攀爬森林',name:'Waldhochseilgarten Jungfernheide',tourism:'theme_park','addr:city':'Berlin',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:893,lat:50.938361,lon:6.959974, tags:{nameZh:'科隆攀爬森林',name:'Kletterwald Köln',tourism:'theme_park',website:'https://www.abenteuerhallenkoeln.de','addr:city':'Köln',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:894,lat:53.638768,lon:10.160177, tags:{nameZh:'汉堡攀爬森林',name:'Kletterwald Hamburg',tourism:'theme_park','addr:city':'Hamburg',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+];
+
+// ===== Category config =====
+const CATS = {
+  theme_park:  {emoji:'🎢', en:'Theme parks',   de:'Freizeitparks',     zh:'主题乐园'},
+  zoo:         {emoji:'🦒', en:'Zoos',          de:'Zoos',   zh:'动物园'},
+  aquarium:    {emoji:'🐠', en:'Aquariums',     de:'Aquarien',        zh:'水族馆'},
+  museum:      {emoji:'🏛️', en:'Museums',       de:'Museen',          zh:'博物馆'},
+  nature:      {emoji:'🌳', en:'Nature',        de:'Natur',         zh:'自然'},
+  beach:       {emoji:'🏖️', en:'Beaches',       de:'Strände',       zh:'海滩'},
+  playground:  {emoji:'🎪', en:'Playgrounds',   de:'Spielplätze',    zh:'游乐场'},
+  indoor_play: {emoji:'🏠', en:'Indoor play',   de:'Indoor-Spielplatz',zh:'室内游乐'},
+  trampoline:  {emoji:'🤸', en:'Trampoline',    de:'Trampolin',     zh:'蹦床'},
+  swim:        {emoji:'🏊', en:'Swimming',      de:'Schwimmbad',        zh:'游泳'},
+  climbing:    {emoji:'🧗', en:'Climbing',      de:'Klettern',       zh:'攀爬'},
+  karting:     {emoji:'🏎️', en:'Karting',       de:'Karting',           zh:'卡丁车'},
+  farm:         {emoji:'🐑', en:'Farms',         de:'Bauernhof',zh:'农场'},
+  attraction:  {emoji:'⭐', en:'Attractions',   de:'Attraktionen',     zh:'景点'},
+  theatre:     {emoji:'🎭', en:'Theatre',       de:'Theater',        zh:'剧院'},
+  cinema:      {emoji:'🎬', en:'Cinema',        de:'Kino',       zh:'电影院'},
+  ice_rink:    {emoji:'⛸️', en:'Ice rink',      de:'Eisbahn',        zh:'滑冰'},
+  minigolf:    {emoji:'⛳', en:'Minigolf',      de:'Minigolf',     zh:'迷你高尔夫'},
+  castle:      {emoji:'🏰', en:'Castles',       de:'Schlösser',       zh:'城堡'},
+  windmill:    {emoji:'🌬️', en:'Windmills',     de:'Windmühlen',         zh:'风车'},
+  escape:      {emoji:'🔓', en:'Escape rooms',  de:'Escape Rooms',   zh:'密室逃脱'},
+  sports:      {emoji:'🏆', en:'Sports centre', de:'Sportzentrum',   zh:'运动中心'},
+  restaurant:  {emoji:'🍽️', en:'Family dining', de:'Familienrestaurant',           zh:'亲子餐厅'},
+  monument:    {emoji:'🗿', en:'Monuments',     de:'Denkmäler',     zh:'古迹'},
+  ship:        {emoji:'⛵', en:'Historic ships',de:'Historische Schiffe',zh:'历史船只'},
+  ruins:       {emoji:'🏺', en:'Ruins',         de:'Ruinen',         zh:'遗址'},
+  other:       {emoji:'📍', en:'Other',         de:'Sonstiges',         zh:'其他'}
+};
+
+// Richer emoji mapping using venue name keywords
+function emojiFor(name, cat){
+  const n = (name||'').toLowerCase();
+  // Zoo subtype refinements
+  if(cat==='zoo'){
+    if(/safari|wild|beekse/.test(n)) return '🦁';
+    if(/dolf|sea|seal|marine/.test(n)) return '🐬';
+    if(/bird|vogel|avifauna/.test(n)) return '🦜';
+    if(/ape|monkey|apen/.test(n)) return '🐒';
+    if(/butterfly|vlinder/.test(n)) return '🦋';
+    if(/reptile|snake|slang/.test(n)) return '🐍';
+    return '🦒';
+  }
+  // Museum subtype
+  if(cat==='museum'){
+    if(/science|nemo|natur/.test(n)) return '🔬';
+    if(/art|van gogh|rijks|kunstmuseum|stedelijk|gemeente/.test(n)) return '🖼️';
+    if(/maritime|ship|scheepvaart|maritiem/.test(n)) return '⚓';
+    if(/railway|spoorweg|train|tram/.test(n)) return '🚂';
+    if(/aviation|air|luchtvaart/.test(n)) return '✈️';
+    if(/corpus|body|anatomie/.test(n)) return '🫀';
+    if(/music|muziek|instrument/.test(n)) return '🎼';
+    if(/toy|speelgoed/.test(n)) return '🧸';
+    if(/history|histori|oorlog|war|museum van de geest/.test(n)) return '📜';
+    return '🏛️';
+  }
+  // Theme park subtype
+  if(cat==='theme_park'){
+    if(/water|waterpark|splash|aqua/.test(n)) return '💦';
+    if(/snow|ski|slope/.test(n)) return '❄️';
+    if(/mini|madurodam|miniatuur/.test(n)) return '🏘️';
+    if(/fairy|sprookje|efteling/.test(n)) return '🏰';
+    return '🎢';
+  }
+  // Nature subtype
+  if(cat==='nature'){
+    if(/forest|bos|wald/.test(n)) return '🌲';
+    if(/heath|heide/.test(n)) return '🌾';
+    if(/dune|duin/.test(n)) return '🏝️';
+    if(/lake|meer|lak/.test(n)) return '🏞️';
+    if(/tulip|tulp|keukenhof/.test(n)) return '🌷';
+    return '🌳';
+  }
+  // Playground subtype
+  if(cat==='playground'){
+    if(/water|splash/.test(n)) return '💦';
+    if(/adventure|avontur/.test(n)) return '🧗';
+    return '🛝';
+  }
+  // Indoor play
+  if(cat==='indoor_play'){
+    if(/monkey/.test(n)) return '🐒';
+    if(/ballorig|ball/.test(n)) return '🎈';
+    if(/jimmy|jimmi/.test(n)) return '🤹';
+    return '🏠';
+  }
+  // Restaurant subtype
+  if(cat==='restaurant'){
+    if(/pannenkoek|pancake/.test(n)) return '🥞';
+    if(/chinese|chinees|china|asia|asian|sushi|wok/.test(n)) return '🥢';
+    if(/pizza|pizzer/.test(n)) return '🍕';
+    if(/ice cream|ijssalon|gelato/.test(n)) return '🍦';
+    if(/buffet/.test(n)) return '🍱';
+    if(/burger|mcdonalds/.test(n)) return '🍔';
+    return '🍽️';
+  }
+  // Theme parks extras
+  if(cat==='theme_park' && /petting|boerderij/.test(n)) return '🐄';
+  // Castle/fort
+  if(cat==='castle'){
+    if(/fort|bourtange/.test(n)) return '⚔️';
+    return '🏰';
+  }
+  // Windmill
+  if(cat==='windmill') return '🌬️';
+  // Sports
+  if(cat==='sports'){
+    if(/klim|climb/.test(n)) return '🧗';
+    if(/bow|boog/.test(n)) return '🏹';
+    return '🏆';
+  }
+  // Farm animals
+  if(cat==='farm'){
+    if(/geiten|goat/.test(n)) return '🐐';
+    if(/paarden|horse/.test(n)) return '🐴';
+    return '🐑';
+  }
+  return CATS[cat]?.emoji || '📍';
+}
+
+function classify(t){
+  if(t.tourism==='theme_park') return 'theme_park';
+  if(t.tourism==='zoo') return 'zoo';
+  if(t.tourism==='children_farm') return 'farm';
+  if(t.tourism==='aquarium') return 'aquarium';
+  if(t.tourism==='museum') return 'museum';
+  if(t.tourism==='attraction' || t.tourism==='visitor_centre') return 'attraction';
+  if(t.leisure==='nature_reserve' || t.leisure==='park') return 'nature';
+  if(t.leisure==='playground') return 'playground';
+  if(t.leisure==='indoor_playground') return 'indoor_play';
+  if(t.leisure==='trampoline_park') return 'trampoline';
+  if(t.leisure==='swimming_pool') return 'swim';
+  if(t.leisure==='climbing_park') return 'climbing';
+  if(t.leisure==='go_kart') return 'karting';
+  if(t.leisure==='miniature_golf') return 'minigolf';
+  if(t.leisure==='ice_rink') return 'ice_rink';
+  if(t.leisure==='sports_centre') return 'sports';
+  if(t.leisure==='escape_room') return 'escape';
+  if(t.amenity==='theatre') return 'theatre';
+  if(t.amenity==='cinema') return 'cinema';
+  if(t.amenity && t.amenity.indexOf('restaurant')>=0) return 'restaurant';
+  if(t.historic==='castle') return 'castle';
+  if(t.historic==='fort') return 'castle';
+  if(t.historic==='windmill' || t.man_made==='windmill') return 'windmill';
+  if(t.historic==='monument' || t.historic==='archaeological_site') return 'monument';
+  if(t.historic==='ship') return 'ship';
+  if(t.historic==='ruins') return 'ruins';
+  if(t.natural==='beach') return 'beach';
+  return 'other';
+}
+
+// ===== Transform data =====
+const VENUES = STATIC_DE_VENUES.map(v=>{
+  const t = v.tags || {};
+  const cat = classify(t);
+  return {
+    id: v.id, lat: v.lat, lon: v.lon,
+    name: t.name || 'Unnamed',
+    zh: t.nameZh || '',
+    cat: cat,
+    emoji: emojiFor(t.name, cat),
+    city: t['addr:city'] || '',
+    street: t['addr:street'] || '',
+    house: t['addr:housenumber'] || '',
+    postcode: t['addr:postcode'] || '',
+    website: t.website || '',
+    hours: t.opening_hours || '',
+    rating: parseFloat(t.rating || '0') || null,
+    reviews: parseInt(t.reviews || '0') || 0,
+  };
+});
+
+// ===== State =====
+const FAV_KEY = 'ke_favs_de';
+const LANG_KEY = 'ke_lang_de';
+const LANGS = ['en','de','zh'];  // cycle: en → nl → zh → en
+const state = {
+  activeCats: new Set(),  // empty = all
+  search: '',
+  sortBy: 'rating',
+  filtered: [],
+  selectedId: null,
+  markers: new Map(),
+  favs: new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')),
+  favsOnly: false,
+  lang: localStorage.getItem(LANG_KEY) || (navigator.language.startsWith('de') ? 'de' : navigator.language.startsWith('zh') ? 'zh' : 'en'),
+};
+
+// ===== i18n =====
+const I18N = {
+  en: {
+    in_view: 'in view', favs: '♡ Favs', filters: '🏷 Category', sort: '↕ Sort',
+    category: 'Category', clear: 'Clear', show_results: 'Show results',
+    near_me: 'Near me', map: '🗺 Map', list: '☰ List',
+    directions: '🗺 Directions', website: '🌐 Website',
+    rating: 'Rating', address: 'Address', city: 'City', hours: 'Hours', reviews: 'reviews',
+    empty: 'No venues in this area. Try moving the map or clearing filters.',
+    search_ph: 'Search places or cities…',
+    lang_next: 'DE',
+  },
+  de: {
+    in_view:'in Sicht', favs:'♡ Favoriten', filters:'🏷 Kategorie', sort:'↕ Sortieren',
+    category:'Kategorie', clear:'Löschen', show_results:'Ergebnisse anzeigen',
+    near_me:'In meiner Nähe', map:'🗺 Karte', list:'☰ Liste',
+    directions:'🗺 Route', website:'🌐 Website',
+    rating:'Bewertung', address:'Adresse', city:'Stadt', hours:'Öffnungszeiten', reviews:'Bewertungen',
+    empty:'Keine Orte in diesem Gebiet. Verschieben Sie die Karte oder löschen Sie die Filter.',
+    search_ph:'Orte oder Städte suchen…',
+    lang_next:'中',
+  },
+  zh: {
+    in_view: '可见', favs: '♡ 收藏', filters: '🏷 品类', sort: '↕ 排序',
+    category: '品类', clear: '清空', show_results: '显示结果',
+    near_me: '我附近', map: '🗺 地图', list: '☰ 列表',
+    directions: '🗺 导航', website: '🌐 官网',
+    rating: '评分', address: '地址', city: '城市', hours: '开放时间', reviews: '评价',
+    empty: '当前视口内没有场所。拖动地图或清空筛选。',
+    search_ph: '搜索场所或城市…',
+    lang_next: 'EN',
+  }
+};
+function t(k){return I18N[state.lang][k] || k;}
+
+function toggleLang(){
+  const idx = LANGS.indexOf(state.lang);
+  state.lang = LANGS[(idx+1) % LANGS.length];
+  localStorage.setItem(LANG_KEY, state.lang);
+  applyLang();
+  renderList();
+  buildCatGrid();
+}
+function applyLang(){
+  // Header button shows NEXT language
+  document.getElementById('lang-btn').textContent = t('lang_next');
+  // Update chips
+  document.getElementById('favs-chip').innerHTML = t('favs');
+  document.querySelector('.actions .chip:nth-child(2)').innerHTML = t('filters');
+  document.querySelector('.actions .chip:nth-child(3)').innerHTML = t('sort');
+  // Filter drawer title + section
+  document.querySelector('.filter-hdr h3').textContent = t('category');
+  document.querySelector('.filter-section h4').textContent = t('category');
+  document.querySelector('.btn-clear').textContent = t('clear');
+  document.querySelector('.btn-apply').textContent = t('show_results');
+  // Near me button
+  document.querySelector('.fab.near').innerHTML = `<span>📍</span><span>${t('near_me')}</span>`;
+  // Map/List toggle
+  document.getElementById('tog-map').textContent = t('map');
+  document.getElementById('tog-list').textContent = t('list');
+  // Search placeholder
+  document.getElementById('search').placeholder = t('search_ph');
+  // Count label
+  document.getElementById('count-label').textContent = t('in_view');
+}
+function saveFavs(){localStorage.setItem(FAV_KEY, JSON.stringify([...state.favs]));}
+function toggleFav(){
+  if(state.selectedId == null) return;
+  if(state.favs.has(state.selectedId)) state.favs.delete(state.selectedId);
+  else state.favs.add(state.selectedId);
+  saveFavs();
+  updateFavBtn();
+  renderList();
+}
+function updateFavBtn(){
+  const btn = document.getElementById('ov-fav');
+  if(!btn) return;
+  const on = state.favs.has(state.selectedId);
+  btn.classList.toggle('on', on);
+  btn.textContent = on ? '♥' : '♡';
+}
+function toggleFavsOnly(){
+  state.favsOnly = !state.favsOnly;
+  document.getElementById('favs-chip').classList.toggle('on', state.favsOnly);
+  document.getElementById('favs-chip').style.background = state.favsOnly ? '#fff5f0' : '';
+  document.getElementById('favs-chip').style.color = state.favsOnly ? 'var(--brand)' : '';
+  document.getElementById('favs-chip').style.borderColor = state.favsOnly ? 'var(--brand)' : '';
+  renderList();
+}
+function cardFavClick(ev, id){
+  ev.stopPropagation();
+  if(state.favs.has(id)) state.favs.delete(id); else state.favs.add(id);
+  saveFavs();
+  if(state.selectedId===id) updateFavBtn();
+  renderList();
+}
+
+// ===== Map =====
+const map = L.map('map', {zoomControl:false, attributionControl:false}).setView([51.16,10.45],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+L.control.attribution({prefix:false}).addTo(map);
+
+const clusterGroup = L.markerClusterGroup({
+  maxClusterRadius: 50,
+  showCoverageOnHover: false,
+});
+map.addLayer(clusterGroup);
+
+function makeIcon(v, selected=false){
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim();
+  return L.divIcon({
+    className: selected ? 'selected' : '',
+    html: `<div class="venue-marker" style="border-color:${color}">${v.emoji}</div>`,
+    iconSize:[36,36], iconAnchor:[18,18]
+  });
+}
+
+VENUES.forEach(v=>{
+  const m = L.marker([v.lat, v.lon], {icon: makeIcon(v)});
+  m.on('click', ()=>openDetail(v));
+  clusterGroup.addLayer(m);
+  state.markers.set(v.id, m);
+});
+
+// ===== Filter + render =====
+function computeFiltered(){
+  const q = state.search.trim().toLowerCase();
+  const bounds = map.getBounds();
+  let list = VENUES.filter(v=>{
+    if(state.favsOnly && !state.favs.has(v.id)) return false;
+    if(state.activeCats.size && !state.activeCats.has(v.cat)) return false;
+    if(q && !(v.name.toLowerCase().includes(q) || v.zh.includes(q) || v.city.toLowerCase().includes(q))) return false;
+    if(!state.favsOnly && !bounds.contains([v.lat, v.lon])) return false;
+    return true;
+  });
+  if(state.sortBy==='rating'){
+    list.sort((a,b)=>(b.rating||0)-(a.rating||0));
+  } else if(state.sortBy==='name'){
+    list.sort((a,b)=>a.name.localeCompare(b.name));
+  }
+  state.filtered = list;
+  return list;
+}
+
+function renderList(){
+  const list = computeFiltered();
+  const el = document.getElementById('list');
+  document.getElementById('count').textContent = list.length;
+  if(!list.length){
+    el.innerHTML = `<div class="empty">No venues in this area. Try moving the map or clearing filters.</div>`;
+    return;
+  }
+  el.innerHTML = list.slice(0,200).map(v=>{
+    const isFav = state.favs.has(v.id);
+    // NL venues: original name is already Dutch → use for en & nl; zh uses nameZh
+    const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+    const secondary = state.lang==='zh' ? v.name : (v.zh || '');
+    const catLabel = CATS[v.cat]?.[state.lang] || v.cat;
+    return `
+    <div class="venue-card" data-id="${v.id}" onclick="openDetail(VENUES.find(x=>x.id===${v.id}))">
+      <div class="venue-thumb cat-${v.cat}">${v.emoji}<button class="card-fav ${isFav?'on':''}" onclick="cardFavClick(event,${v.id})" title="Favorite">${isFav?'♥':'♡'}</button></div>
+      <div class="venue-info">
+        <div class="venue-name">${primary}</div>
+        ${secondary?`<div class="venue-zh">${secondary}</div>`:''}
+        <div class="venue-meta">
+          ${v.rating?`<span class="rating">★ ${v.rating.toFixed(1)}</span><span class="dot">·</span>`:''}
+          <span>${catLabel}</span>
+          ${v.city?`<span class="dot">·</span><span>${v.city}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== Detail overlay =====
+function openDetail(v){
+  if(!v) return;
+  state.selectedId = v.id;
+  const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+  const secondary = state.lang==='zh' && v.zh ? v.name : v.zh;
+  document.getElementById('ov-name').textContent = primary;
+  document.getElementById('ov-zh').textContent = secondary;
+  const rows = [];
+  if(v.rating) rows.push([t('rating'), `★ ${v.rating.toFixed(1)} · ${v.reviews.toLocaleString()} ${t('reviews')}`]);
+  if(v.street) rows.push([t('address'), `${v.street} ${v.house}, ${v.postcode} ${v.city}`.trim()]);
+  else if(v.city) rows.push([t('city'), v.city]);
+  rows.push([t('category'), `${v.emoji} ${CATS[v.cat]?.[state.lang] || v.cat}`]);
+  if(v.hours) rows.push([t('hours'), v.hours]);
+  document.getElementById('ov-body').innerHTML = rows.map(([k,val])=>
+    `<div class="detail-row"><div class="lbl">${k}</div><div>${val}</div></div>`
+  ).join('');
+  document.getElementById('ov-directions').href = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}&destination_place_id=${encodeURIComponent(v.name)}`;
+  document.getElementById('ov-directions').textContent = t('directions');
+  document.getElementById('ov-website').textContent = t('website');
+  const wsBtn = document.getElementById('ov-website');
+  if(v.website){
+    wsBtn.href = v.website; wsBtn.style.display='flex';
+  } else {
+    wsBtn.style.display='none';
+  }
+  updateFavBtn();
+  document.getElementById('overlay').classList.add('open');
+  // pan to marker
+  map.flyTo([v.lat, v.lon], Math.max(map.getZoom(), 13), {duration:.6});
+}
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('open');
+  state.selectedId = null;
+}
+
+// ===== Filter drawer =====
+function buildCatGrid(){
+  const counts = {};
+  VENUES.forEach(v=>counts[v.cat]=(counts[v.cat]||0)+1);
+  const el = document.getElementById('cat-grid');
+  el.innerHTML = Object.entries(CATS)
+    .filter(([k])=>counts[k])
+    .sort(([a],[b])=>(counts[b]||0)-(counts[a]||0))
+    .map(([k,c])=>`<button class="cat-btn ${state.activeCats.has(k)?'active':''}" data-cat="${k}" onclick="toggleCat('${k}')">
+      <span class="emoji">${c.emoji}</span>${c[state.lang]}<span class="count">${counts[k]}</span>
+    </button>`).join('');
+}
+function toggleCat(k){
+  if(state.activeCats.has(k)) state.activeCats.delete(k); else state.activeCats.add(k);
+  buildCatGrid();
+  renderList();
+}
+function clearFilter(){
+  state.activeCats.clear();
+  buildCatGrid();
+  renderList();
+}
+function openFilter(){document.getElementById('filter').classList.add('open');}
+function closeFilter(){document.getElementById('filter').classList.remove('open');}
+
+// ===== Drawer interactions =====
+function toggleDrawer(){
+  const d = document.getElementById('drawer');
+  const s = d.dataset.state;
+  d.dataset.state = s==='peek'?'half':(s==='half'?'full':'peek');
+}
+
+// ===== Near me (geolocation) =====
+function locateMe(){
+  if(!navigator.geolocation) return alert('Geolocation not supported');
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      const {latitude, longitude} = pos.coords;
+      map.flyTo([latitude, longitude], 12, {duration:.8});
+      L.circleMarker([latitude, longitude], {radius:10, color:'#c96442', fillColor:'#c96442', fillOpacity:.3, weight:3}).addTo(map);
+    },
+    (err)=>alert('Could not get location: '+err.message)
+  );
+}
+
+// ===== Zoom =====
+function zoomIn(){map.zoomIn();}
+function zoomOut(){map.zoomOut();}
+
+// ===== Search =====
+document.getElementById('search').addEventListener('input', e=>{
+  state.search = e.target.value;
+  renderList();
+});
+
+// ===== Country picker (placeholder — links to /) =====
+function openCountryPicker(){
+  window.location.href = '/';
+}
+
+// ===== Map/List view toggle (mobile) =====
+function setView(v){
+  document.body.dataset.view = v;
+  document.getElementById('tog-map').classList.toggle('active', v==='map');
+  document.getElementById('tog-list').classList.toggle('active', v==='list');
+  if(v==='map'){
+    setTimeout(()=>map.invalidateSize(), 50);
+  }
+}
+document.body.dataset.view = 'map';
+
+// ===== Sort toggle =====
+function toggleSort(){
+  state.sortBy = state.sortBy==='rating'?'name':'rating';
+  renderList();
+}
+
+// ===== Sync list when map moves =====
+let moveTimer;
+map.on('moveend', ()=>{
+  clearTimeout(moveTimer);
+  moveTimer = setTimeout(renderList, 150);
+});
+
+// ===== Initial render =====
+applyLang();
+buildCatGrid();
+renderList();
+
+// ===== Click outside to close overlays =====
+map.on('click', ()=>{
+  closeOverlay();
+});
+</script>
+</body>
+</html>

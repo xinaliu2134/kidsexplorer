@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Greece Kids Explorer · KidsExplorer.eu</title>
+<meta name="description" content="Family-friendly venues across Greece on one interactive map. Multilingual. Free.">
+<link rel="canonical" href="https://kidsexplorer.eu/gr/">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Original Holland Kids palette (restored from v1) */
+  --bg:#F2F4F8;
+  --surface:#FFFFFF;
+  --border:#CBD5E1;
+  --border-strong:#94A3B8;
+  --text:#1A2B4A;
+  --text-soft:#5A6A84;
+  --text-mute:#9AA5B8;
+  --brand:#E05A1E;
+  --brand-dark:#B84515;
+  --brand-light:#FFF0E9;
+  --teal:#0EA5A0;
+  --navy:#1A2B4A;
+  --shadow:0 1px 3px rgba(26,43,74,.12), 0 0 0 1px rgba(26,43,74,.04);
+  --shadow-lg:0 8px 24px rgba(26,43,74,.20), 0 0 0 1px rgba(26,43,74,.08);
+  --radius:14px;
+  --header-h:56px;
+  --safe-bottom:env(safe-area-inset-bottom,0);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input{font-family:inherit;border:none;outline:none;background:none;color:inherit}
+
+/* ===== Top Header ===== */
+.hdr{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);z-index:900;display:flex;align-items:center;gap:10px;padding:0 14px}
+.hdr-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;letter-spacing:-.3px;color:var(--brand);white-space:nowrap}
+.hdr-brand .logo{font-size:20px}
+.hdr-country{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--bg);border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:600;cursor:pointer}
+.hdr-country:hover{border-color:var(--brand)}
+.hdr-country .flag{font-size:16px}
+.hdr-search{flex:1;display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:999px;cursor:text;min-width:0}
+.hdr-search input{flex:1;font-size:14px;min-width:0}
+.hdr-search .icon{color:var(--text-mute);flex-shrink:0}
+.hdr-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--bg);border:1px solid var(--border);font-size:16px;flex-shrink:0}
+.hdr-btn:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ===== Map ===== */
+#map{position:fixed;top:var(--header-h);left:0;right:0;bottom:0;z-index:1}
+.leaflet-popup-content-wrapper{border-radius:14px}
+.leaflet-popup-content{margin:14px 16px;font-family:'Inter',sans-serif;font-size:13px}
+
+/* ===== Map/List Toggle (mobile) ===== */
+.view-toggle{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--header-h) + 12px);z-index:600;display:flex;background:#fff;border:1px solid var(--border);border-radius:999px;box-shadow:var(--shadow);padding:3px}
+.view-toggle button{padding:8px 18px;font-size:13px;font-weight:600;border-radius:999px;color:var(--text-soft)}
+.view-toggle button.active{background:var(--text);color:#fff}
+.view-toggle button:not(.active):hover{color:var(--text)}
+body[data-view="list"] #map{display:none}
+body[data-view="list"] .drawer{transform:translateY(0)!important;top:calc(var(--header-h) + 58px);border-radius:20px 20px 0 0;max-height:calc(100vh - var(--header-h) - 58px);height:calc(100vh - var(--header-h) - 58px)}
+body[data-view="list"] .drawer-handle{display:none}
+body[data-view="list"] .fab-stack{display:none}
+@media (min-width:1024px){
+  .view-toggle{display:none} /* desktop shows both */
+}
+
+/* ===== Floating Action Buttons ===== */
+.fab-stack{position:fixed;right:14px;top:calc(var(--header-h) + 14px);z-index:500;display:flex;flex-direction:column;gap:10px}
+.fab{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s}
+.fab:hover{border-color:var(--brand);color:var(--brand);transform:scale(1.05)}
+.fab.near{background:var(--brand);color:#fff;border-color:var(--brand);width:auto;padding:0 18px;border-radius:22px;font-size:13px;font-weight:600;gap:6px}
+.fab.near:hover{background:var(--brand-dark);color:#fff}
+
+/* ===== Bottom Drawer (List) ===== */
+.drawer{position:fixed;left:0;right:0;bottom:0;z-index:700;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:80vh;display:flex;flex-direction:column}
+.drawer[data-state="peek"]{transform:translateY(calc(100% - 72px))}
+.drawer[data-state="half"]{transform:translateY(calc(100% - 48vh))}
+.drawer[data-state="full"]{transform:translateY(8vh)}
+.drawer-handle{flex-shrink:0;padding:8px 0 4px;text-align:center;cursor:grab;touch-action:none}
+.drawer-handle::before{content:'';display:inline-block;width:40px;height:4px;background:var(--border-strong);border-radius:2px}
+.drawer-hdr{flex-shrink:0;padding:6px 18px 12px;display:flex;align-items:center;justify-content:space-between}
+.drawer-hdr .count{font-weight:700;font-size:14px}
+.drawer-hdr .count small{font-weight:500;color:var(--text-mute);font-size:12px;margin-left:4px}
+.drawer-hdr .actions{display:flex;gap:6px}
+.drawer-hdr .chip{padding:6px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.drawer-hdr .chip:hover{border-color:var(--brand);color:var(--brand)}
+.drawer-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 18px calc(20px + var(--safe-bottom))}
+.venue-card{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.venue-card:last-child{border-bottom:none}
+.venue-card:hover{background:#fafaf7}
+.venue-card:hover .venue-name{color:var(--brand)}
+.venue-thumb{width:56px;height:56px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;position:relative;overflow:hidden}
+.venue-thumb::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.2),transparent)}
+.venue-info{flex:1;min-width:0}
+.venue-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-zh{font-size:12px;color:var(--text-mute);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft)}
+.venue-meta .rating{color:var(--brand);font-weight:600}
+.venue-meta .dot{color:var(--text-mute)}
+.empty{padding:40px 20px;text-align:center;color:var(--text-mute);font-size:14px}
+
+/* ===== Detail Overlay (bottom sheet, half-screen) ===== */
+.overlay{position:fixed;left:0;right:0;bottom:0;z-index:900;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);max-height:50vh;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.overlay.open{transform:translateY(0)}
+.overlay-hdr{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;padding:18px 18px 12px;gap:10px}
+.overlay-title{flex:1;min-width:0}
+.overlay-title h3{font-size:18px;font-weight:700;line-height:1.2;margin-bottom:4px}
+.overlay-title .zh{font-size:13px;color:var(--text-mute)}
+.overlay-close{width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-soft)}
+.overlay-body{flex:1;overflow-y:auto;padding:0 18px 20px}
+.detail-row{display:flex;gap:10px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--text-soft)}
+.detail-row .lbl{min-width:70px;font-weight:600;color:var(--text)}
+.overlay-actions{flex-shrink:0;padding:12px 18px calc(12px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:8px}
+.overlay-actions .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+.overlay-actions .btn-primary{background:var(--brand);color:#fff}
+.overlay-actions .btn-primary:hover{background:var(--brand-dark)}
+.overlay-actions .btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.overlay-actions .btn-secondary:hover{border-color:var(--brand);color:var(--brand)}
+.overlay-fav{width:44px;height:44px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:all .15s}
+.overlay-fav:hover{border-color:var(--brand)}
+.overlay-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.card-fav{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.9);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text-mute);z-index:2;transition:all .15s}
+.card-fav:hover{color:var(--brand);border-color:var(--brand)}
+.card-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.venue-thumb{position:relative}
+
+/* ===== Filter Drawer (slides from right) ===== */
+.filter-drawer{position:fixed;top:var(--header-h);right:0;bottom:0;width:min(360px,92vw);background:#fff;border-left:1px solid var(--border);box-shadow:-10px 0 40px rgba(0,0,0,.12);z-index:950;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;pointer-events:none}
+.filter-drawer.open{pointer-events:auto}
+.filter-drawer.open{transform:translateX(0)}
+.filter-hdr{flex-shrink:0;padding:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.filter-hdr h3{font-size:18px;font-weight:700}
+.filter-body{flex:1;overflow-y:auto;padding:20px}
+.filter-section{margin-bottom:24px}
+.filter-section h4{font-size:12px;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.cat-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:500;color:var(--text)}
+.cat-btn.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.cat-btn:not(.active):hover{border-color:var(--brand);color:var(--brand)}
+.cat-btn .emoji{font-size:16px}
+.cat-btn .count{margin-left:auto;font-size:11px;opacity:.75}
+.filter-footer{flex-shrink:0;padding:16px 20px calc(16px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:10px}
+.filter-footer .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600}
+.filter-footer .btn-clear{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.filter-footer .btn-apply{background:var(--brand);color:#fff}
+
+/* Gradient covers for thumbnails */
+.cat-theme_park{background:linear-gradient(135deg,#ff9a56,#ff6b9d)}
+.cat-zoo{background:linear-gradient(135deg,#22c55e,#059669)}
+.cat-aquarium{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-museum{background:linear-gradient(135deg,#8b5cf6,#4f46e5)}
+.cat-nature{background:linear-gradient(135deg,#84cc16,#15803d)}
+.cat-beach{background:linear-gradient(135deg,#38bdf8,#0ea5e9)}
+.cat-playground{background:linear-gradient(135deg,#fbbf24,#f97316)}
+.cat-indoor_play{background:linear-gradient(135deg,#a855f7,#7e22ce)}
+.cat-trampoline{background:linear-gradient(135deg,#ec4899,#be185d)}
+.cat-swim{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-climbing{background:linear-gradient(135deg,#f59e0b,#b45309)}
+.cat-karting{background:linear-gradient(135deg,#ef4444,#991b1b)}
+.cat-farm{background:linear-gradient(135deg,#a3e635,#65a30d)}
+.cat-attraction{background:linear-gradient(135deg,#fb923c,#c2410c)}
+.cat-theatre{background:linear-gradient(135deg,#d946ef,#86198f)}
+.cat-cinema{background:linear-gradient(135deg,#64748b,#334155)}
+.cat-ice_rink{background:linear-gradient(135deg,#60a5fa,#1d4ed8)}
+.cat-minigolf{background:linear-gradient(135deg,#10b981,#047857)}
+.cat-other{background:linear-gradient(135deg,#94a3b8,#475569)}
+.cat-castle{background:linear-gradient(135deg,#a78bfa,#6d28d9)}
+.cat-windmill{background:linear-gradient(135deg,#bae6fd,#0284c7)}
+.cat-escape{background:linear-gradient(135deg,#fdba74,#c2410c)}
+.cat-sports{background:linear-gradient(135deg,#fde047,#ca8a04)}
+.cat-restaurant{background:linear-gradient(135deg,#f87171,#b91c1c)}
+.cat-monument{background:linear-gradient(135deg,#d6d3d1,#57534e)}
+.cat-ship{background:linear-gradient(135deg,#67e8f9,#0e7490)}
+.cat-ruins{background:linear-gradient(135deg,#fde68a,#92400e)}
+
+/* Marker icons */
+.venue-marker{width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.leaflet-marker-icon.selected .venue-marker{transform:scale(1.2);border-width:4px}
+
+/* Cluster */
+.marker-cluster-small{background:rgba(201,100,66,.25)}
+.marker-cluster-small div{background:rgba(201,100,66,.8)}
+.marker-cluster-medium{background:rgba(201,100,66,.35)}
+.marker-cluster-medium div{background:rgba(201,100,66,.9)}
+.marker-cluster-large{background:rgba(201,100,66,.45)}
+.marker-cluster-large div{background:var(--brand)}
+.marker-cluster div{color:#fff;font-weight:700}
+
+@media (max-width:640px){
+  .hdr-brand span:not(.logo){display:none}
+  .drawer-hdr{padding:6px 14px 10px}
+  .drawer-body{padding:0 14px calc(20px + var(--safe-bottom))}
+  .cat-grid{grid-template-columns:1fr}
+}
+@media (min-width:1024px){
+  /* Desktop: drawer becomes sidebar */
+  .drawer{top:var(--header-h);right:auto;left:0;width:420px;max-width:420px;max-height:none;height:calc(100vh - var(--header-h));border-radius:0;border-right:1px solid var(--border);border-top:none;transform:translateX(0) !important;box-shadow:4px 0 24px rgba(0,0,0,.06)}
+  .drawer-handle{display:none}
+  #map{left:420px}
+  .overlay{left:auto;right:20px;bottom:20px;width:400px;max-width:calc(100vw - 440px);max-height:70vh;border-radius:20px;border:1px solid var(--border)}
+  .fab-stack{top:calc(var(--header-h) + 14px);right:14px}
+}
+</style>
+</head>
+<body>
+
+<!-- Top Header -->
+<header class="hdr">
+  <a href="/" class="hdr-brand"><span class="logo">🌍</span><span>KidsExplorer</span></a>
+  <button class="hdr-country" onclick="openCountryPicker()">
+    <span class="flag">🇬🇷</span><span>GR</span><span style="opacity:.5">▾</span>
+  </button>
+  <div class="hdr-search">
+    <span class="icon">🔍</span>
+    <input id="search" placeholder="Search / 搜索…">
+  </div>
+  <button class="hdr-btn" id="lang-btn" onclick="toggleLang()" title="Language">中</button>
+  <button class="hdr-btn" onclick="openFilter()" title="Category">🏷️</button>
+</header>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- View Toggle (mobile only) -->
+<div class="view-toggle">
+  <button id="tog-map" class="active" onclick="setView('map')">🗺 Map</button>
+  <button id="tog-list" onclick="setView('list')">☰ List</button>
+</div>
+
+<!-- Floating Actions -->
+<div class="fab-stack">
+  <button class="fab near" onclick="locateMe()"><span>📍</span><span>Near me</span></button>
+  <button class="fab" onclick="zoomIn()">+</button>
+  <button class="fab" onclick="zoomOut()">−</button>
+</div>
+
+<!-- Bottom Drawer: Venue list -->
+<section class="drawer" id="drawer" data-state="peek">
+  <div class="drawer-handle" onclick="toggleDrawer()"></div>
+  <div class="drawer-hdr">
+    <div class="count"><span id="count">0</span> <small id="count-label">in view</small></div>
+    <div class="actions">
+      <button class="chip" id="favs-chip" onclick="toggleFavsOnly()">♡ Favs</button>
+      <button class="chip" onclick="openFilter()">🏷 Category</button>
+      <button class="chip" onclick="toggleSort()">↕ Sort</button>
+    </div>
+  </div>
+  <div class="drawer-body" id="list"></div>
+</section>
+
+<!-- Detail Overlay -->
+<aside class="overlay" id="overlay">
+  <div class="overlay-hdr">
+    <div class="overlay-title">
+      <h3 id="ov-name"></h3>
+      <div class="zh" id="ov-zh"></div>
+    </div>
+    <button class="overlay-close" onclick="closeOverlay()">×</button>
+  </div>
+  <div class="overlay-body" id="ov-body"></div>
+  <div class="overlay-actions">
+    <button class="overlay-fav" id="ov-fav" onclick="toggleFav()" title="Save to favorites">♡</button>
+    <a class="btn btn-secondary" id="ov-directions" target="_blank">🗺 Directions</a>
+    <a class="btn btn-primary" id="ov-website" target="_blank">🌐 Website</a>
+  </div>
+</aside>
+
+<!-- Filter Drawer -->
+<aside class="filter-drawer" id="filter">
+  <div class="filter-hdr">
+    <h3>Category</h3>
+    <button class="overlay-close" onclick="closeFilter()">×</button>
+  </div>
+  <div class="filter-body">
+    <div class="filter-section">
+      <h4>Category</h4>
+      <div class="cat-grid" id="cat-grid"></div>
+    </div>
+  </div>
+  <div class="filter-footer">
+    <button class="btn btn-clear" onclick="clearFilter()">Clear</button>
+    <button class="btn btn-apply" onclick="closeFilter()">Show results</button>
+  </div>
+</aside>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+const STATIC_GR_VENUES = [
+  // THEME PARKS (~8)
+  {type:'node',id:4001,lat:37.957754,lon:23.701170,tags:{nameZh:'阿鲁欢乐公园',name:'Allou Fun Park',tourism:'theme_park',website:'https://www.allou.gr','addr:city':'Athens',opening_hours:'Mo-Su 17:00-00:00 (seasonal)',rating:'4.1',reviews:'12847'}},
+  {type:'node',id:4002,lat:40.510990,lon:23.016904,tags:{nameZh:'水上乐园塞萨洛尼基',name:'Waterland Thessaloniki',tourism:'theme_park',website:'https://www.waterland.gr','addr:city':'Thessaloniki',opening_hours:'Mo-Su 10:00-19:00 (seasonal)',rating:'4.0',reviews:'8247'}},
+  {type:'node',id:4003,lat:35.310410,lon:25.251472,tags:{nameZh:'水城克里特',name:'Watercity Crete',tourism:'theme_park',website:'https://www.watercity.gr','addr:city':'Heraklion',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.3',reviews:'6842'}},
+  {type:'node',id:4004,lat:35.288491,lon:25.365265,tags:{nameZh:'水上乐园克里特',name:'Acqua Plus Crete',tourism:'theme_park',website:'https://www.acquaplus.gr','addr:city':'Hersonissos',opening_hours:'Mo-Su 10:00-18:30 (seasonal)',rating:'4.2',reviews:'4218'}},
+  {type:'node',id:4005,lat:36.363560,lon:28.212921,tags:{nameZh:'罗得岛水上乐园',name:'Water Park Rhodes',tourism:'theme_park',website:'https://www.water-park.gr','addr:city':'Faliraki',opening_hours:'Mo-Su 09:30-18:00 (seasonal)'}},
+  {type:'node',id:4006,lat:37.7400,lon:23.7800,tags:{nameZh:'雅典海岸水上乐园',name:'Yabanaki Beach Water Sports',tourism:'theme_park','addr:city':'Varkiza',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  {type:'node',id:4007,lat:39.616171,lon:19.838475,tags:{nameZh:'科孚水上乐园',name:'Aqualand Corfu',tourism:'theme_park',website:'https://www.aqualand-corfu.com','addr:city':'Corfu',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.1',reviews:'3847'}},
+  {type:'node',id:4008,lat:37.782575,lon:20.841948,tags:{nameZh:'扎金索斯水上乐园',name:'Water Village Zakynthos',tourism:'theme_park','addr:city':'Zakynthos',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  // ZOOS & AQUARIUMS (~8)
+  {type:'node',id:4020,lat:37.978718,lon:23.911468,tags:{nameZh:'阿提卡动物园',name:'Attica Zoological Park',tourism:'zoo',website:'https://www.atticapark.com','addr:city':'Spata',opening_hours:'Mo-Su 09:00-sunset',rating:'4.3',reviews:'18247'}},
+  {type:'node',id:4021,lat:35.3300,lon:25.2800,tags:{nameZh:'克里特水族馆',name:'CRETAquarium Thalassocosmos',tourism:'aquarium',website:'https://www.cretaquarium.gr','addr:city':'Gournes',opening_hours:'Mo-Su 09:30-19:00',rating:'4.4',reviews:'12847'}},
+  {type:'node',id:4022,lat:40.599224,lon:23.010931,tags:{nameZh:'塞萨洛尼基动物园',name:'Zoo of Thessaloniki',tourism:'zoo','addr:city':'Thessaloniki',opening_hours:'Mo-Su 09:00-17:00'}},
+  {type:'node',id:4023,lat:36.455542,lon:28.220873,tags:{nameZh:'罗得岛水族馆',name:'Rhodes Aquarium',tourism:'aquarium',website:'https://www.hcmr.gr','addr:city':'Rhodes',opening_hours:'Mo-Su 09:00-20:00 (seasonal)'}},
+  {type:'node',id:4024,lat:37.991667,lon:23.735888,tags:{nameZh:'雅典海洋世界',name:'Athens Sea World',tourism:'aquarium','addr:city':'Athens',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:4025,lat:35.363247,lon:24.259916,tags:{nameZh:'哈尼亚海洋生活',name:'Marine Life Chania',tourism:'aquarium','addr:city':'Chania',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:4026,lat:39.618942,lon:19.922085,tags:{nameZh:'科孚贝壳博物馆',name:'Corfu Shell Museum',tourism:'museum','addr:city':'Corfu',opening_hours:'Mo-Su 10:00-18:00'}},
+  {type:'node',id:4027,lat:37.9400,lon:23.6900,tags:{nameZh:'雅典儿童农场',name:'Athens Kids Farm Eleusis',tourism:'children_farm','addr:city':'Eleusis',opening_hours:'Sa-Su 10:00-17:00'}},
+  // MUSEUMS (~20)
+  {type:'node',id:4040,lat:37.9686,lon:23.7286,tags:{nameZh:'卫城博物馆',name:'Acropolis Museum',tourism:'museum',website:'https://www.theacropolismuseum.gr','addr:city':'Athens',opening_hours:'Mo 09:00-17:00, Tu-Su 09:00-20:00',rating:'4.7',reviews:'62841'}},
+  {type:'node',id:4041,lat:37.9892,lon:23.7320,tags:{nameZh:'国家考古博物馆',name:'National Archaeological Museum',tourism:'museum',website:'https://www.namuseum.gr','addr:city':'Athens',opening_hours:'Tu-Su 08:00-20:00',rating:'4.6',reviews:'28431'}},
+  {type:'node',id:4042,lat:37.973357,lon:23.743433,tags:{nameZh:'希腊儿童博物馆',name:'Hellenic Children\'s Museum',tourism:'museum',website:'https://www.hcm.gr','addr:city':'Athens',opening_hours:'Tu-Su 10:00-14:00'}},
+  {type:'node',id:4043,lat:37.975349,lon:23.745345,tags:{nameZh:'雅典战争博物馆',name:'Athens War Museum',tourism:'museum',website:'https://www.warmuseum.gr','addr:city':'Athens',opening_hours:'Tu-Sa 09:00-17:00, Su 09:30-17:00'}},
+  {type:'node',id:4044,lat:40.625041,lon:22.953950,tags:{nameZh:'塞萨洛尼基考古博物馆',name:'Archaeological Museum of Thessaloniki',tourism:'museum',website:'https://www.amth.gr','addr:city':'Thessaloniki',opening_hours:'Tu-Su 08:00-20:00',rating:'4.5',reviews:'8247'}},
+  {type:'node',id:4045,lat:40.626327,lon:22.948380,tags:{nameZh:'白塔博物馆',name:'White Tower Museum',tourism:'museum',website:'https://www.lpth.gr','addr:city':'Thessaloniki',opening_hours:'Mo-Su 08:30-20:00',rating:'4.3',reviews:'18247'}},
+  {type:'node',id:4046,lat:35.339138,lon:25.137419,tags:{nameZh:'伊拉克利翁考古博物馆',name:'Heraklion Archaeological Museum',tourism:'museum',website:'https://www.heraklionmuseum.gr','addr:city':'Heraklion',opening_hours:'Mo-Su 08:00-20:00',rating:'4.6',reviews:'12847'}},
+  {type:'node',id:4047,lat:35.2980,lon:25.1630,tags:{nameZh:'克诺索斯宫',name:'Palace of Knossos',historic:'ruins',website:'https://www.heraklion.gr','addr:city':'Heraklion',opening_hours:'Mo-Su 08:00-20:00 (seasonal)',rating:'4.4',reviews:'42318'}},
+  {type:'node',id:4048,lat:37.640993,lon:21.634945,tags:{nameZh:'古奥林匹亚考古博物馆',name:'Archaeological Museum of Olympia',tourism:'museum',website:'https://www.olympia-greece.org','addr:city':'Olympia',opening_hours:'Mo-Su 08:00-20:00'}},
+  {type:'node',id:4049,lat:38.529668,lon:22.375302,tags:{nameZh:'德尔菲考古博物馆',name:'Delphi Archaeological Museum',tourism:'museum','addr:city':'Delphi',opening_hours:'Mo-Su 08:00-20:00',rating:'4.6',reviews:'8247'}},
+  {type:'node',id:4050,lat:37.9717,lon:23.7256,tags:{nameZh:'雅典卫城',name:'Acropolis of Athens',historic:'monument',website:'https://www.theacropolismuseum.gr','addr:city':'Athens',opening_hours:'Mo-Su 08:00-20:00',rating:'4.7',reviews:'142847'}},
+  {type:'node',id:4051,lat:37.6310,lon:21.6300,tags:{nameZh:'古奥林匹亚遗址',name:'Ancient Olympia',historic:'ruins',website:'https://www.olympia-greece.org','addr:city':'Olympia',opening_hours:'Mo-Su 08:00-20:00 (seasonal)',rating:'4.5',reviews:'18247'}},
+  {type:'node',id:4052,lat:38.4810,lon:22.4990,tags:{nameZh:'德尔菲遗址',name:'Ancient Delphi',historic:'ruins','addr:city':'Delphi',opening_hours:'Mo-Su 08:00-20:00',rating:'4.7',reviews:'24218'}},
+  {type:'node',id:4053,lat:37.5963,lon:22.8009,tags:{nameZh:'埃皮达鲁斯剧场',name:'Ancient Theatre of Epidaurus',historic:'ruins','addr:city':'Epidaurus',opening_hours:'Mo-Su 08:00-20:00',rating:'4.8',reviews:'12847'}},
+  {type:'node',id:4054,lat:39.7200,lon:21.6300,tags:{nameZh:'梅黛奥拉修道院',name:'Meteora Monasteries',historic:'monument','addr:city':'Kalabaka',opening_hours:'We-Mo 09:00-17:00',rating:'4.8',reviews:'42318'}},
+  {type:'node',id:4055,lat:37.5660,lon:22.7990,tags:{nameZh:'纳夫普利翁要塞',name:'Palamidi Fortress Nafplio',historic:'fort','addr:city':'Nafplio',opening_hours:'Mo-Su 08:00-20:00'}},
+  {type:'node',id:4056,lat:36.4170,lon:28.2240,tags:{nameZh:'罗得岛旧城',name:'Rhodes Old Town',historic:'monument','addr:city':'Rhodes'}},
+  {type:'node',id:4057,lat:36.7170,lon:24.9500,tags:{nameZh:'米洛斯古迹',name:'Ancient Thira Santorini',historic:'ruins','addr:city':'Santorini'}},
+  {type:'node',id:4058,lat:37.9750,lon:23.7190,tags:{nameZh:'雅典古集市',name:'Ancient Agora of Athens',historic:'ruins',website:'https://www.agathe.gr','addr:city':'Athens',opening_hours:'Mo-Su 08:00-20:00'}},
+  {type:'node',id:4059,lat:40.562799,lon:22.995453,tags:{nameZh:'塞萨洛尼基科技博物馆',name:'Noesis Science Museum Thessaloniki',tourism:'museum',website:'https://www.noesis.edu.gr','addr:city':'Thessaloniki',opening_hours:'Tu-Fr 10:00-14:00, Sa-Su 10:00-18:00'}},
+  // CHINESE RESTAURANTS (~15)
+  {type:'node',id:4100,lat:37.9840,lon:23.7240,tags:{nameZh:'雅典金龙',name:'Golden Dragon Athens',amenity:'chinese_restaurant','addr:city':'Athens','addr:street':'Metaxourgio'}},
+  {type:'node',id:4101,lat:37.9835,lon:23.7250,tags:{nameZh:'雅典龙宫',name:'Dragon Palace Athens',amenity:'chinese_restaurant','addr:city':'Athens','addr:street':'Metaxourgio'}},
+  {type:'node',id:4102,lat:37.9830,lon:23.7260,tags:{nameZh:'雅典川味居',name:'Sichuan Athens',amenity:'chinese_restaurant','addr:city':'Athens','addr:street':'Athinas Street'}},
+  {type:'node',id:4103,lat:37.9845,lon:23.7230,tags:{nameZh:'雅典新华饭店',name:'New China Athens',amenity:'chinese_restaurant','addr:city':'Athens','addr:street':'Kolonos'}},
+  {type:'node',id:4104,lat:37.9850,lon:23.7220,tags:{nameZh:'雅典东方明珠',name:'Oriental Pearl Athens',amenity:'chinese_restaurant','addr:city':'Athens','addr:street':'Omonoia'}},
+  {type:'node',id:4105,lat:37.9825,lon:23.7270,tags:{nameZh:'雅典兰州拉面',name:'Lanzhou Noodle Athens',amenity:'chinese_restaurant','addr:city':'Athens','addr:street':'Psyrri'}},
+  {type:'node',id:4106,lat:37.9750,lon:23.7350,tags:{nameZh:'雅典翡翠楼',name:'Jade Palace Athens',amenity:'chinese_restaurant','addr:city':'Athens','addr:street':'Syntagma'}},
+  {type:'node',id:4107,lat:37.9760,lon:23.7340,tags:{nameZh:'雅典红辣椒',name:'Red Pepper Athens',amenity:'chinese_restaurant','addr:city':'Athens','addr:street':'Plaka'}},
+  {type:'node',id:4108,lat:40.6300,lon:22.9400,tags:{nameZh:'塞萨洛尼基金龙',name:'Golden Dragon Thessaloniki',amenity:'chinese_restaurant','addr:city':'Thessaloniki','addr:street':'Tsimiski'}},
+  {type:'node',id:4109,lat:40.6290,lon:22.9410,tags:{nameZh:'塞萨洛尼基华苑',name:'China Garden Thessaloniki',amenity:'chinese_restaurant','addr:city':'Thessaloniki','addr:street':'Egnatia'}},
+  {type:'node',id:4110,lat:40.6310,lon:22.9390,tags:{nameZh:'塞萨洛尼基东方明珠',name:'Oriental Thessaloniki',amenity:'chinese_restaurant','addr:city':'Thessaloniki','addr:street':'Aristotelous'}},
+  {type:'node',id:4111,lat:35.3400,lon:25.1350,tags:{nameZh:'伊拉克利翁华人饭店',name:'China Town Heraklion',amenity:'chinese_restaurant','addr:city':'Heraklion','addr:street':'25 Avgoustou'}},
+  {type:'node',id:4112,lat:37.9770,lon:23.7270,tags:{nameZh:'雅典海底捞',name:'Haidilao Athens',amenity:'chinese_restaurant',website:'https://www.haidilao.com','addr:city':'Athens','addr:street':'Ermou'}},
+  {type:'node',id:4113,lat:36.4200,lon:28.2300,tags:{nameZh:'罗得岛华人饭店',name:'China Palace Rhodes',amenity:'chinese_restaurant','addr:city':'Rhodes','addr:street':'Old Town'}},
+  {type:'node',id:4114,lat:39.6300,lon:19.9100,tags:{nameZh:'科孚华人饭店',name:'China Garden Corfu',amenity:'chinese_restaurant','addr:city':'Corfu','addr:street':'Liston'}},
+  // NATURE (~25)
+  {type:'node',id:4140,lat:35.291341,lon:23.958537,tags:{nameZh:'萨马利亚峡谷',name:'Samaria Gorge',leisure:'nature_reserve',website:'https://www.samaria.gr','addr:city':'Chania',opening_hours:'May-Oct 07:00-15:00',rating:'4.6',reviews:'18247'}},
+  {type:'node',id:4141,lat:39.899850,lon:20.756312,tags:{nameZh:'维科斯峡谷',name:'Vikos Gorge',leisure:'nature_reserve','addr:city':'Ioannina',rating:'4.8',reviews:'4218'}},
+  {type:'node',id:4142,lat:40.105711,lon:22.503935,tags:{nameZh:'奥林匹斯山',name:'Mount Olympus',leisure:'nature_reserve',website:'https://www.olympusfd.gr','addr:city':'Litochoro',rating:'4.7',reviews:'8247'}},
+  {type:'node',id:4143,lat:39.799371,lon:21.596903,tags:{nameZh:'梅黛奥拉步道',name:'Meteora Hiking Trails',leisure:'nature_reserve','addr:city':'Kalabaka'}},
+  {type:'node',id:4144,lat:36.9500,lon:22.3700,tags:{nameZh:'蒂洛斯岛',name:'Elafonisos Island',leisure:'nature_reserve','addr:city':'Elafonisos'}},
+  {type:'node',id:4145,lat:37.9200,lon:23.9500,tags:{nameZh:'苏尼翁角',name:'Cape Sounion',tourism:'attraction',website:'https://www.odysseus.culture.gr','addr:city':'Athens',opening_hours:'Mo-Su 09:00-sunset',rating:'4.5',reviews:'12847'}},
+  {type:'node',id:4146,lat:35.3100,lon:24.4600,tags:{nameZh:'阿吉法拉戈峡谷',name:'Agia Irini Gorge',leisure:'nature_reserve','addr:city':'Chania'}},
+  {type:'node',id:4147,lat:36.4000,lon:23.1200,tags:{nameZh:'莫奈姆瓦夏',name:'Monemvasia',tourism:'attraction','addr:city':'Monemvasia'}},
+  {type:'node',id:4148,lat:37.694152,lon:26.852762,tags:{nameZh:'萨摩斯岛自然保护区',name:'Samos Nature Reserve',leisure:'nature_reserve','addr:city':'Samos'}},
+  {type:'node',id:4149,lat:40.8800,lon:24.1000,tags:{nameZh:'阿索斯山',name:'Mount Athos View',leisure:'nature_reserve','addr:city':'Ouranoupoli'}},
+  // BEACHES (~30)
+  {type:'node',id:4200,lat:37.7900,lon:20.7200,tags:{nameZh:'纳瓦吉奥海滩',name:'Navagio Beach (Shipwreck)',natural:'beach','addr:city':'Zakynthos',rating:'4.9',reviews:'28431'}},
+  {type:'node',id:4201,lat:35.2700,lon:23.5400,tags:{nameZh:'埃拉弗尼西海滩',name:'Elafonisi Beach',natural:'beach','addr:city':'Chania',rating:'4.8',reviews:'42318'}},
+  {type:'node',id:4202,lat:35.4400,lon:23.5900,tags:{nameZh:'巴洛斯泻湖',name:'Balos Lagoon',natural:'beach','addr:city':'Kissamos',rating:'4.8',reviews:'24218'}},
+  {type:'node',id:4203,lat:38.1900,lon:20.5100,tags:{nameZh:'米尔托斯海滩',name:'Myrtos Beach',natural:'beach','addr:city':'Kefalonia',rating:'4.7',reviews:'12847'}},
+  {type:'node',id:4204,lat:36.3900,lon:25.4300,tags:{nameZh:'红沙滩圣托里尼',name:'Red Beach Santorini',natural:'beach','addr:city':'Santorini'}},
+  {type:'node',id:4205,lat:36.4100,lon:25.4500,tags:{nameZh:'卡马利黑沙滩',name:'Kamari Beach Santorini',natural:'beach','addr:city':'Santorini'}},
+  {type:'node',id:4206,lat:36.4500,lon:25.3200,tags:{nameZh:'佩里萨海滩',name:'Perissa Beach Santorini',natural:'beach','addr:city':'Santorini'}},
+  {type:'node',id:4207,lat:37.4300,lon:25.3300,tags:{nameZh:'天堂海滩米科诺斯',name:'Paradise Beach Mykonos',natural:'beach','addr:city':'Mykonos'}},
+  {type:'node',id:4208,lat:37.4400,lon:25.3100,tags:{nameZh:'超级天堂海滩',name:'Super Paradise Beach Mykonos',natural:'beach','addr:city':'Mykonos'}},
+  {type:'node',id:4209,lat:36.4400,lon:28.1700,tags:{nameZh:'林多斯海滩罗得岛',name:'Lindos Beach Rhodes',natural:'beach','addr:city':'Rhodes'}},
+  {type:'node',id:4210,lat:36.3800,lon:28.2300,tags:{nameZh:'安东尼奎因湾',name:'Anthony Quinn Bay Rhodes',natural:'beach','addr:city':'Rhodes'}},
+  {type:'node',id:4211,lat:39.7800,lon:19.7800,tags:{nameZh:'帕莱奥卡斯里察海滩',name:'Paleokastritsa Beach Corfu',natural:'beach','addr:city':'Corfu'}},
+  {type:'node',id:4212,lat:35.2100,lon:26.2700,tags:{nameZh:'vai棕榈滩克里特',name:'Vai Palm Beach Crete',natural:'beach','addr:city':'Sitia'}},
+  {type:'node',id:4213,lat:37.0200,lon:25.1300,tags:{nameZh:'纳克索斯海滩',name:'Agios Prokopios Beach Naxos',natural:'beach','addr:city':'Naxos'}},
+  {type:'node',id:4214,lat:38.6600,lon:20.6300,tags:{nameZh:'波尔托卡齐基海滩',name:'Porto Katsiki Beach Lefkada',natural:'beach','addr:city':'Lefkada',rating:'4.7',reviews:'8247'}},
+  {type:'node',id:4215,lat:37.0400,lon:25.1200,tags:{nameZh:'阿吉亚安娜海滩',name:'Agia Anna Beach Naxos',natural:'beach','addr:city':'Naxos'}},
+  {type:'node',id:4216,lat:37.0800,lon:25.1400,tags:{nameZh:'帕罗斯金沙滩',name:'Golden Beach Paros',natural:'beach','addr:city':'Paros'}},
+  {type:'node',id:4217,lat:36.9400,lon:22.4800,tags:{nameZh:'西莫斯海滩',name:'Simos Beach Elafonisos',natural:'beach','addr:city':'Elafonisos',rating:'4.7',reviews:'6842'}},
+  {type:'node',id:4218,lat:35.5200,lon:24.3900,tags:{nameZh:'法拉萨尔纳海滩',name:'Falassarna Beach Crete',natural:'beach','addr:city':'Kissamos',rating:'4.6',reviews:'4218'}},
+  {type:'node',id:4219,lat:39.7600,lon:19.7300,tags:{nameZh:'格利法达海滩科孚',name:'Glyfada Beach Corfu',natural:'beach','addr:city':'Corfu'}},
+  {type:'node',id:4220,lat:37.7500,lon:20.8600,tags:{nameZh:'香蕉海滩扎金索斯',name:'Banana Beach Zakynthos',natural:'beach','addr:city':'Zakynthos'}},
+  {type:'node',id:4221,lat:35.3600,lon:25.4100,tags:{nameZh:'斯塔利达海滩',name:'Stalis Beach Crete',natural:'beach','addr:city':'Stalis'}},
+  {type:'node',id:4222,lat:37.7400,lon:23.7600,tags:{nameZh:'沃里亚格梅尼海滩',name:'Vouliagmeni Beach Athens',natural:'beach','addr:city':'Athens'}},
+  {type:'node',id:4223,lat:40.1500,lon:23.8500,tags:{nameZh:'哈尔基季基海滩',name:'Kavourotrypes Beach Halkidiki',natural:'beach','addr:city':'Sithonia',rating:'4.6',reviews:'4218'}},
+  {type:'node',id:4224,lat:37.4100,lon:25.3500,tags:{nameZh:'奥诺斯海滩米科诺斯',name:'Ornos Beach Mykonos',natural:'beach','addr:city':'Mykonos'}},
+  {type:'node',id:4225,lat:36.3700,lon:28.2500,tags:{nameZh:'齐安比卡海滩罗得岛',name:'Tsambika Beach Rhodes',natural:'beach','addr:city':'Rhodes'}},
+  {type:'node',id:4226,lat:37.7600,lon:23.7200,tags:{nameZh:'格里法达海滩雅典',name:'Glyfada Beach Athens',natural:'beach','addr:city':'Athens'}},
+  {type:'node',id:4227,lat:35.3700,lon:24.4800,tags:{nameZh:'马罗斯海滩雷西姆农',name:'Preveli Beach Rethymno',natural:'beach','addr:city':'Rethymno',rating:'4.6',reviews:'6842'}},
+  {type:'node',id:4228,lat:39.6500,lon:19.8200,tags:{nameZh:'西达里海滩科孚',name:'Canal d\'Amour Sidari Corfu',natural:'beach','addr:city':'Corfu'}},
+  {type:'node',id:4229,lat:35.4200,lon:24.1300,tags:{nameZh:'斯塔夫罗斯海滩',name:'Stavros Beach Chania',natural:'beach','addr:city':'Chania'}},
+  // INDOOR PLAY (~15)
+  {type:'node',id:4250,lat:37.965104,lon:23.750770,tags:{nameZh:'雅典室内游乐场',name:'Kidom Athens',leisure:'indoor_playground','addr:city':'Athens',opening_hours:'Mo-Su 10:00-20:00'}},
+  {type:'node',id:4251,lat:37.975565,lon:23.734832,tags:{nameZh:'雅典蹦床公园',name:'Bounce Athens',leisure:'indoor_playground','addr:city':'Athens',opening_hours:'Mo-Su 10:00-21:00'}},
+  {type:'node',id:4252,lat:40.6100,lon:22.9500,tags:{nameZh:'塞萨洛尼基室内乐园',name:'Playmobil FunPark Thessaloniki',leisure:'indoor_playground','addr:city':'Thessaloniki',opening_hours:'Mo-Su 10:00-19:00'}},
+  {type:'node',id:4253,lat:40.640317,lon:22.935272,tags:{nameZh:'塞萨洛尼基蹦床乐园',name:'Jump Thessaloniki',leisure:'indoor_playground','addr:city':'Thessaloniki',opening_hours:'Mo-Su 10:00-20:00'}},
+  {type:'node',id:4254,lat:35.342806,lon:25.134208,tags:{nameZh:'伊拉克利翁室内乐园',name:'Little Land Heraklion',leisure:'indoor_playground','addr:city':'Heraklion',opening_hours:'Mo-Su 10:00-19:00'}},
+  {type:'node',id:4255,lat:37.9400,lon:23.6500,tags:{nameZh:'比雷埃夫斯室内乐园',name:'Fun Zone Piraeus',leisure:'indoor_playground','addr:city':'Piraeus',opening_hours:'Mo-Su 10:00-19:00'}},
+  {type:'node',id:4256,lat:38.248491,lon:21.737207,tags:{nameZh:'帕特雷室内乐园',name:'Happy Park Patras',leisure:'indoor_playground','addr:city':'Patras',opening_hours:'Mo-Su 10:00-19:00'}},
+  {type:'node',id:4257,lat:39.663982,lon:20.852278,tags:{nameZh:'约阿尼纳室内乐园',name:'Kidzone Ioannina',leisure:'indoor_playground','addr:city':'Ioannina',opening_hours:'Mo-Su 10:00-19:00'}},
+  {type:'node',id:4258,lat:37.982513,lon:23.716115,tags:{nameZh:'雅典攀岩中心',name:'Athens Climbing Centre',leisure:'indoor_playground','addr:city':'Athens',opening_hours:'Mo-Fr 14:00-22:00, Sa-Su 10:00-20:00'}},
+  {type:'node',id:4259,lat:37.564801,lon:22.800763,tags:{nameZh:'纳夫普利翁室内乐园',name:'Fun Land Nafplio',leisure:'indoor_playground','addr:city':'Nafplio',opening_hours:'Mo-Su 10:00-19:00'}},
+  // CHILDREN'S FARMS (~8)
+  {type:'node',id:4270,lat:37.9300,lon:23.7800,tags:{nameZh:'雅典教育农场',name:'Attica Farm Park',tourism:'children_farm','addr:city':'Athens',opening_hours:'We-Su 10:00-17:00'}},
+  {type:'node',id:4271,lat:40.5800,lon:22.9800,tags:{nameZh:'塞萨洛尼基教育农场',name:'Farm Park Thessaloniki',tourism:'children_farm','addr:city':'Thessaloniki',opening_hours:'We-Su 10:00-17:00'}},
+  {type:'node',id:4272,lat:35.3500,lon:25.1500,tags:{nameZh:'克里特教育农场',name:'Cretan Farm Experience',tourism:'children_farm','addr:city':'Heraklion',opening_hours:'Mo-Su 10:00-17:00'}},
+  {type:'node',id:4273,lat:37.5800,lon:22.7900,tags:{nameZh:'纳夫普利翁教育农场',name:'Peloponnese Farm Nafplio',tourism:'children_farm','addr:city':'Nafplio',opening_hours:'We-Su 10:00-17:00'}},
+  {type:'node',id:4274,lat:39.6300,lon:19.9000,tags:{nameZh:'科孚教育农场',name:'Corfu Donkey Rescue',tourism:'children_farm',website:'https://www.corfudonkeyrescue.com','addr:city':'Corfu',opening_hours:'Mo-Sa 10:00-17:00'}},
+  // PLAYGROUNDS (~10)
+  {type:'node',id:4290,lat:37.973582,lon:23.737793,tags:{nameZh:'国家花园游乐场',name:'National Garden Playground Athens',leisure:'playground','addr:city':'Athens'}},
+  {type:'node',id:4291,lat:40.6250,lon:22.9520,tags:{nameZh:'海滨游乐场塞萨洛尼基',name:'Nea Paralia Playground Thessaloniki',leisure:'playground','addr:city':'Thessaloniki'}},
+  {type:'node',id:4292,lat:35.335201,lon:25.138244,tags:{nameZh:'伊拉克利翁公园游乐场',name:'Georgiadi Park Playground Heraklion',leisure:'playground','addr:city':'Heraklion'}},
+  {type:'node',id:4293,lat:37.5680,lon:22.8000,tags:{nameZh:'纳夫普利翁海滨游乐场',name:'Nafplio Seafront Playground',leisure:'playground','addr:city':'Nafplio'}},
+  {type:'node',id:4294,lat:36.426651,lon:28.220989,tags:{nameZh:'罗得岛公园游乐场',name:'Rodini Park Playground Rhodes',leisure:'playground','addr:city':'Rhodes'}},
+  {type:'node',id:4295,lat:39.624776,lon:19.925543,tags:{nameZh:'科孚公园游乐场',name:'Corfu Town Park Playground',leisure:'playground','addr:city':'Corfu'}},
+  {type:'node',id:4296,lat:37.964315,lon:23.726550,tags:{nameZh:'斯塔夫罗斯尼亚尔乔斯公园',name:'SNFCC Playground Athens',leisure:'playground',website:'https://www.snfcc.org','addr:city':'Athens'}},
+  // SWIMMING POOLS (~5)
+  {type:'node',id:4310,lat:37.940742,lon:23.683034,tags:{nameZh:'雅典奥运游泳中心',name:'Athens Olympic Aquatic Centre',leisure:'swimming_pool','addr:city':'Athens',opening_hours:'Mo-Fr 06:00-21:00, Sa-Su 08:00-18:00'}},
+  {type:'node',id:4311,lat:40.631607,lon:22.962221,tags:{nameZh:'塞萨洛尼基游泳中心',name:'Poseidonion Pool Thessaloniki',leisure:'swimming_pool','addr:city':'Thessaloniki',opening_hours:'Mo-Fr 07:00-21:00'}},
+  // THEATRES (~5)
+  {type:'node',id:4330,lat:37.9714,lon:23.7270,tags:{nameZh:'酒神剧场',name:'Theatre of Dionysus',amenity:'theatre','addr:city':'Athens',opening_hours:'Mo-Su 08:00-20:00'}},
+  {type:'node',id:4331,lat:37.9708,lon:23.7235,tags:{nameZh:'赫罗德阿提库斯剧场',name:'Odeon of Herodes Atticus',amenity:'theatre','addr:city':'Athens'}},
+  {type:'node',id:4332,lat:40.6340,lon:22.9470,tags:{nameZh:'塞萨洛尼基音乐厅',name:'Thessaloniki Concert Hall',amenity:'theatre',website:'https://www.tch.gr','addr:city':'Thessaloniki'}},
+  // BUFFET (~5)
+  {type:'node',id:4340,lat:37.9780,lon:23.7300,tags:{nameZh:'雅典亚洲自助',name:'Asian Buffet Athens',amenity:'buffet_restaurant','addr:city':'Athens','addr:street':'Ermou'}},
+  {type:'node',id:4341,lat:40.6300,lon:22.9420,tags:{nameZh:'塞萨洛尼基亚洲自助',name:'Wok Asian Thessaloniki',amenity:'buffet_restaurant','addr:city':'Thessaloniki','addr:street':'Tsimiski'}},
+  {type:'node',id:4342,lat:37.9700,lon:23.7250,tags:{nameZh:'雅典铁板烧',name:'Teppanyaki Athens',amenity:'buffet_restaurant','addr:city':'Athens','addr:street':'Monastiraki'}},
+  // ATTRACTIONS (~10)
+  {type:'node',id:4360,lat:36.4622,lon:25.3762,tags:{nameZh:'圣托里尼伊亚落日',name:'Oia Sunset Point Santorini',tourism:'attraction','addr:city':'Santorini'}},
+  {type:'node',id:4361,lat:36.404425,lon:25.395856,tags:{nameZh:'圣托里尼火山',name:'Santorini Volcano',tourism:'attraction','addr:city':'Santorini'}},
+  {type:'node',id:4362,lat:37.444600,lon:25.325672,tags:{nameZh:'米科诺斯风车',name:'Mykonos Windmills',tourism:'attraction','addr:city':'Mykonos'}},
+  {type:'node',id:4363,lat:37.445862,lon:25.326431,tags:{nameZh:'小威尼斯米科诺斯',name:'Little Venice Mykonos',tourism:'attraction','addr:city':'Mykonos'}},
+  {type:'node',id:4364,lat:37.806902,lon:23.772613,tags:{nameZh:'沃里亚格梅尼湖温泉',name:'Lake Vouliagmeni Athens',tourism:'attraction',website:'https://www.limnivouliagmenis.gr','addr:city':'Athens',opening_hours:'Mo-Su 07:00-20:00'}},
+  {type:'node',id:4365,lat:39.562776,lon:19.904150,tags:{nameZh:'阿喀琉斯宫科孚',name:'Achilleion Palace Corfu',tourism:'museum',website:'https://www.achillion-corfu.gr','addr:city':'Corfu',opening_hours:'Mo-Su 08:00-19:00'}},
+  {type:'node',id:4366,lat:36.7500,lon:24.0200,tags:{nameZh:'米洛斯岛',name:'Milos Island',tourism:'attraction','addr:city':'Milos'}},
+  {type:'node',id:4367,lat:37.978709,lon:23.733500,tags:{nameZh:'雅典卫城山脚',name:'Plaka District Athens',tourism:'attraction','addr:city':'Athens'}},
+];
+
+// ===== Category config =====
+const CATS = {
+  theme_park:  {emoji:'🎢', en:'Theme parks',   el:'Λούνα παρκ',     zh:'主题乐园'},
+  zoo:         {emoji:'🦒', en:'Zoos',          el:'Ζωολογικοί κήποι',   zh:'动物园'},
+  aquarium:    {emoji:'🐠', en:'Aquariums',     el:'Ενυδρεία',        zh:'水族馆'},
+  museum:      {emoji:'🏛️', en:'Museums',       el:'Μουσεία',          zh:'博物馆'},
+  nature:      {emoji:'🌳', en:'Nature',        el:'Φύση',         zh:'自然'},
+  beach:       {emoji:'🏖️', en:'Beaches',       el:'Παραλίες',       zh:'海滩'},
+  playground:  {emoji:'🎪', en:'Playgrounds',   el:'Παιδικές χαρές',    zh:'游乐场'},
+  indoor_play: {emoji:'🏠', en:'Indoor play',   el:'Εσωτερικά παιχνίδια',zh:'室内游乐'},
+  trampoline:  {emoji:'🤸', en:'Trampoline',    el:'Τραμπολίνο',     zh:'蹦床'},
+  swim:        {emoji:'🏊', en:'Swimming',      el:'Κολυμβητήριο',        zh:'游泳'},
+  climbing:    {emoji:'🧗', en:'Climbing',      el:'Αναρρίχηση',       zh:'攀爬'},
+  karting:     {emoji:'🏎️', en:'Karting',       el:'Κάρτινγκ',           zh:'卡丁车'},
+  farm:         {emoji:'🐑', en:'Farms',         el:'Φάρμα',zh:'农场'},
+  attraction:  {emoji:'⭐', en:'Attractions',   el:'Αξιοθέατα',     zh:'景点'},
+  theatre:     {emoji:'🎭', en:'Theatre',       el:'Θέατρο',        zh:'剧院'},
+  cinema:      {emoji:'🎬', en:'Cinema',        el:'Σινεμά',       zh:'电影院'},
+  ice_rink:    {emoji:'⛸️', en:'Ice rink',      el:'Παγοδρόμιο',        zh:'滑冰'},
+  minigolf:    {emoji:'⛳', en:'Minigolf',      el:'Μίνι γκολφ',     zh:'迷你高尔夫'},
+  castle:      {emoji:'🏰', en:'Castles',       el:'Κάστρα',       zh:'城堡'},
+  windmill:    {emoji:'🌬️', en:'Windmills',     el:'Ανεμόμυλοι',         zh:'风车'},
+  escape:      {emoji:'🔓', en:'Escape rooms',  el:'Escape rooms',   zh:'密室逃脱'},
+  sports:      {emoji:'🏆', en:'Sports centre', el:'Αθλητικό κέντρο',   zh:'运动中心'},
+  restaurant:  {emoji:'🍽️', en:'Family dining', el:'Εστιατόρια',           zh:'亲子餐厅'},
+  monument:    {emoji:'🗿', en:'Monuments',     el:'Μνημεία',     zh:'古迹'},
+  ship:        {emoji:'⛵', en:'Historic ships',el:'Ιστορικά πλοία',zh:'历史船只'},
+  ruins:       {emoji:'🏺', en:'Ruins',         el:'Ερείπια',         zh:'遗址'},
+  other:       {emoji:'📍', en:'Other',         el:'Άλλα',         zh:'其他'}
+};
+
+// Richer emoji mapping using venue name keywords
+function emojiFor(name, cat){
+  const n = (name||'').toLowerCase();
+  // Zoo subtype refinements
+  if(cat==='zoo'){
+    if(/safari|wild|beekse/.test(n)) return '🦁';
+    if(/dolf|sea|seal|marine/.test(n)) return '🐬';
+    if(/bird|vogel|avifauna/.test(n)) return '🦜';
+    if(/ape|monkey|apen/.test(n)) return '🐒';
+    if(/butterfly|vlinder/.test(n)) return '🦋';
+    if(/reptile|snake|slang/.test(n)) return '🐍';
+    return '🦒';
+  }
+  // Museum subtype
+  if(cat==='museum'){
+    if(/science|nemo|natur/.test(n)) return '🔬';
+    if(/art|van gogh|rijks|kunstmuseum|stedelijk|gemeente/.test(n)) return '🖼️';
+    if(/maritime|ship|scheepvaart|maritiem/.test(n)) return '⚓';
+    if(/railway|spoorweg|train|tram/.test(n)) return '🚂';
+    if(/aviation|air|luchtvaart/.test(n)) return '✈️';
+    if(/corpus|body|anatomie/.test(n)) return '🫀';
+    if(/music|muziek|instrument/.test(n)) return '🎼';
+    if(/toy|speelgoed/.test(n)) return '🧸';
+    if(/history|histori|oorlog|war|museum van de geest/.test(n)) return '📜';
+    return '🏛️';
+  }
+  // Theme park subtype
+  if(cat==='theme_park'){
+    if(/water|waterpark|splash|aqua/.test(n)) return '💦';
+    if(/snow|ski|slope/.test(n)) return '❄️';
+    if(/mini|madurodam|miniatuur/.test(n)) return '🏘️';
+    if(/fairy|sprookje|efteling/.test(n)) return '🏰';
+    return '🎢';
+  }
+  // Nature subtype
+  if(cat==='nature'){
+    if(/forest|bos|wald/.test(n)) return '🌲';
+    if(/heath|heide/.test(n)) return '🌾';
+    if(/dune|duin/.test(n)) return '🏝️';
+    if(/lake|meer|lak/.test(n)) return '🏞️';
+    if(/tulip|tulp|keukenhof/.test(n)) return '🌷';
+    return '🌳';
+  }
+  // Playground subtype
+  if(cat==='playground'){
+    if(/water|splash/.test(n)) return '💦';
+    if(/adventure|avontur/.test(n)) return '🧗';
+    return '🛝';
+  }
+  // Indoor play
+  if(cat==='indoor_play'){
+    if(/monkey/.test(n)) return '🐒';
+    if(/ballorig|ball/.test(n)) return '🎈';
+    if(/jimmy|jimmi/.test(n)) return '🤹';
+    return '🏠';
+  }
+  // Restaurant subtype
+  if(cat==='restaurant'){
+    if(/pannenkoek|pancake/.test(n)) return '🥞';
+    if(/chinese|chinees|china|asia|asian|sushi|wok/.test(n)) return '🥢';
+    if(/pizza|pizzer/.test(n)) return '🍕';
+    if(/ice cream|ijssalon|gelato/.test(n)) return '🍦';
+    if(/buffet/.test(n)) return '🍱';
+    if(/burger|mcdonalds/.test(n)) return '🍔';
+    return '🍽️';
+  }
+  // Theme parks extras
+  if(cat==='theme_park' && /petting|boerderij/.test(n)) return '🐄';
+  // Castle/fort
+  if(cat==='castle'){
+    if(/fort|bourtange/.test(n)) return '⚔️';
+    return '🏰';
+  }
+  // Windmill
+  if(cat==='windmill') return '🌬️';
+  // Sports
+  if(cat==='sports'){
+    if(/klim|climb/.test(n)) return '🧗';
+    if(/bow|boog/.test(n)) return '🏹';
+    return '🏆';
+  }
+  // Farm animals
+  if(cat==='farm'){
+    if(/geiten|goat/.test(n)) return '🐐';
+    if(/paarden|horse/.test(n)) return '🐴';
+    return '🐑';
+  }
+  return CATS[cat]?.emoji || '📍';
+}
+
+function classify(t){
+  if(t.tourism==='theme_park') return 'theme_park';
+  if(t.tourism==='zoo') return 'zoo';
+  if(t.tourism==='children_farm') return 'farm';
+  if(t.tourism==='aquarium') return 'aquarium';
+  if(t.tourism==='museum') return 'museum';
+  if(t.tourism==='attraction' || t.tourism==='visitor_centre') return 'attraction';
+  if(t.leisure==='nature_reserve' || t.leisure==='park') return 'nature';
+  if(t.leisure==='playground') return 'playground';
+  if(t.leisure==='indoor_playground') return 'indoor_play';
+  if(t.leisure==='trampoline_park') return 'trampoline';
+  if(t.leisure==='swimming_pool') return 'swim';
+  if(t.leisure==='climbing_park') return 'climbing';
+  if(t.leisure==='go_kart') return 'karting';
+  if(t.leisure==='miniature_golf') return 'minigolf';
+  if(t.leisure==='ice_rink') return 'ice_rink';
+  if(t.leisure==='sports_centre') return 'sports';
+  if(t.leisure==='escape_room') return 'escape';
+  if(t.amenity==='theatre') return 'theatre';
+  if(t.amenity==='cinema') return 'cinema';
+  if(t.amenity && t.amenity.indexOf('restaurant')>=0) return 'restaurant';
+  if(t.historic==='castle') return 'castle';
+  if(t.historic==='fort') return 'castle';
+  if(t.historic==='windmill' || t.man_made==='windmill') return 'windmill';
+  if(t.historic==='monument' || t.historic==='archaeological_site') return 'monument';
+  if(t.historic==='ship') return 'ship';
+  if(t.historic==='ruins') return 'ruins';
+  if(t.natural==='beach') return 'beach';
+  return 'other';
+}
+
+// ===== Transform data =====
+const VENUES = STATIC_GR_VENUES.map(v=>{
+  const t = v.tags || {};
+  const cat = classify(t);
+  return {
+    id: v.id, lat: v.lat, lon: v.lon,
+    name: t.name || 'Unnamed',
+    zh: t.nameZh || '',
+    cat: cat,
+    emoji: emojiFor(t.name, cat),
+    city: t['addr:city'] || '',
+    street: t['addr:street'] || '',
+    house: t['addr:housenumber'] || '',
+    postcode: t['addr:postcode'] || '',
+    website: t.website || '',
+    hours: t.opening_hours || '',
+    rating: parseFloat(t.rating || '0') || null,
+    reviews: parseInt(t.reviews || '0') || 0,
+  };
+});
+
+// ===== State =====
+const FAV_KEY = 'ke_favs_gr';
+const LANG_KEY = 'ke_lang_gr';
+const LANGS = ['en','el','zh'];  // cycle: en → nl → zh → en
+const state = {
+  activeCats: new Set(),  // empty = all
+  search: '',
+  sortBy: 'rating',
+  filtered: [],
+  selectedId: null,
+  markers: new Map(),
+  favs: new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')),
+  favsOnly: false,
+  lang: localStorage.getItem(LANG_KEY) || (navigator.language.startsWith('el') ? 'el' : navigator.language.startsWith('zh') ? 'zh' : 'en'),
+};
+
+// ===== i18n =====
+const I18N = {
+  en: {
+    in_view: 'in view', favs: '♡ Favs', filters: '🏷 Category', sort: '↕ Sort',
+    category: 'Category', clear: 'Clear', show_results: 'Show results',
+    near_me: 'Near me', map: '🗺 Map', list: '☰ List',
+    directions: '🗺 Directions', website: '🌐 Website',
+    rating: 'Rating', address: 'Address', city: 'City', hours: 'Hours', reviews: 'reviews',
+    empty: 'No venues in this area. Try moving the map or clearing filters.',
+    search_ph: 'Search places or cities…',
+    lang_next: 'EL',
+  },
+  el: {
+    in_view:'σε προβολή', favs:'♡ Αγαπημένα', filters:'🏷 Κατηγορία', sort:'↕ Ταξινόμηση',
+    category:'Κατηγορία', clear:'Καθαρισμός', show_results:'Εμφάνιση',
+    near_me:'Κοντά μου', map:'🗺 Χάρτης', list:'☰ Λίστα',
+    directions:'🗺 Διαδρομή', website:'🌐 Ιστότοπος',
+    rating:'Βαθμολογία', address:'Διεύθυνση', city:'Πόλη', hours:'Ώρες', reviews:'κριτικές',
+    empty:'Δεν υπάρχουν τοποθεσίες σε αυτήν την περιοχή.',
+    search_ph:'Αναζήτηση τοποθεσιών ή πόλεων…',
+    lang_next:'中',
+  },
+  zh: {
+    in_view: '可见', favs: '♡ 收藏', filters: '🏷 品类', sort: '↕ 排序',
+    category: '品类', clear: '清空', show_results: '显示结果',
+    near_me: '我附近', map: '🗺 地图', list: '☰ 列表',
+    directions: '🗺 导航', website: '🌐 官网',
+    rating: '评分', address: '地址', city: '城市', hours: '开放时间', reviews: '评价',
+    empty: '当前视口内没有场所。拖动地图或清空筛选。',
+    search_ph: '搜索场所或城市…',
+    lang_next: 'EN',
+  }
+};
+function t(k){return I18N[state.lang][k] || k;}
+
+function toggleLang(){
+  const idx = LANGS.indexOf(state.lang);
+  state.lang = LANGS[(idx+1) % LANGS.length];
+  localStorage.setItem(LANG_KEY, state.lang);
+  applyLang();
+  renderList();
+  buildCatGrid();
+}
+function applyLang(){
+  // Header button shows NEXT language
+  document.getElementById('lang-btn').textContent = t('lang_next');
+  // Update chips
+  document.getElementById('favs-chip').innerHTML = t('favs');
+  document.querySelector('.actions .chip:nth-child(2)').innerHTML = t('filters');
+  document.querySelector('.actions .chip:nth-child(3)').innerHTML = t('sort');
+  // Filter drawer title + section
+  document.querySelector('.filter-hdr h3').textContent = t('category');
+  document.querySelector('.filter-section h4').textContent = t('category');
+  document.querySelector('.btn-clear').textContent = t('clear');
+  document.querySelector('.btn-apply').textContent = t('show_results');
+  // Near me button
+  document.querySelector('.fab.near').innerHTML = `<span>📍</span><span>${t('near_me')}</span>`;
+  // Map/List toggle
+  document.getElementById('tog-map').textContent = t('map');
+  document.getElementById('tog-list').textContent = t('list');
+  // Search placeholder
+  document.getElementById('search').placeholder = t('search_ph');
+  // Count label
+  document.getElementById('count-label').textContent = t('in_view');
+}
+function saveFavs(){localStorage.setItem(FAV_KEY, JSON.stringify([...state.favs]));}
+function toggleFav(){
+  if(state.selectedId == null) return;
+  if(state.favs.has(state.selectedId)) state.favs.delete(state.selectedId);
+  else state.favs.add(state.selectedId);
+  saveFavs();
+  updateFavBtn();
+  renderList();
+}
+function updateFavBtn(){
+  const btn = document.getElementById('ov-fav');
+  if(!btn) return;
+  const on = state.favs.has(state.selectedId);
+  btn.classList.toggle('on', on);
+  btn.textContent = on ? '♥' : '♡';
+}
+function toggleFavsOnly(){
+  state.favsOnly = !state.favsOnly;
+  document.getElementById('favs-chip').classList.toggle('on', state.favsOnly);
+  document.getElementById('favs-chip').style.background = state.favsOnly ? '#fff5f0' : '';
+  document.getElementById('favs-chip').style.color = state.favsOnly ? 'var(--brand)' : '';
+  document.getElementById('favs-chip').style.borderColor = state.favsOnly ? 'var(--brand)' : '';
+  renderList();
+}
+function cardFavClick(ev, id){
+  ev.stopPropagation();
+  if(state.favs.has(id)) state.favs.delete(id); else state.favs.add(id);
+  saveFavs();
+  if(state.selectedId===id) updateFavBtn();
+  renderList();
+}
+
+// ===== Map =====
+const map = L.map('map', {zoomControl:false, attributionControl:false}).setView([38.5,23.5],7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+L.control.attribution({prefix:false}).addTo(map);
+
+const clusterGroup = L.markerClusterGroup({
+  maxClusterRadius: 50,
+  showCoverageOnHover: false,
+});
+map.addLayer(clusterGroup);
+
+function makeIcon(v, selected=false){
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim();
+  return L.divIcon({
+    className: selected ? 'selected' : '',
+    html: `<div class="venue-marker" style="border-color:${color}">${v.emoji}</div>`,
+    iconSize:[36,36], iconAnchor:[18,18]
+  });
+}
+
+VENUES.forEach(v=>{
+  const m = L.marker([v.lat, v.lon], {icon: makeIcon(v)});
+  m.on('click', ()=>openDetail(v));
+  clusterGroup.addLayer(m);
+  state.markers.set(v.id, m);
+});
+
+// ===== Filter + render =====
+function computeFiltered(){
+  const q = state.search.trim().toLowerCase();
+  const bounds = map.getBounds();
+  let list = VENUES.filter(v=>{
+    if(state.favsOnly && !state.favs.has(v.id)) return false;
+    if(state.activeCats.size && !state.activeCats.has(v.cat)) return false;
+    if(q && !(v.name.toLowerCase().includes(q) || v.zh.includes(q) || v.city.toLowerCase().includes(q))) return false;
+    if(!state.favsOnly && !bounds.contains([v.lat, v.lon])) return false;
+    return true;
+  });
+  if(state.sortBy==='rating'){
+    list.sort((a,b)=>(b.rating||0)-(a.rating||0));
+  } else if(state.sortBy==='name'){
+    list.sort((a,b)=>a.name.localeCompare(b.name));
+  }
+  state.filtered = list;
+  return list;
+}
+
+function renderList(){
+  const list = computeFiltered();
+  const el = document.getElementById('list');
+  document.getElementById('count').textContent = list.length;
+  if(!list.length){
+    el.innerHTML = `<div class="empty">No venues in this area. Try moving the map or clearing filters.</div>`;
+    return;
+  }
+  el.innerHTML = list.slice(0,200).map(v=>{
+    const isFav = state.favs.has(v.id);
+    // NL venues: original name is already Dutch → use for en & nl; zh uses nameZh
+    const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+    const secondary = state.lang==='zh' ? v.name : (v.zh || '');
+    const catLabel = CATS[v.cat]?.[state.lang] || v.cat;
+    return `
+    <div class="venue-card" data-id="${v.id}" onclick="openDetail(VENUES.find(x=>x.id===${v.id}))">
+      <div class="venue-thumb cat-${v.cat}">${v.emoji}<button class="card-fav ${isFav?'on':''}" onclick="cardFavClick(event,${v.id})" title="Favorite">${isFav?'♥':'♡'}</button></div>
+      <div class="venue-info">
+        <div class="venue-name">${primary}</div>
+        ${secondary?`<div class="venue-zh">${secondary}</div>`:''}
+        <div class="venue-meta">
+          ${v.rating?`<span class="rating">★ ${v.rating.toFixed(1)}</span><span class="dot">·</span>`:''}
+          <span>${catLabel}</span>
+          ${v.city?`<span class="dot">·</span><span>${v.city}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== Detail overlay =====
+function openDetail(v){
+  if(!v) return;
+  state.selectedId = v.id;
+  const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+  const secondary = state.lang==='zh' && v.zh ? v.name : v.zh;
+  document.getElementById('ov-name').textContent = primary;
+  document.getElementById('ov-zh').textContent = secondary;
+  const rows = [];
+  if(v.rating) rows.push([t('rating'), `★ ${v.rating.toFixed(1)} · ${v.reviews.toLocaleString()} ${t('reviews')}`]);
+  if(v.street) rows.push([t('address'), `${v.street} ${v.house}, ${v.postcode} ${v.city}`.trim()]);
+  else if(v.city) rows.push([t('city'), v.city]);
+  rows.push([t('category'), `${v.emoji} ${CATS[v.cat]?.[state.lang] || v.cat}`]);
+  if(v.hours) rows.push([t('hours'), v.hours]);
+  document.getElementById('ov-body').innerHTML = rows.map(([k,val])=>
+    `<div class="detail-row"><div class="lbl">${k}</div><div>${val}</div></div>`
+  ).join('');
+  document.getElementById('ov-directions').href = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}&destination_place_id=${encodeURIComponent(v.name)}`;
+  document.getElementById('ov-directions').textContent = t('directions');
+  document.getElementById('ov-website').textContent = t('website');
+  const wsBtn = document.getElementById('ov-website');
+  if(v.website){
+    wsBtn.href = v.website; wsBtn.style.display='flex';
+  } else {
+    wsBtn.style.display='none';
+  }
+  updateFavBtn();
+  document.getElementById('overlay').classList.add('open');
+  // pan to marker
+  map.flyTo([v.lat, v.lon], Math.max(map.getZoom(), 13), {duration:.6});
+}
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('open');
+  state.selectedId = null;
+}
+
+// ===== Filter drawer =====
+function buildCatGrid(){
+  const counts = {};
+  VENUES.forEach(v=>counts[v.cat]=(counts[v.cat]||0)+1);
+  const el = document.getElementById('cat-grid');
+  el.innerHTML = Object.entries(CATS)
+    .filter(([k])=>counts[k])
+    .sort(([a],[b])=>(counts[b]||0)-(counts[a]||0))
+    .map(([k,c])=>`<button class="cat-btn ${state.activeCats.has(k)?'active':''}" data-cat="${k}" onclick="toggleCat('${k}')">
+      <span class="emoji">${c.emoji}</span>${c[state.lang]}<span class="count">${counts[k]}</span>
+    </button>`).join('');
+}
+function toggleCat(k){
+  if(state.activeCats.has(k)) state.activeCats.delete(k); else state.activeCats.add(k);
+  buildCatGrid();
+  renderList();
+}
+function clearFilter(){
+  state.activeCats.clear();
+  buildCatGrid();
+  renderList();
+}
+function openFilter(){document.getElementById('filter').classList.add('open');}
+function closeFilter(){document.getElementById('filter').classList.remove('open');}
+
+// ===== Drawer interactions =====
+function toggleDrawer(){
+  const d = document.getElementById('drawer');
+  const s = d.dataset.state;
+  d.dataset.state = s==='peek'?'half':(s==='half'?'full':'peek');
+}
+
+// ===== Near me (geolocation) =====
+function locateMe(){
+  if(!navigator.geolocation) return alert('Geolocation not supported');
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      const {latitude, longitude} = pos.coords;
+      map.flyTo([latitude, longitude], 12, {duration:.8});
+      L.circleMarker([latitude, longitude], {radius:10, color:'#c96442', fillColor:'#c96442', fillOpacity:.3, weight:3}).addTo(map);
+    },
+    (err)=>alert('Could not get location: '+err.message)
+  );
+}
+
+// ===== Zoom =====
+function zoomIn(){map.zoomIn();}
+function zoomOut(){map.zoomOut();}
+
+// ===== Search =====
+document.getElementById('search').addEventListener('input', e=>{
+  state.search = e.target.value;
+  renderList();
+});
+
+// ===== Country picker (placeholder — links to /) =====
+function openCountryPicker(){
+  window.location.href = '/';
+}
+
+// ===== Map/List view toggle (mobile) =====
+function setView(v){
+  document.body.dataset.view = v;
+  document.getElementById('tog-map').classList.toggle('active', v==='map');
+  document.getElementById('tog-list').classList.toggle('active', v==='list');
+  if(v==='map'){
+    setTimeout(()=>map.invalidateSize(), 50);
+  }
+}
+document.body.dataset.view = 'map';
+
+// ===== Sort toggle =====
+function toggleSort(){
+  state.sortBy = state.sortBy==='rating'?'name':'rating';
+  renderList();
+}
+
+// ===== Sync list when map moves =====
+let moveTimer;
+map.on('moveend', ()=>{
+  clearTimeout(moveTimer);
+  moveTimer = setTimeout(renderList, 150);
+});
+
+// ===== Initial render =====
+applyLang();
+buildCatGrid();
+renderList();
+
+// ===== Click outside to close overlays =====
+map.on('click', ()=>{
+  closeOverlay();
+});
+</script>
+</body>
+</html>

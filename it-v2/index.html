@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Italy Kids Explorer · KidsExplorer.eu</title>
+<meta name="description" content="Family-friendly venues across Italy on one interactive map. Multilingual. Free.">
+<link rel="canonical" href="https://kidsexplorer.eu/it/">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Original Holland Kids palette (restored from v1) */
+  --bg:#F2F4F8;
+  --surface:#FFFFFF;
+  --border:#CBD5E1;
+  --border-strong:#94A3B8;
+  --text:#1A2B4A;
+  --text-soft:#5A6A84;
+  --text-mute:#9AA5B8;
+  --brand:#E05A1E;
+  --brand-dark:#B84515;
+  --brand-light:#FFF0E9;
+  --teal:#0EA5A0;
+  --navy:#1A2B4A;
+  --shadow:0 1px 3px rgba(26,43,74,.12), 0 0 0 1px rgba(26,43,74,.04);
+  --shadow-lg:0 8px 24px rgba(26,43,74,.20), 0 0 0 1px rgba(26,43,74,.08);
+  --radius:14px;
+  --header-h:56px;
+  --safe-bottom:env(safe-area-inset-bottom,0);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input{font-family:inherit;border:none;outline:none;background:none;color:inherit}
+
+/* ===== Top Header ===== */
+.hdr{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);z-index:900;display:flex;align-items:center;gap:10px;padding:0 14px}
+.hdr-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;letter-spacing:-.3px;color:var(--brand);white-space:nowrap}
+.hdr-brand .logo{font-size:20px}
+.hdr-country{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--bg);border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:600;cursor:pointer}
+.hdr-country:hover{border-color:var(--brand)}
+.hdr-country .flag{font-size:16px}
+.hdr-search{flex:1;display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:999px;cursor:text;min-width:0}
+.hdr-search input{flex:1;font-size:14px;min-width:0}
+.hdr-search .icon{color:var(--text-mute);flex-shrink:0}
+.hdr-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--bg);border:1px solid var(--border);font-size:16px;flex-shrink:0}
+.hdr-btn:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ===== Map ===== */
+#map{position:fixed;top:var(--header-h);left:0;right:0;bottom:0;z-index:1}
+.leaflet-popup-content-wrapper{border-radius:14px}
+.leaflet-popup-content{margin:14px 16px;font-family:'Inter',sans-serif;font-size:13px}
+
+/* ===== Map/List Toggle (mobile) ===== */
+.view-toggle{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--header-h) + 12px);z-index:600;display:flex;background:#fff;border:1px solid var(--border);border-radius:999px;box-shadow:var(--shadow);padding:3px}
+.view-toggle button{padding:8px 18px;font-size:13px;font-weight:600;border-radius:999px;color:var(--text-soft)}
+.view-toggle button.active{background:var(--text);color:#fff}
+.view-toggle button:not(.active):hover{color:var(--text)}
+body[data-view="list"] #map{display:none}
+body[data-view="list"] .drawer{transform:translateY(0)!important;top:calc(var(--header-h) + 58px);border-radius:20px 20px 0 0;max-height:calc(100vh - var(--header-h) - 58px);height:calc(100vh - var(--header-h) - 58px)}
+body[data-view="list"] .drawer-handle{display:none}
+body[data-view="list"] .fab-stack{display:none}
+@media (min-width:1024px){
+  .view-toggle{display:none} /* desktop shows both */
+}
+
+/* ===== Floating Action Buttons ===== */
+.fab-stack{position:fixed;right:14px;top:calc(var(--header-h) + 14px);z-index:500;display:flex;flex-direction:column;gap:10px}
+.fab{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s}
+.fab:hover{border-color:var(--brand);color:var(--brand);transform:scale(1.05)}
+.fab.near{background:var(--brand);color:#fff;border-color:var(--brand);width:auto;padding:0 18px;border-radius:22px;font-size:13px;font-weight:600;gap:6px}
+.fab.near:hover{background:var(--brand-dark);color:#fff}
+
+/* ===== Bottom Drawer (List) ===== */
+.drawer{position:fixed;left:0;right:0;bottom:0;z-index:700;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:80vh;display:flex;flex-direction:column}
+.drawer[data-state="peek"]{transform:translateY(calc(100% - 72px))}
+.drawer[data-state="half"]{transform:translateY(calc(100% - 48vh))}
+.drawer[data-state="full"]{transform:translateY(8vh)}
+.drawer-handle{flex-shrink:0;padding:8px 0 4px;text-align:center;cursor:grab;touch-action:none}
+.drawer-handle::before{content:'';display:inline-block;width:40px;height:4px;background:var(--border-strong);border-radius:2px}
+.drawer-hdr{flex-shrink:0;padding:6px 18px 12px;display:flex;align-items:center;justify-content:space-between}
+.drawer-hdr .count{font-weight:700;font-size:14px}
+.drawer-hdr .count small{font-weight:500;color:var(--text-mute);font-size:12px;margin-left:4px}
+.drawer-hdr .actions{display:flex;gap:6px}
+.drawer-hdr .chip{padding:6px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.drawer-hdr .chip:hover{border-color:var(--brand);color:var(--brand)}
+.drawer-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 18px calc(20px + var(--safe-bottom))}
+.venue-card{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.venue-card:last-child{border-bottom:none}
+.venue-card:hover{background:#fafaf7}
+.venue-card:hover .venue-name{color:var(--brand)}
+.venue-thumb{width:56px;height:56px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;position:relative;overflow:hidden}
+.venue-thumb::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.2),transparent)}
+.venue-info{flex:1;min-width:0}
+.venue-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-zh{font-size:12px;color:var(--text-mute);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft)}
+.venue-meta .rating{color:var(--brand);font-weight:600}
+.venue-meta .dot{color:var(--text-mute)}
+.empty{padding:40px 20px;text-align:center;color:var(--text-mute);font-size:14px}
+
+/* ===== Detail Overlay (bottom sheet, half-screen) ===== */
+.overlay{position:fixed;left:0;right:0;bottom:0;z-index:900;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);max-height:50vh;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.overlay.open{transform:translateY(0)}
+.overlay-hdr{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;padding:18px 18px 12px;gap:10px}
+.overlay-title{flex:1;min-width:0}
+.overlay-title h3{font-size:18px;font-weight:700;line-height:1.2;margin-bottom:4px}
+.overlay-title .zh{font-size:13px;color:var(--text-mute)}
+.overlay-close{width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-soft)}
+.overlay-body{flex:1;overflow-y:auto;padding:0 18px 20px}
+.detail-row{display:flex;gap:10px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--text-soft)}
+.detail-row .lbl{min-width:70px;font-weight:600;color:var(--text)}
+.overlay-actions{flex-shrink:0;padding:12px 18px calc(12px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:8px}
+.overlay-actions .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+.overlay-actions .btn-primary{background:var(--brand);color:#fff}
+.overlay-actions .btn-primary:hover{background:var(--brand-dark)}
+.overlay-actions .btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.overlay-actions .btn-secondary:hover{border-color:var(--brand);color:var(--brand)}
+.overlay-fav{width:44px;height:44px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:all .15s}
+.overlay-fav:hover{border-color:var(--brand)}
+.overlay-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.card-fav{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.9);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text-mute);z-index:2;transition:all .15s}
+.card-fav:hover{color:var(--brand);border-color:var(--brand)}
+.card-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.venue-thumb{position:relative}
+
+/* ===== Filter Drawer (slides from right) ===== */
+.filter-drawer{position:fixed;top:var(--header-h);right:0;bottom:0;width:min(360px,92vw);background:#fff;border-left:1px solid var(--border);box-shadow:-10px 0 40px rgba(0,0,0,.12);z-index:950;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;pointer-events:none}
+.filter-drawer.open{pointer-events:auto}
+.filter-drawer.open{transform:translateX(0)}
+.filter-hdr{flex-shrink:0;padding:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.filter-hdr h3{font-size:18px;font-weight:700}
+.filter-body{flex:1;overflow-y:auto;padding:20px}
+.filter-section{margin-bottom:24px}
+.filter-section h4{font-size:12px;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.cat-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:500;color:var(--text)}
+.cat-btn.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.cat-btn:not(.active):hover{border-color:var(--brand);color:var(--brand)}
+.cat-btn .emoji{font-size:16px}
+.cat-btn .count{margin-left:auto;font-size:11px;opacity:.75}
+.filter-footer{flex-shrink:0;padding:16px 20px calc(16px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:10px}
+.filter-footer .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600}
+.filter-footer .btn-clear{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.filter-footer .btn-apply{background:var(--brand);color:#fff}
+
+/* Gradient covers for thumbnails */
+.cat-theme_park{background:linear-gradient(135deg,#ff9a56,#ff6b9d)}
+.cat-zoo{background:linear-gradient(135deg,#22c55e,#059669)}
+.cat-aquarium{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-museum{background:linear-gradient(135deg,#8b5cf6,#4f46e5)}
+.cat-nature{background:linear-gradient(135deg,#84cc16,#15803d)}
+.cat-beach{background:linear-gradient(135deg,#38bdf8,#0ea5e9)}
+.cat-playground{background:linear-gradient(135deg,#fbbf24,#f97316)}
+.cat-indoor_play{background:linear-gradient(135deg,#a855f7,#7e22ce)}
+.cat-trampoline{background:linear-gradient(135deg,#ec4899,#be185d)}
+.cat-swim{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-climbing{background:linear-gradient(135deg,#f59e0b,#b45309)}
+.cat-karting{background:linear-gradient(135deg,#ef4444,#991b1b)}
+.cat-farm{background:linear-gradient(135deg,#a3e635,#65a30d)}
+.cat-attraction{background:linear-gradient(135deg,#fb923c,#c2410c)}
+.cat-theatre{background:linear-gradient(135deg,#d946ef,#86198f)}
+.cat-cinema{background:linear-gradient(135deg,#64748b,#334155)}
+.cat-ice_rink{background:linear-gradient(135deg,#60a5fa,#1d4ed8)}
+.cat-minigolf{background:linear-gradient(135deg,#10b981,#047857)}
+.cat-other{background:linear-gradient(135deg,#94a3b8,#475569)}
+.cat-castle{background:linear-gradient(135deg,#a78bfa,#6d28d9)}
+.cat-windmill{background:linear-gradient(135deg,#bae6fd,#0284c7)}
+.cat-escape{background:linear-gradient(135deg,#fdba74,#c2410c)}
+.cat-sports{background:linear-gradient(135deg,#fde047,#ca8a04)}
+.cat-restaurant{background:linear-gradient(135deg,#f87171,#b91c1c)}
+.cat-monument{background:linear-gradient(135deg,#d6d3d1,#57534e)}
+.cat-ship{background:linear-gradient(135deg,#67e8f9,#0e7490)}
+.cat-ruins{background:linear-gradient(135deg,#fde68a,#92400e)}
+
+/* Marker icons */
+.venue-marker{width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.leaflet-marker-icon.selected .venue-marker{transform:scale(1.2);border-width:4px}
+
+/* Cluster */
+.marker-cluster-small{background:rgba(201,100,66,.25)}
+.marker-cluster-small div{background:rgba(201,100,66,.8)}
+.marker-cluster-medium{background:rgba(201,100,66,.35)}
+.marker-cluster-medium div{background:rgba(201,100,66,.9)}
+.marker-cluster-large{background:rgba(201,100,66,.45)}
+.marker-cluster-large div{background:var(--brand)}
+.marker-cluster div{color:#fff;font-weight:700}
+
+@media (max-width:640px){
+  .hdr-brand span:not(.logo){display:none}
+  .drawer-hdr{padding:6px 14px 10px}
+  .drawer-body{padding:0 14px calc(20px + var(--safe-bottom))}
+  .cat-grid{grid-template-columns:1fr}
+}
+@media (min-width:1024px){
+  /* Desktop: drawer becomes sidebar */
+  .drawer{top:var(--header-h);right:auto;left:0;width:420px;max-width:420px;max-height:none;height:calc(100vh - var(--header-h));border-radius:0;border-right:1px solid var(--border);border-top:none;transform:translateX(0) !important;box-shadow:4px 0 24px rgba(0,0,0,.06)}
+  .drawer-handle{display:none}
+  #map{left:420px}
+  .overlay{left:auto;right:20px;bottom:20px;width:400px;max-width:calc(100vw - 440px);max-height:70vh;border-radius:20px;border:1px solid var(--border)}
+  .fab-stack{top:calc(var(--header-h) + 14px);right:14px}
+}
+</style>
+</head>
+<body>
+
+<!-- Top Header -->
+<header class="hdr">
+  <a href="/" class="hdr-brand"><span class="logo">🌍</span><span>KidsExplorer</span></a>
+  <button class="hdr-country" onclick="openCountryPicker()">
+    <span class="flag">🇮🇹</span><span>IT</span><span style="opacity:.5">▾</span>
+  </button>
+  <div class="hdr-search">
+    <span class="icon">🔍</span>
+    <input id="search" placeholder="Search / 搜索…">
+  </div>
+  <button class="hdr-btn" id="lang-btn" onclick="toggleLang()" title="Language">中</button>
+  <button class="hdr-btn" onclick="openFilter()" title="Category">🏷️</button>
+</header>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- View Toggle (mobile only) -->
+<div class="view-toggle">
+  <button id="tog-map" class="active" onclick="setView('map')">🗺 Map</button>
+  <button id="tog-list" onclick="setView('list')">☰ List</button>
+</div>
+
+<!-- Floating Actions -->
+<div class="fab-stack">
+  <button class="fab near" onclick="locateMe()"><span>📍</span><span>Near me</span></button>
+  <button class="fab" onclick="zoomIn()">+</button>
+  <button class="fab" onclick="zoomOut()">−</button>
+</div>
+
+<!-- Bottom Drawer: Venue list -->
+<section class="drawer" id="drawer" data-state="peek">
+  <div class="drawer-handle" onclick="toggleDrawer()"></div>
+  <div class="drawer-hdr">
+    <div class="count"><span id="count">0</span> <small id="count-label">in view</small></div>
+    <div class="actions">
+      <button class="chip" id="favs-chip" onclick="toggleFavsOnly()">♡ Favs</button>
+      <button class="chip" onclick="openFilter()">🏷 Category</button>
+      <button class="chip" onclick="toggleSort()">↕ Sort</button>
+    </div>
+  </div>
+  <div class="drawer-body" id="list"></div>
+</section>
+
+<!-- Detail Overlay -->
+<aside class="overlay" id="overlay">
+  <div class="overlay-hdr">
+    <div class="overlay-title">
+      <h3 id="ov-name"></h3>
+      <div class="zh" id="ov-zh"></div>
+    </div>
+    <button class="overlay-close" onclick="closeOverlay()">×</button>
+  </div>
+  <div class="overlay-body" id="ov-body"></div>
+  <div class="overlay-actions">
+    <button class="overlay-fav" id="ov-fav" onclick="toggleFav()" title="Save to favorites">♡</button>
+    <a class="btn btn-secondary" id="ov-directions" target="_blank">🗺 Directions</a>
+    <a class="btn btn-primary" id="ov-website" target="_blank">🌐 Website</a>
+  </div>
+</aside>
+
+<!-- Filter Drawer -->
+<aside class="filter-drawer" id="filter">
+  <div class="filter-hdr">
+    <h3>Category</h3>
+    <button class="overlay-close" onclick="closeFilter()">×</button>
+  </div>
+  <div class="filter-body">
+    <div class="filter-section">
+      <h4>Category</h4>
+      <div class="cat-grid" id="cat-grid"></div>
+    </div>
+  </div>
+  <div class="filter-footer">
+    <button class="btn btn-clear" onclick="clearFilter()">Clear</button>
+    <button class="btn btn-apply" onclick="closeFilter()">Show results</button>
+  </div>
+</aside>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+const STATIC_IT_VENUES = [
+  // ══════════════════════════════════════════════════════════════
+  // THEME PARKS (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1001,lat:45.456081,lon:10.713335, tags:{nameZh:'加达云霄乐园',name:'Gardaland',tourism:'theme_park',website:'https://www.gardaland.it','addr:city':'Castelnuovo del Garda',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.3',reviews:'62847'}},
+  { type:'node',id:1002,lat:44.314375,lon:12.292425, tags:{nameZh:'米拉比兰迪亚乐园',name:'Mirabilandia',tourism:'theme_park',website:'https://www.mirabilandia.it','addr:city':'Savio di Ravenna',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.2',reviews:'38247'}},
+  { type:'node',id:1003,lat:41.8453,lon:12.5934, tags:{nameZh:'彩虹魔法乐园',name:'Rainbow MagicLand',tourism:'theme_park',website:'https://www.magicland.it','addr:city':'Valmontone',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.0',reviews:'21438'}},
+  { type:'node',id:1004,lat:45.606793,lon:9.539878, tags:{nameZh:'乐奥兰迪亚乐园',name:'Leolandia',tourism:'theme_park',website:'https://www.leolandia.it','addr:city':'Capriate San Gervasio',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.4',reviews:'28431'}},
+  { type:'node',id:1005,lat:45.477123,lon:10.723416, tags:{nameZh:'电影乐园',name:'Movieland Park',tourism:'theme_park',website:'https://www.movieland.it','addr:city':'Lazise',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.0',reviews:'8247'}},
+  { type:'node',id:1006,lat:43.986096,lon:12.644723, tags:{nameZh:'阿夸方水上乐园',name:'Aquafan Riccione',tourism:'theme_park',website:'https://www.aquafan.it','addr:city':'Riccione',opening_hours:'Mo-Su 10:00-18:30 (seasonal)',rating:'4.1',reviews:'14218'}},
+  { type:'node',id:1007,lat:44.091359,lon:12.516225, tags:{nameZh:'微缩意大利',name:'Italia in Miniatura',tourism:'theme_park',website:'https://www.italiainminiatura.com','addr:city':'Rimini',opening_hours:'Mo-Su 09:30-18:00 (seasonal)',rating:'4.2',reviews:'12847'}},
+  { type:'node',id:1008,lat:44.033033,lon:12.611679, tags:{nameZh:'菲亚比兰迪亚乐园',name:'Fiabilandia',tourism:'theme_park',website:'https://www.fiabilandia.it','addr:city':'Rimini',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1009,lat:37.536490,lon:14.932644, tags:{nameZh:'埃特纳乐园',name:'Etnaland',tourism:'theme_park',website:'https://www.etnaland.eu','addr:city':'Belpasso',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1010,lat:41.631169,lon:12.458680, tags:{nameZh:'海洋公园罗马',name:'Zoomarine Roma',tourism:'theme_park',website:'https://www.zoomarine.it','addr:city':'Torvaianica',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.2',reviews:'18247'}},
+  { type:'node',id:1011,lat:43.180819,lon:10.549842, tags:{nameZh:'疯狂小马乐园',name:'Cavallino Matto',tourism:'theme_park',website:'https://www.cavallinomatto.it','addr:city':'Marina di Castagneto Carducci',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1012,lat:45.454818,lon:10.720001, tags:{nameZh:'加达海洋生活馆',name:'SEA LIFE Gardaland',tourism:'aquarium',website:'https://www.gardaland.it','addr:city':'Castelnuovo del Garda',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1013,lat:43.988565,lon:12.645263, tags:{nameZh:'奥特莱马雷乐园',name:'Oltremare Riccione',tourism:'theme_park',website:'https://www.oltremare.org','addr:city':'Riccione',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1014,lat:42.6833,lon:11.1167, tags:{nameZh:'动物探险公园',name:'Parco Avventura Il Giardino',tourism:'theme_park','addr:city':'Pitigliano',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:1015,lat:45.480387,lon:10.730187, tags:{nameZh:'康纳水上乐园',name:'Caneva World',tourism:'theme_park',website:'https://www.canevaworld.it','addr:city':'Lazise',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1016,lat:44.674329,lon:8.468463, tags:{nameZh:'伊格萨水上乐园',name:'Acqui Terme Splash',tourism:'theme_park','addr:city':'Acqui Terme',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:1017,lat:40.8350,lon:14.1461, tags:{nameZh:'魔幻世界',name:'Magic World',tourism:'theme_park','addr:city':'Giugliano in Campania',opening_hours:'Mo-Su 10:00-23:00 (seasonal)'}},
+  { type:'node',id:1018,lat:43.7833,lon:11.2333, tags:{nameZh:'佛罗伦萨冒险公园',name:'Parco Avventura Il Gigante',tourism:'theme_park','addr:city':'Pratolino',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:1019,lat:44.934077,lon:7.417508, tags:{nameZh:'都灵冒险乐园',name:'Zoom Torino Adventure',tourism:'theme_park','addr:city':'Cumiana',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1020,lat:41.836507,lon:12.476272, tags:{nameZh:'路纳公园罗马',name:'Luna EUR Roma',tourism:'theme_park','addr:city':'Roma',opening_hours:'Fr-Su 16:00-00:00 (seasonal)'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // ZOOS & AQUARIUMS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1030,lat:44.410145,lon:8.926291, tags:{nameZh:'热那亚水族馆',name:'Acquario di Genova',tourism:'aquarium',website:'https://www.acquariodigenova.it','addr:city':'Genova',opening_hours:'Mo-Su 09:00-20:00',rating:'4.3',reviews:'42318'}},
+  { type:'node',id:1031,lat:41.917599,lon:12.486773, tags:{nameZh:'罗马生物公园',name:'Bioparco Roma',tourism:'zoo',website:'https://www.bioparco.it','addr:city':'Roma',opening_hours:'Mo-Su 09:30-17:00',rating:'4.0',reviews:'24218'}},
+  { type:'node',id:1032,lat:44.934077,lon:7.417508, tags:{nameZh:'都灵动物探险园',name:'Zoom Torino',tourism:'zoo',website:'https://www.zoomtorino.it','addr:city':'Cumiana',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.3',reviews:'12847'}},
+  { type:'node',id:1033,lat:45.479924,lon:10.799174, tags:{nameZh:'自然生态公园',name:'Parco Natura Viva',tourism:'zoo',website:'https://www.parconaturaviva.it','addr:city':'Bussolengo',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'18924'}},
+  { type:'node',id:1034,lat:43.535540,lon:10.299130, tags:{nameZh:'里窝那水族馆',name:'Acquario di Livorno',tourism:'aquarium',website:'https://www.acquariodilivorno.it','addr:city':'Livorno',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1035,lat:43.970126,lon:12.721544, tags:{nameZh:'卡托利卡水族馆',name:'Acquario di Cattolica',tourism:'aquarium',website:'https://www.acquariodicattolica.it','addr:city':'Cattolica',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1036,lat:45.639851,lon:8.614799, tags:{nameZh:'蓬比亚野生动物园',name:'Safari Park Pombia',tourism:'zoo',website:'https://www.safaripark.it','addr:city':'Pombia',opening_hours:'Mo-Su 09:30-17:00 (seasonal)'}},
+  { type:'node',id:1037,lat:43.314191,lon:11.330771, tags:{nameZh:'锡耶纳自然博物馆',name:'Museo di Storia Naturale di Siena',tourism:'museum','addr:city':'Siena',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1038,lat:45.441665,lon:12.328536, tags:{nameZh:'威尼斯自然历史博物馆',name:'Museo di Storia Naturale di Venezia',tourism:'museum',website:'https://msn.visitmuve.it','addr:city':'Venezia',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1039,lat:40.824232,lon:14.180410, tags:{nameZh:'那不勒斯动物园',name:'Zoo di Napoli',tourism:'zoo','addr:city':'Napoli',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:1040,lat:45.715415,lon:9.598479, tags:{nameZh:'贝加莫野生动物园',name:'Le Cornelle Parco Faunistico',tourism:'zoo',website:'https://www.lecornelle.it','addr:city':'Valbrembo',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:1041,lat:44.700117,lon:10.626739, tags:{nameZh:'雷焦艾米利亚动物园',name:'Parco Zoo di Reggio Emilia',tourism:'zoo','addr:city':'Reggio Emilia',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:1042,lat:38.164727,lon:13.179107, tags:{nameZh:'巴勒莫动物园',name:'Bioparco di Sicilia',tourism:'zoo','addr:city':'Carini',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:1043,lat:41.1167,lon:16.8667, tags:{nameZh:'巴里动物园',name:'Zoo Safari di Fasano',tourism:'zoo',website:'https://www.zoosafari.it','addr:city':'Fasano',opening_hours:'Mo-Su 09:30-16:30 (seasonal)'}},
+  { type:'node',id:1044,lat:40.6250,lon:15.8083, tags:{nameZh:'波坦察野生动物园',name:'Parco delle Stelle',tourism:'zoo','addr:city':'Atella',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // MUSEUMS (~30)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1060,lat:45.4889,lon:9.1706, tags:{nameZh:'米兰科技博物馆',name:'Museo della Scienza e della Tecnologia Leonardo da Vinci',tourism:'museum',website:'https://www.museoscienza.org','addr:city':'Milano',opening_hours:'Tu-Su 09:30-17:00',rating:'4.5',reviews:'28431'}},
+  { type:'node',id:1061,lat:46.072287,lon:11.126926, tags:{nameZh:'特伦托科学博物馆',name:'MUSE - Museo delle Scienze',tourism:'museum',website:'https://www.muse.it','addr:city':'Trento',opening_hours:'Tu-Fr 10:00-18:00, Sa-Su 10:00-19:00',rating:'4.5',reviews:'18247'}},
+  { type:'node',id:1062,lat:40.804900,lon:14.173886, tags:{nameZh:'那不勒斯科学城',name:'Citta della Scienza',tourism:'museum',website:'https://www.cittadellascienza.it','addr:city':'Napoli',opening_hours:'Tu-Sa 09:00-17:00, Su 10:00-17:00',rating:'4.2',reviews:'8247'}},
+  { type:'node',id:1063,lat:41.911373,lon:12.522072, tags:{nameZh:'罗马儿童博物馆',name:'Explora - Il Museo dei Bambini di Roma',tourism:'museum',website:'https://www.mdbr.it','addr:city':'Roma',opening_hours:'Tu-Su 10:00-18:45',rating:'4.3',reviews:'12847'}},
+  { type:'node',id:1064,lat:45.068435,lon:7.684351, tags:{nameZh:'都灵埃及博物馆',name:'Museo Egizio',tourism:'museum',website:'https://www.museoegizio.it','addr:city':'Torino',opening_hours:'Tu-Su 09:00-18:30',rating:'4.6',reviews:'42318'}},
+  { type:'node',id:1065,lat:44.530109,lon:10.861098, tags:{nameZh:'法拉利博物馆',name:'Museo Ferrari Maranello',tourism:'museum',website:'https://www.museomaranello.ferrari.com','addr:city':'Maranello',opening_hours:'Mo-Su 09:30-19:00',rating:'4.5',reviews:'18247'}},
+  { type:'node',id:1066,lat:44.659138,lon:11.125828, tags:{nameZh:'兰博基尼博物馆',name:'Museo Lamborghini',tourism:'museum',website:'https://www.lamborghini.com/museum','addr:city':'Sant\'Agata Bolognese',opening_hours:'Mo-Su 09:30-18:00',rating:'4.4',reviews:'6842'}},
+  { type:'node',id:1067,lat:44.541193,lon:11.211265, tags:{nameZh:'博洛尼亚冰淇淋博物馆',name:'Carpigiani Gelato Museum',tourism:'museum',website:'https://www.gelatomuseum.com','addr:city':'Anzola dell\'Emilia',opening_hours:'Tu-Sa 09:00-18:00'}},
+  { type:'node',id:1068,lat:41.8902,lon:12.4922, tags:{nameZh:'罗马斗兽场',name:'Colosseo',tourism:'museum',website:'https://www.colosseo.it','addr:city':'Roma',opening_hours:'Mo-Su 09:00-19:00',rating:'4.6',reviews:'284218'}},
+  { type:'node',id:1069,lat:43.7230,lon:10.3966, tags:{nameZh:'比萨斜塔',name:'Torre di Pisa',tourism:'attraction',website:'https://www.opapisa.it','addr:city':'Pisa',opening_hours:'Mo-Su 09:00-20:00'}},
+  { type:'node',id:1070,lat:43.768313,lon:11.255801, tags:{nameZh:'乌菲兹美术馆',name:'Galleria degli Uffizi',tourism:'museum',website:'https://www.uffizi.it','addr:city':'Firenze',opening_hours:'Tu-Su 08:15-18:50',rating:'4.6',reviews:'142847'}},
+  { type:'node',id:1071,lat:41.9029,lon:12.4534, tags:{nameZh:'梵蒂冈博物馆',name:'Musei Vaticani',tourism:'museum',website:'https://www.museivaticani.va','addr:city':'Citta del Vaticano',opening_hours:'Mo-Sa 09:00-18:00',rating:'4.5',reviews:'218247'}},
+  { type:'node',id:1072,lat:45.464167,lon:9.191612, tags:{nameZh:'米兰大教堂',name:'Duomo di Milano',tourism:'attraction',website:'https://www.duomomilano.it','addr:city':'Milano',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:1073,lat:45.434211,lon:12.340592, tags:{nameZh:'威尼斯总督宫',name:'Palazzo Ducale',tourism:'museum',website:'https://palazzoducale.visitmuve.it','addr:city':'Venezia',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:1074,lat:41.9031,lon:12.4663, tags:{nameZh:'圣天使堡',name:'Castel Sant\'Angelo',tourism:'museum',website:'https://www.castelsantangelo.com','addr:city':'Roma',opening_hours:'Tu-Su 09:00-19:30'}},
+  { type:'node',id:1075,lat:45.456619,lon:12.356889, tags:{nameZh:'威尼斯玻璃博物馆',name:'Museo del Vetro Murano',tourism:'museum',website:'https://museovetro.visitmuve.it','addr:city':'Venezia',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:1076,lat:44.492715,lon:11.343860, tags:{nameZh:'博洛尼亚考古博物馆',name:'Museo Civico Archeologico Bologna',tourism:'museum','addr:city':'Bologna',opening_hours:'Tu-Su 10:00-18:30'}},
+  { type:'node',id:1077,lat:45.069106,lon:7.692970, tags:{nameZh:'都灵国家电影博物馆',name:'Museo Nazionale del Cinema',tourism:'museum',website:'https://www.museocinema.it','addr:city':'Torino',opening_hours:'Mo,We-Su 09:00-20:00'}},
+  { type:'node',id:1078,lat:41.891641,lon:12.486730, tags:{nameZh:'古罗马广场',name:'Foro Romano',tourism:'museum',website:'https://www.colosseo.it','addr:city':'Roma',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:1079,lat:43.776917,lon:11.258758, tags:{nameZh:'佛罗伦萨学院美术馆',name:'Galleria dell\'Accademia',tourism:'museum',website:'https://www.galleriaaccademiafirenze.it','addr:city':'Firenze',opening_hours:'Tu-Su 08:15-18:50'}},
+  { type:'node',id:1080,lat:40.750917,lon:14.488476, tags:{nameZh:'庞贝古城',name:'Scavi di Pompei',tourism:'museum',website:'https://www.pompeiisites.org','addr:city':'Pompei',opening_hours:'Mo-Su 09:00-19:00 (seasonal)'}},
+  { type:'node',id:1081,lat:45.031849,lon:7.673455, tags:{nameZh:'都灵汽车博物馆',name:'Museo dell\'Automobile',tourism:'museum',website:'https://www.museoauto.it','addr:city':'Torino',opening_hours:'Mo 10:00-14:00, Tu-Su 10:00-19:00'}},
+  { type:'node',id:1082,lat:44.414212,lon:8.923258, tags:{nameZh:'热那亚海洋博物馆',name:'Galata - Museo del Mare',tourism:'museum',website:'https://www.galatamuseodelmare.it','addr:city':'Genova',opening_hours:'Tu-Su 10:00-19:00'}},
+  { type:'node',id:1083,lat:41.928823,lon:12.466671, tags:{nameZh:'罗马马克西博物馆',name:'MAXXI - Museo Nazionale delle Arti del XXI Secolo',tourism:'museum',website:'https://www.maxxi.art','addr:city':'Roma',opening_hours:'Tu-Su 11:00-19:00'}},
+  { type:'node',id:1084,lat:45.472609,lon:9.202286, tags:{nameZh:'米兰自然历史博物馆',name:'Museo Civico di Storia Naturale di Milano',tourism:'museum','addr:city':'Milano',opening_hours:'Tu-Su 09:00-17:30'}},
+  { type:'node',id:1085,lat:40.853606,lon:14.251150, tags:{nameZh:'那不勒斯国家考古博物馆',name:'Museo Archeologico Nazionale di Napoli',tourism:'museum',website:'https://www.museoarcheologiconapoli.it','addr:city':'Napoli',opening_hours:'We-Mo 09:00-19:30'}},
+  { type:'node',id:1086,lat:44.410154,lon:8.926709, tags:{nameZh:'热那亚儿童城',name:'La Citta dei Bambini e dei Ragazzi',tourism:'museum',website:'https://www.cittadeibambini.net','addr:city':'Genova',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1087,lat:45.4375,lon:10.9917, tags:{nameZh:'维罗纳竞技场',name:'Arena di Verona',historic:'monument',website:'https://www.arena.it','addr:city':'Verona',opening_hours:'Tu-Su 08:30-19:30'}},
+  { type:'node',id:1088,lat:41.073158,lon:14.327104, tags:{nameZh:'卡塞塔王宫',name:'Reggia di Caserta',tourism:'museum',website:'https://www.reggiadicaserta.beniculturali.it','addr:city':'Caserta',opening_hours:'We-Mo 08:30-19:30'}},
+  { type:'node',id:1089,lat:44.4178,lon:12.1997, tags:{nameZh:'拉文纳马赛克博物馆',name:'Basilica di San Vitale',historic:'monument','addr:city':'Ravenna',opening_hours:'Mo-Su 09:00-19:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // CHINESE RESTAURANTS (~40)
+  // ══════════════════════════════════════════════════════════════
+  // Milano - Via Paolo Sarpi (Chinatown) area
+  { type:'node',id:1100,lat:45.4794,lon:9.1750, tags:{nameZh:'东方明珠',name:'Perla d\'Oriente',amenity:'chinese_restaurant','addr:city':'Milano','addr:street':'Via Paolo Sarpi 27'}},
+  { type:'node',id:1101,lat:45.4800,lon:9.1742, tags:{nameZh:'龙凤酒楼',name:'Ristorante Lon Fon',amenity:'chinese_restaurant','addr:city':'Milano','addr:street':'Via Paolo Sarpi 42'}},
+  { type:'node',id:1102,lat:45.4790,lon:9.1755, tags:{nameZh:'好运来',name:'Ravioli di Sarpi',amenity:'chinese_restaurant','addr:city':'Milano','addr:street':'Via Paolo Sarpi 15'}},
+  { type:'node',id:1103,lat:45.4796,lon:9.1730, tags:{nameZh:'上海人家',name:'Shanghai Dim Sum',amenity:'chinese_restaurant','addr:city':'Milano','addr:street':'Via Paolo Sarpi 52'}},
+  { type:'node',id:1104,lat:45.4788,lon:9.1760, tags:{nameZh:'兰州拉面米兰',name:'Lanzhou Lamian Milano',amenity:'chinese_restaurant','addr:city':'Milano','addr:street':'Via Paolo Sarpi 9'}},
+  { type:'node',id:1105,lat:45.4802,lon:9.1720, tags:{nameZh:'川味居米兰',name:'Sichuan Mama Milano',amenity:'chinese_restaurant','addr:city':'Milano','addr:street':'Via Canonica 60'}},
+  { type:'node',id:1106,lat:45.4785,lon:9.1770, tags:{nameZh:'金满楼',name:'Jin Man Lou',amenity:'chinese_restaurant','addr:city':'Milano','addr:street':'Via Bramante 38'}},
+  { type:'node',id:1107,lat:45.4810,lon:9.1735, tags:{nameZh:'温州饭店',name:'Ristorante Wenzhou Milano',amenity:'chinese_restaurant','addr:city':'Milano','addr:street':'Via Paolo Sarpi 66'}},
+  { type:'node',id:1108,lat:45.4808,lon:9.1748, tags:{nameZh:'满福楼',name:'Manfulou Milano',amenity:'chinese_restaurant','addr:city':'Milano','addr:street':'Via Messina 2'}},
+  { type:'node',id:1109,lat:45.4792,lon:9.1765, tags:{nameZh:'北京烤鸭店',name:'Anatra Laccata Pechino',amenity:'chinese_restaurant','addr:city':'Milano','addr:street':'Via Paolo Sarpi 5'}},
+  // Roma - Esquilino/Piazza Vittorio area
+  { type:'node',id:1110,lat:41.8953,lon:12.5069, tags:{nameZh:'挂绿园',name:'Hang Zhou da Sonia',amenity:'chinese_restaurant','addr:city':'Roma','addr:street':'Via Principe Eugenio 82'}},
+  { type:'node',id:1111,lat:41.8942,lon:12.5050, tags:{nameZh:'龙宫',name:'Palazzo del Drago',amenity:'chinese_restaurant','addr:city':'Roma','addr:street':'Via Merulana 256'}},
+  { type:'node',id:1112,lat:41.8960,lon:12.5080, tags:{nameZh:'华苑酒家',name:'Hua Yuan Roma',amenity:'chinese_restaurant','addr:city':'Roma','addr:street':'Piazza Vittorio Emanuele II'}},
+  { type:'node',id:1113,lat:41.8935,lon:12.5040, tags:{nameZh:'海龙王',name:'Hai Long Wang Roma',amenity:'chinese_restaurant','addr:city':'Roma','addr:street':'Via Cavour 188'}},
+  { type:'node',id:1114,lat:41.8965,lon:12.5075, tags:{nameZh:'川味火锅',name:'Sichuan Hot Pot Roma',amenity:'chinese_restaurant','addr:city':'Roma','addr:street':'Via Principe Amedeo 46'}},
+  { type:'node',id:1115,lat:41.8940,lon:12.5060, tags:{nameZh:'北京饭店',name:'Beijing Roma',amenity:'chinese_restaurant','addr:city':'Roma','addr:street':'Via Napoleone III 15'}},
+  { type:'node',id:1116,lat:41.8950,lon:12.5090, tags:{nameZh:'味道中餐馆',name:'Wei Dao Roma',amenity:'chinese_restaurant','addr:city':'Roma','addr:street':'Via dello Statuto 12'}},
+  { type:'node',id:1117,lat:41.8970,lon:12.5065, tags:{nameZh:'新亚洲大酒楼',name:'Nuovo Asia Roma',amenity:'chinese_restaurant','addr:city':'Roma','addr:street':'Via Gioberti 28'}},
+  // Prato - largest Chinese community per capita in Europe
+  { type:'node',id:1118,lat:43.8800,lon:11.0960, tags:{nameZh:'普拉托龙宫',name:'Drago d\'Oro Prato',amenity:'chinese_restaurant','addr:city':'Prato','addr:street':'Via Pistoiese 248'}},
+  { type:'node',id:1119,lat:43.8780,lon:11.0980, tags:{nameZh:'温州酒家普拉托',name:'Wenzhou Prato',amenity:'chinese_restaurant','addr:city':'Prato','addr:street':'Via Filzi 55'}},
+  { type:'node',id:1120,lat:43.8820,lon:11.0940, tags:{nameZh:'华人餐厅普拉托',name:'Nuovo Mondo Cinese Prato',amenity:'chinese_restaurant','addr:city':'Prato','addr:street':'Via Pistoiese 100'}},
+  { type:'node',id:1121,lat:43.8790,lon:11.0970, tags:{nameZh:'兰州拉面普拉托',name:'Lanzhou Lamian Prato',amenity:'chinese_restaurant','addr:city':'Prato','addr:street':'Via Valentini 12'}},
+  { type:'node',id:1122,lat:43.8810,lon:11.0950, tags:{nameZh:'福临门普拉托',name:'Fu Lin Men Prato',amenity:'chinese_restaurant','addr:city':'Prato','addr:street':'Via Pistoiese 180'}},
+  // Other cities
+  { type:'node',id:1123,lat:43.7750,lon:11.2480, tags:{nameZh:'佛罗伦萨龙凤',name:'Ristorante Cinese Long Feng Firenze',amenity:'chinese_restaurant','addr:city':'Firenze','addr:street':'Via dei Neri 24'}},
+  { type:'node',id:1124,lat:45.0700,lon:7.6700, tags:{nameZh:'都灵金龙',name:'Drago d\'Oro Torino',amenity:'chinese_restaurant','addr:city':'Torino','addr:street':'Via San Secondo 11'}},
+  { type:'node',id:1125,lat:44.4950,lon:11.3500, tags:{nameZh:'博洛尼亚华宫',name:'Palazzo Cinese Bologna',amenity:'chinese_restaurant','addr:city':'Bologna','addr:street':'Via Augusto Righi 30'}},
+  { type:'node',id:1126,lat:40.8500,lon:14.2600, tags:{nameZh:'那不勒斯金凤凰',name:'Fenice d\'Oro Napoli',amenity:'chinese_restaurant','addr:city':'Napoli','addr:street':'Via Toledo 356'}},
+  { type:'node',id:1127,lat:45.4400,lon:12.3350, tags:{nameZh:'威尼斯华人饭店',name:'Ristorante Cinese Venezia',amenity:'chinese_restaurant','addr:city':'Venezia','addr:street':'Lista di Spagna 154'}},
+  { type:'node',id:1128,lat:45.4100,lon:11.8800, tags:{nameZh:'帕多瓦龙宫',name:'Drago d\'Oro Padova',amenity:'chinese_restaurant','addr:city':'Padova','addr:street':'Via Roma 38'}},
+  { type:'node',id:1129,lat:45.4380,lon:10.9930, tags:{nameZh:'维罗纳华苑',name:'Hua Yuan Verona',amenity:'chinese_restaurant','addr:city':'Verona','addr:street':'Via Dietro Anfiteatro 4'}},
+  { type:'node',id:1130,lat:44.4060,lon:8.9500, tags:{nameZh:'热那亚金龙',name:'Drago d\'Oro Genova',amenity:'chinese_restaurant','addr:city':'Genova','addr:street':'Via di Sottoripa 32'}},
+  { type:'node',id:1131,lat:45.5400,lon:10.2150, tags:{nameZh:'布雷西亚华人饭店',name:'Ristorante Cinese Brescia',amenity:'chinese_restaurant','addr:city':'Brescia','addr:street':'Via San Faustino 24'}},
+  { type:'node',id:1132,lat:44.6970,lon:10.6310, tags:{nameZh:'雷焦艾米利亚华人饭店',name:'Ristorante Cinese Reggio Emilia',amenity:'chinese_restaurant','addr:city':'Reggio Emilia','addr:street':'Via Emilia San Pietro 44'}},
+  { type:'node',id:1133,lat:44.6470,lon:10.9250, tags:{nameZh:'摩德纳龙宫',name:'Drago d\'Oro Modena',amenity:'chinese_restaurant','addr:city':'Modena','addr:street':'Via Emilia Centro 168'}},
+  { type:'node',id:1134,lat:45.4650,lon:9.1900, tags:{nameZh:'米兰海底捞',name:'Haidilao Milano',amenity:'chinese_restaurant','addr:city':'Milano','addr:street':'Via Orefici 2'}},
+  { type:'node',id:1135,lat:41.9000,lon:12.4700, tags:{nameZh:'罗马兰州拉面',name:'Lanzhou Lamian Roma',amenity:'chinese_restaurant','addr:city':'Roma','addr:street':'Via dei Serpenti 113'}},
+  { type:'node',id:1136,lat:43.7700,lon:11.2500, tags:{nameZh:'佛罗伦萨拉面店',name:'Ramen Bar Firenze',amenity:'chinese_restaurant','addr:city':'Firenze','addr:street':'Via Faenza 28'}},
+  { type:'node',id:1137,lat:45.0650,lon:7.6800, tags:{nameZh:'都灵华人之家',name:'Casa Cinese Torino',amenity:'chinese_restaurant','addr:city':'Torino','addr:street':'Via Garibaldi 20'}},
+  { type:'node',id:1138,lat:38.1200,lon:13.3600, tags:{nameZh:'巴勒莫龙宫',name:'Drago d\'Oro Palermo',amenity:'chinese_restaurant','addr:city':'Palermo','addr:street':'Via Maqueda 200'}},
+  { type:'node',id:1139,lat:37.5000,lon:15.0900, tags:{nameZh:'卡塔尼亚华苑',name:'Hua Yuan Catania',amenity:'chinese_restaurant','addr:city':'Catania','addr:street':'Via Etnea 120'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // BUFFET / ALL-YOU-CAN-EAT (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1150,lat:45.4750,lon:9.1800, tags:{nameZh:'米兰铁板烧自助',name:'Wok Milano Sarpi',amenity:'buffet_restaurant','addr:city':'Milano','addr:street':'Via Paolo Sarpi'}},
+  { type:'node',id:1151,lat:45.4630,lon:9.1900, tags:{nameZh:'米兰寿司自助',name:'Sushi Wok Milano Porta Romana',amenity:'buffet_restaurant','addr:city':'Milano','addr:street':'Corso di Porta Romana'}},
+  { type:'node',id:1152,lat:41.8900,lon:12.5050, tags:{nameZh:'罗马亚洲自助',name:'Wok Asian Roma Termini',amenity:'buffet_restaurant','addr:city':'Roma','addr:street':'Via Gioberti'}},
+  { type:'node',id:1153,lat:45.0700,lon:7.6900, tags:{nameZh:'都灵铁板烧自助',name:'Wok Torino',amenity:'buffet_restaurant','addr:city':'Torino','addr:street':'Via Nizza'}},
+  { type:'node',id:1154,lat:43.7700,lon:11.2600, tags:{nameZh:'佛罗伦萨亚洲自助',name:'Sushi Wok Firenze',amenity:'buffet_restaurant','addr:city':'Firenze','addr:street':'Via Nazionale'}},
+  { type:'node',id:1155,lat:44.4950,lon:11.3400, tags:{nameZh:'博洛尼亚铁板烧',name:'Wok Bologna',amenity:'buffet_restaurant','addr:city':'Bologna','addr:street':'Via dell\'Indipendenza'}},
+  { type:'node',id:1156,lat:40.8500,lon:14.2500, tags:{nameZh:'那不勒斯亚洲自助',name:'Sushi Wok Napoli',amenity:'buffet_restaurant','addr:city':'Napoli','addr:street':'Via Toledo'}},
+  { type:'node',id:1157,lat:45.4350,lon:12.3400, tags:{nameZh:'威尼斯亚洲自助',name:'Wok Venezia Mestre',amenity:'buffet_restaurant','addr:city':'Mestre','addr:street':'Via Colombo'}},
+  { type:'node',id:1158,lat:45.4400,lon:10.9900, tags:{nameZh:'维罗纳铁板烧',name:'Wok Sushi Verona',amenity:'buffet_restaurant','addr:city':'Verona','addr:street':'Via Marsala'}},
+  { type:'node',id:1159,lat:44.4100,lon:8.9300, tags:{nameZh:'热那亚亚洲自助',name:'Wok Genova',amenity:'buffet_restaurant','addr:city':'Genova','addr:street':'Via XX Settembre'}},
+  { type:'node',id:1160,lat:45.4100,lon:11.8800, tags:{nameZh:'帕多瓦铁板烧',name:'Wok Padova',amenity:'buffet_restaurant','addr:city':'Padova','addr:street':'Via Roma'}},
+  { type:'node',id:1161,lat:44.0600,lon:12.5700, tags:{nameZh:'里米尼亚洲自助',name:'Sushi Wok Rimini',amenity:'buffet_restaurant','addr:city':'Rimini','addr:street':'Viale Vespucci'}},
+  { type:'node',id:1162,lat:41.1100,lon:16.8700, tags:{nameZh:'巴里亚洲自助',name:'Wok Bari',amenity:'buffet_restaurant','addr:city':'Bari','addr:street':'Via Sparano'}},
+  { type:'node',id:1163,lat:45.6500,lon:9.4500, tags:{nameZh:'贝加莫铁板烧',name:'Wok Bergamo',amenity:'buffet_restaurant','addr:city':'Bergamo','addr:street':'Via XX Settembre'}},
+  { type:'node',id:1164,lat:43.8800,lon:11.1000, tags:{nameZh:'普拉托亚洲自助',name:'Wok Prato',amenity:'buffet_restaurant','addr:city':'Prato','addr:street':'Via Pistoiese'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // INDOOR PLAYGROUNDS (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1180,lat:45.484561,lon:9.187344, tags:{nameZh:'米兰趣味乐园',name:'FunPark Milano',leisure:'indoor_playground','addr:city':'Milano',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1181,lat:41.893320,lon:12.482932, tags:{nameZh:'罗马儿童乐园',name:'GiocaPark Roma',leisure:'indoor_playground','addr:city':'Roma',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1182,lat:45.067755,lon:7.682489, tags:{nameZh:'都灵室内游乐场',name:'FunPark Torino',leisure:'indoor_playground','addr:city':'Torino',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1183,lat:43.769796,lon:11.255640, tags:{nameZh:'佛罗伦萨儿童乐园',name:'GiocaPark Firenze',leisure:'indoor_playground','addr:city':'Firenze',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1184,lat:44.493820,lon:11.342633, tags:{nameZh:'博洛尼亚室内乐园',name:'FunPark Bologna',leisure:'indoor_playground','addr:city':'Bologna',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1185,lat:40.852595,lon:14.272367, tags:{nameZh:'那不勒斯儿童乐园',name:'GiocaPark Napoli',leisure:'indoor_playground','addr:city':'Napoli',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1186,lat:45.466406,lon:12.267747, tags:{nameZh:'威尼斯室内乐园',name:'FunPark Mestre',leisure:'indoor_playground','addr:city':'Mestre',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1187,lat:45.438496,lon:10.992412, tags:{nameZh:'维罗纳室内乐园',name:'GiocaPark Verona',leisure:'indoor_playground','addr:city':'Verona',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1188,lat:44.407260,lon:8.933862, tags:{nameZh:'热那亚室内乐园',name:'FunPark Genova',leisure:'indoor_playground','addr:city':'Genova',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1189,lat:38.111227,lon:13.352443, tags:{nameZh:'巴勒莫室内乐园',name:'GiocaPark Palermo',leisure:'indoor_playground','addr:city':'Palermo',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1190,lat:37.502361,lon:15.087372, tags:{nameZh:'卡塔尼亚室内乐园',name:'FunPark Catania',leisure:'indoor_playground','addr:city':'Catania',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1191,lat:41.111131,lon:16.876371, tags:{nameZh:'巴里室内乐园',name:'GiocaPark Bari',leisure:'indoor_playground','addr:city':'Bari',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1192,lat:45.407717,lon:11.873446, tags:{nameZh:'帕多瓦室内乐园',name:'FunPark Padova',leisure:'indoor_playground','addr:city':'Padova',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1193,lat:44.056907,lon:12.565287, tags:{nameZh:'里米尼室内乐园',name:'GiocaPark Rimini',leisure:'indoor_playground','addr:city':'Rimini',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1194,lat:45.616082,lon:9.447953, tags:{nameZh:'贝加莫室内乐园',name:'FunPark Bergamo',leisure:'indoor_playground','addr:city':'Bergamo',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1195,lat:45.811562,lon:9.083035, tags:{nameZh:'科莫室内乐园',name:'GiocaPark Como',leisure:'indoor_playground','addr:city':'Como',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1196,lat:46.0700,lon:11.1200, tags:{nameZh:'特伦托室内乐园',name:'FunPark Trento',leisure:'indoor_playground','addr:city':'Trento',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1197,lat:46.498478,lon:11.354740, tags:{nameZh:'博尔扎诺室内乐园',name:'GiocaPark Bolzano',leisure:'indoor_playground','addr:city':'Bolzano',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1198,lat:43.112162,lon:12.390636, tags:{nameZh:'佩鲁贾室内乐园',name:'FunPark Perugia',leisure:'indoor_playground','addr:city':'Perugia',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1199,lat:45.649648,lon:13.777278, tags:{nameZh:'的里雅斯特室内乐园',name:'GiocaPark Trieste',leisure:'indoor_playground','addr:city':'Trieste',opening_hours:'Mo-Su 10:00-19:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // BEACHES (~25)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1210,lat:40.6325,lon:14.6014, tags:{nameZh:'阿马尔菲海滩',name:'Spiaggia di Amalfi',natural:'beach','addr:city':'Amalfi'}},
+  { type:'node',id:1211,lat:41.0100,lon:9.2200, tags:{nameZh:'翡翠海岸',name:'Costa Smeralda',natural:'beach','addr:city':'Porto Cervo'}},
+  { type:'node',id:1212,lat:40.1700,lon:9.6100, tags:{nameZh:'卡拉戈洛里策',name:'Cala Goloritze',natural:'beach','addr:city':'Baunei'}},
+  { type:'node',id:1213,lat:38.1700,lon:13.3600, tags:{nameZh:'蒙德罗海滩',name:'Spiaggia di Mondello',natural:'beach','addr:city':'Palermo'}},
+  { type:'node',id:1214,lat:38.1800,lon:12.7300, tags:{nameZh:'圣维托角海滩',name:'San Vito lo Capo',natural:'beach','addr:city':'San Vito lo Capo'}},
+  { type:'node',id:1215,lat:44.1000,lon:9.7300, tags:{nameZh:'五渔村海滩',name:'Spiaggia di Monterosso',natural:'beach','addr:city':'Monterosso al Mare'}},
+  { type:'node',id:1216,lat:38.7500,lon:15.8900, tags:{nameZh:'特罗佩亚海滩',name:'Spiaggia di Tropea',natural:'beach','addr:city':'Tropea'}},
+  { type:'node',id:1217,lat:44.0600,lon:12.5700, tags:{nameZh:'里米尼海滩',name:'Spiaggia di Rimini',natural:'beach','addr:city':'Rimini'}},
+  { type:'node',id:1218,lat:44.0600,lon:12.6400, tags:{nameZh:'里乔内海滩',name:'Spiaggia di Riccione',natural:'beach','addr:city':'Riccione'}},
+  { type:'node',id:1219,lat:45.4000,lon:12.3600, tags:{nameZh:'威尼斯丽都海滩',name:'Lido di Venezia',natural:'beach','addr:city':'Venezia'}},
+  { type:'node',id:1220,lat:40.6200,lon:14.4800, tags:{nameZh:'波西塔诺海滩',name:'Spiaggia Grande Positano',natural:'beach','addr:city':'Positano'}},
+  { type:'node',id:1221,lat:37.8500,lon:15.2900, tags:{nameZh:'陶尔米纳海滩',name:'Isola Bella Taormina',natural:'beach','addr:city':'Taormina'}},
+  { type:'node',id:1222,lat:40.3500,lon:18.1700, tags:{nameZh:'莱切海滩',name:'Spiaggia di Torre dell\'Orso',natural:'beach','addr:city':'Melendugno'}},
+  { type:'node',id:1223,lat:41.2200,lon:16.4300, tags:{nameZh:'特拉尼海滩',name:'Spiaggia di Trani',natural:'beach','addr:city':'Trani'}},
+  { type:'node',id:1224,lat:42.8300,lon:10.3200, tags:{nameZh:'厄尔巴岛海滩',name:'Spiaggia di Cavoli Elba',natural:'beach','addr:city':'Isola d\'Elba'}},
+  { type:'node',id:1225,lat:39.2200,lon:9.1100, tags:{nameZh:'卡利亚里诗人海滩',name:'Spiaggia del Poetto Cagliari',natural:'beach','addr:city':'Cagliari'}},
+  { type:'node',id:1226,lat:40.9200,lon:9.5200, tags:{nameZh:'撒丁岛拉奇纳海滩',name:'La Cinta San Teodoro',natural:'beach','addr:city':'San Teodoro'}},
+  { type:'node',id:1227,lat:38.0200,lon:12.5200, tags:{nameZh:'兔子岛海滩',name:'Spiaggia dei Conigli Lampedusa',natural:'beach','addr:city':'Lampedusa'}},
+  { type:'node',id:1228,lat:43.6100,lon:10.2900, tags:{nameZh:'里窝那海滩',name:'Spiaggia di Castiglioncello',natural:'beach','addr:city':'Castiglioncello'}},
+  { type:'node',id:1229,lat:39.0700,lon:8.4500, tags:{nameZh:'撒丁岛伊斯阿鲁塔斯',name:'Is Arutas Beach',natural:'beach','addr:city':'Cabras'}},
+  { type:'node',id:1230,lat:44.3100,lon:9.2100, tags:{nameZh:'塞斯特里莱万特海滩',name:'Baia del Silenzio',natural:'beach','addr:city':'Sestri Levante'}},
+  { type:'node',id:1231,lat:40.2800,lon:17.9400, tags:{nameZh:'波利尼亚诺海滩',name:'Lama Monachile Polignano',natural:'beach','addr:city':'Polignano a Mare'}},
+  { type:'node',id:1232,lat:42.0700,lon:11.8000, tags:{nameZh:'圣塔马里内拉海滩',name:'Santa Marinella Beach',natural:'beach','addr:city':'Santa Marinella'}},
+  { type:'node',id:1233,lat:43.3800,lon:10.4500, tags:{nameZh:'卡斯蒂廖内海滩',name:'Spiaggia di Marina di Cecina',natural:'beach','addr:city':'Cecina'}},
+  { type:'node',id:1234,lat:40.6500,lon:14.7600, tags:{nameZh:'马约里海滩',name:'Spiaggia di Maiori',natural:'beach','addr:city':'Maiori'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // HISTORIC (~30)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1240,lat:41.8902,lon:12.4922, tags:{nameZh:'罗马斗兽场',name:'Colosseo',historic:'monument',website:'https://www.colosseo.it','addr:city':'Roma',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:1241,lat:40.7508,lon:14.4869, tags:{nameZh:'庞贝古城',name:'Scavi di Pompei',historic:'ruins',website:'https://www.pompeiisites.org','addr:city':'Pompei',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:1242,lat:43.7230,lon:10.3966, tags:{nameZh:'比萨斜塔',name:'Torre di Pisa',historic:'monument',website:'https://www.opapisa.it','addr:city':'Pisa',opening_hours:'Mo-Su 09:00-20:00'}},
+  { type:'node',id:1243,lat:45.4339,lon:12.3386, tags:{nameZh:'总督宫威尼斯',name:'Palazzo Ducale Venezia',historic:'castle',website:'https://palazzoducale.visitmuve.it','addr:city':'Venezia',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:1244,lat:41.9031,lon:12.4663, tags:{nameZh:'圣天使堡',name:'Castel Sant\'Angelo',historic:'castle',website:'https://www.castelsantangelo.com','addr:city':'Roma',opening_hours:'Tu-Su 09:00-19:30'}},
+  { type:'node',id:1245,lat:41.0508,lon:14.3333, tags:{nameZh:'卡塞塔王宫',name:'Reggia di Caserta',historic:'castle',website:'https://www.reggiadicaserta.beniculturali.it','addr:city':'Caserta',opening_hours:'We-Mo 08:30-19:30'}},
+  { type:'node',id:1246,lat:45.4375,lon:10.9917, tags:{nameZh:'维罗纳竞技场',name:'Arena di Verona',historic:'monument','addr:city':'Verona',opening_hours:'Tu-Su 08:30-19:30'}},
+  { type:'node',id:1247,lat:41.8892,lon:12.4867, tags:{nameZh:'古罗马广场',name:'Foro Romano',historic:'ruins','addr:city':'Roma',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:1248,lat:43.3178,lon:11.3308, tags:{nameZh:'锡耶纳大教堂',name:'Duomo di Siena',historic:'monument',website:'https://operaduomo.siena.it','addr:city':'Siena',opening_hours:'Mo-Su 10:30-17:00'}},
+  { type:'node',id:1249,lat:44.4178,lon:12.1997, tags:{nameZh:'拉文纳马赛克教堂',name:'Basilica di San Vitale Ravenna',historic:'monument','addr:city':'Ravenna',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:1250,lat:43.7734,lon:11.2560, tags:{nameZh:'佛罗伦萨大教堂',name:'Cattedrale di Santa Maria del Fiore',historic:'monument',website:'https://www.duomo.firenze.it','addr:city':'Firenze',opening_hours:'Mo-Su 10:15-16:00'}},
+  { type:'node',id:1251,lat:40.6297,lon:14.6028, tags:{nameZh:'阿马尔菲大教堂',name:'Duomo di Amalfi',historic:'monument','addr:city':'Amalfi',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:1252,lat:40.6250,lon:15.5708, tags:{nameZh:'马泰拉石窟',name:'Sassi di Matera',historic:'monument','addr:city':'Matera'}},
+  { type:'node',id:1253,lat:45.4654,lon:9.1859, tags:{nameZh:'米兰大教堂',name:'Duomo di Milano',historic:'monument',website:'https://www.duomomilano.it','addr:city':'Milano',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:1254,lat:37.7515,lon:14.9944, tags:{nameZh:'陶尔米纳古剧场',name:'Teatro Antico di Taormina',historic:'ruins','addr:city':'Taormina',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:1255,lat:40.3517,lon:18.1714, tags:{nameZh:'莱切巴洛克大教堂',name:'Basilica di Santa Croce Lecce',historic:'monument','addr:city':'Lecce'}},
+  { type:'node',id:1256,lat:43.8422,lon:10.5067, tags:{nameZh:'卢卡古城墙',name:'Mura di Lucca',historic:'monument','addr:city':'Lucca'}},
+  { type:'node',id:1257,lat:38.1100,lon:13.3500, tags:{nameZh:'巴勒莫诺曼王宫',name:'Palazzo dei Normanni',historic:'castle',website:'https://www.federicosecondo.org','addr:city':'Palermo',opening_hours:'Mo-Sa 08:15-17:40'}},
+  { type:'node',id:1258,lat:40.8200,lon:14.4300, tags:{nameZh:'赫库兰尼姆古城',name:'Ercolano (Herculaneum)',historic:'ruins',website:'https://www.ercolano.beniculturali.it','addr:city':'Ercolano',opening_hours:'Mo-Su 08:30-19:30'}},
+  { type:'node',id:1259,lat:41.9029,lon:12.4534, tags:{nameZh:'梵蒂冈圣彼得大教堂',name:'Basilica di San Pietro',historic:'monument','addr:city':'Citta del Vaticano',opening_hours:'Mo-Su 07:00-18:30'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // NATURE & PARKS (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1270,lat:46.515261,lon:12.142359, tags:{nameZh:'多洛米蒂山',name:'Dolomiti',leisure:'nature_reserve','addr:city':'Cortina d\'Ampezzo'}},
+  { type:'node',id:1271,lat:45.991759,lon:9.264881, tags:{nameZh:'科莫湖',name:'Lago di Como',leisure:'nature_reserve','addr:city':'Como'}},
+  { type:'node',id:1272,lat:45.453563,lon:10.656450, tags:{nameZh:'加尔达湖',name:'Lago di Garda',leisure:'nature_reserve','addr:city':'Sirmione'}},
+  { type:'node',id:1273,lat:44.115908,lon:9.730001, tags:{nameZh:'五渔村步道',name:'Sentiero Cinque Terre',leisure:'nature_reserve',website:'https://www.parconazionale5terre.it','addr:city':'Riomaggiore'}},
+  { type:'node',id:1274,lat:43.402803,lon:12.969729, tags:{nameZh:'弗拉萨西溶洞',name:'Grotte di Frasassi',leisure:'nature_reserve',website:'https://www.frasassi.com','addr:city':'Genga',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1275,lat:37.751025,lon:14.994032, tags:{nameZh:'埃特纳火山',name:'Etna',leisure:'nature_reserve','addr:city':'Catania'}},
+  { type:'node',id:1276,lat:42.490274,lon:12.246039, tags:{nameZh:'怪物公园',name:'Parco dei Mostri Bomarzo',tourism:'attraction',website:'https://www.parcodeimostri.com','addr:city':'Bomarzo',opening_hours:'Mo-Su 08:30-19:00'}},
+  { type:'node',id:1277,lat:45.884285,lon:8.539078, tags:{nameZh:'马焦雷湖',name:'Lago Maggiore',leisure:'nature_reserve','addr:city':'Stresa'}},
+  { type:'node',id:1278,lat:40.9600,lon:13.9500, tags:{nameZh:'维苏威火山',name:'Vesuvio',leisure:'nature_reserve',website:'https://www.parconazionaledelvesuvio.it','addr:city':'Napoli'}},
+  { type:'node',id:1279,lat:46.694721,lon:12.085843, tags:{nameZh:'布雷恩湖',name:'Lago di Braies',leisure:'nature_reserve','addr:city':'Braies'}},
+  { type:'node',id:1280,lat:44.1500,lon:11.7800, tags:{nameZh:'卡森蒂内森林',name:'Foreste Casentinesi',leisure:'nature_reserve','addr:city':'Stia'}},
+  { type:'node',id:1281,lat:42.351020,lon:13.410274, tags:{nameZh:'大萨索山',name:'Gran Sasso d\'Italia',leisure:'nature_reserve','addr:city':'L\'Aquila'}},
+  { type:'node',id:1282,lat:39.260011,lon:16.507491, tags:{nameZh:'西拉国家公园',name:'Parco Nazionale della Sila',leisure:'nature_reserve','addr:city':'Cosenza'}},
+  { type:'node',id:1283,lat:40.7600,lon:8.3100, tags:{nameZh:'撒丁岛阿西纳拉国家公园',name:'Parco Nazionale dell\'Asinara',leisure:'nature_reserve','addr:city':'Stintino'}},
+  { type:'node',id:1284,lat:45.911634,lon:8.538311, tags:{nameZh:'博罗美群岛',name:'Isole Borromee',leisure:'nature_reserve','addr:city':'Stresa',opening_hours:'Mo-Su 09:00-17:30 (seasonal)'}},
+  { type:'node',id:1285,lat:42.7700,lon:12.7600, tags:{nameZh:'翁布里亚蒙蒂锡比利尼',name:'Monti Sibillini',leisure:'nature_reserve','addr:city':'Norcia'}},
+  { type:'node',id:1286,lat:46.464645,lon:10.629862, tags:{nameZh:'斯泰尔维奥国家公园',name:'Parco Nazionale dello Stelvio',leisure:'nature_reserve','addr:city':'Bormio'}},
+  { type:'node',id:1287,lat:43.573320,lon:11.387909, tags:{nameZh:'基安蒂山丘',name:'Colline del Chianti',leisure:'nature_reserve','addr:city':'Greve in Chianti'}},
+  { type:'node',id:1288,lat:45.585401,lon:7.337530, tags:{nameZh:'大帕拉迪索国家公园',name:'Parco Nazionale Gran Paradiso',leisure:'nature_reserve','addr:city':'Cogne'}},
+  { type:'node',id:1289,lat:40.3300,lon:9.6400, tags:{nameZh:'撒丁岛奥罗塞伊湾',name:'Golfo di Orosei',leisure:'nature_reserve','addr:city':'Cala Gonone'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // CHILDREN'S FARMS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1300,lat:45.5200,lon:9.2300, tags:{nameZh:'米兰教育农场',name:'Fattoria Didattica Milano',tourism:'children_farm','addr:city':'Milano',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:1301,lat:41.9200,lon:12.5100, tags:{nameZh:'罗马教育农场',name:'Fattoria Didattica Roma',tourism:'children_farm','addr:city':'Roma',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:1302,lat:45.0500,lon:7.6500, tags:{nameZh:'都灵教育农场',name:'Fattoria Didattica Torino',tourism:'children_farm','addr:city':'Torino',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:1303,lat:43.8000,lon:11.2200, tags:{nameZh:'佛罗伦萨教育农场',name:'Fattoria Didattica Firenze',tourism:'children_farm','addr:city':'Firenze',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:1304,lat:44.5100,lon:11.3300, tags:{nameZh:'博洛尼亚教育农场',name:'Fattoria Didattica Bologna',tourism:'children_farm','addr:city':'Bologna',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:1305,lat:40.8700,lon:14.2700, tags:{nameZh:'那不勒斯教育农场',name:'Fattoria Didattica Napoli',tourism:'children_farm','addr:city':'Napoli',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:1306,lat:45.4500,lon:10.9800, tags:{nameZh:'维罗纳教育农场',name:'Fattoria Didattica Verona',tourism:'children_farm','addr:city':'Verona',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:1307,lat:44.4200,lon:8.9400, tags:{nameZh:'热那亚教育农场',name:'Fattoria Didattica Genova',tourism:'children_farm','addr:city':'Genova',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:1308,lat:45.4200,lon:11.8700, tags:{nameZh:'帕多瓦教育农场',name:'Fattoria Didattica Padova',tourism:'children_farm','addr:city':'Padova',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:1309,lat:41.1200,lon:16.8600, tags:{nameZh:'巴里教育农场',name:'Fattoria Didattica Bari',tourism:'children_farm','addr:city':'Bari',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:1310,lat:38.1300,lon:13.3500, tags:{nameZh:'巴勒莫教育农场',name:'Fattoria Didattica Palermo',tourism:'children_farm','addr:city':'Palermo',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:1311,lat:39.2300,lon:9.1200, tags:{nameZh:'卡利亚里教育农场',name:'Fattoria Didattica Cagliari',tourism:'children_farm','addr:city':'Cagliari',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:1312,lat:46.0800,lon:11.1300, tags:{nameZh:'特伦托教育农场',name:'Fattoria Didattica Trento',tourism:'children_farm','addr:city':'Trento',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:1313,lat:43.1300,lon:12.3800, tags:{nameZh:'佩鲁贾教育农场',name:'Fattoria Didattica Perugia',tourism:'children_farm','addr:city':'Perugia',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:1314,lat:45.6600,lon:13.7600, tags:{nameZh:'的里雅斯特教育农场',name:'Fattoria Didattica Trieste',tourism:'children_farm','addr:city':'Trieste',opening_hours:'We-Su 10:00-17:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // PLAYGROUNDS (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1320,lat:41.9128,lon:12.4856, tags:{nameZh:'罗马博尔盖塞别墅公园游乐场',name:'Area Giochi Villa Borghese',leisure:'playground','addr:city':'Roma'}},
+  { type:'node',id:1321,lat:45.4800,lon:9.1750, tags:{nameZh:'米兰森皮奥内公园游乐场',name:'Area Giochi Parco Sempione',leisure:'playground','addr:city':'Milano'}},
+  { type:'node',id:1322,lat:43.782931,lon:11.215493, tags:{nameZh:'佛罗伦萨卡希内公园游乐场',name:'Area Giochi Parco delle Cascine',leisure:'playground','addr:city':'Firenze'}},
+  { type:'node',id:1323,lat:45.052393,lon:7.684936, tags:{nameZh:'都灵瓦伦蒂诺公园游乐场',name:'Area Giochi Parco del Valentino',leisure:'playground','addr:city':'Torino'}},
+  { type:'node',id:1324,lat:44.5000,lon:11.3400, tags:{nameZh:'博洛尼亚蒙塔尼奥拉花园游乐场',name:'Area Giochi Giardini Margherita',leisure:'playground','addr:city':'Bologna'}},
+  { type:'node',id:1325,lat:40.883438,lon:14.352290, tags:{nameZh:'那不勒斯维吉尔公园游乐场',name:'Area Giochi Parco Virgiliano',leisure:'playground','addr:city':'Napoli'}},
+  { type:'node',id:1326,lat:45.428897,lon:12.356107, tags:{nameZh:'威尼斯花园游乐场',name:'Area Giochi Giardini della Biennale',leisure:'playground','addr:city':'Venezia'}},
+  { type:'node',id:1327,lat:45.4400,lon:10.9900, tags:{nameZh:'维罗纳公园游乐场',name:'Area Giochi Giardino Giusti',leisure:'playground','addr:city':'Verona'}},
+  { type:'node',id:1328,lat:44.381512,lon:9.045659, tags:{nameZh:'热那亚内尔维公园游乐场',name:'Area Giochi Parchi di Nervi',leisure:'playground','addr:city':'Genova'}},
+  { type:'node',id:1329,lat:38.1200,lon:13.3600, tags:{nameZh:'巴勒莫英式花园游乐场',name:'Area Giochi Giardino Inglese',leisure:'playground','addr:city':'Palermo'}},
+  { type:'node',id:1330,lat:37.5000,lon:15.0900, tags:{nameZh:'卡塔尼亚贝里尼花园游乐场',name:'Area Giochi Giardino Bellini',leisure:'playground','addr:city':'Catania'}},
+  { type:'node',id:1331,lat:41.075814,lon:16.857435, tags:{nameZh:'巴里海滨公园游乐场',name:'Area Giochi Lungomare Bari',leisure:'playground','addr:city':'Bari'}},
+  { type:'node',id:1332,lat:45.398504,lon:11.874730, tags:{nameZh:'帕多瓦广场花园游乐场',name:'Area Giochi Prato della Valle',leisure:'playground','addr:city':'Padova'}},
+  { type:'node',id:1333,lat:43.1200,lon:12.3900, tags:{nameZh:'佩鲁贾公园游乐场',name:'Area Giochi Giardini Carducci',leisure:'playground','addr:city':'Perugia'}},
+  { type:'node',id:1334,lat:45.701257,lon:13.718772, tags:{nameZh:'的里雅斯特米拉马雷公园游乐场',name:'Area Giochi Parco di Miramare',leisure:'playground','addr:city':'Trieste'}},
+  { type:'node',id:1335,lat:39.215513,lon:9.134476, tags:{nameZh:'卡利亚里公园游乐场',name:'Area Giochi Parco di Monte Urpinu',leisure:'playground','addr:city':'Cagliari'}},
+  { type:'node',id:1336,lat:46.096239,lon:11.046560, tags:{nameZh:'特伦托公园游乐场',name:'Area Giochi Parco delle Albere',leisure:'playground','addr:city':'Trento'}},
+  { type:'node',id:1337,lat:46.5000,lon:11.3500, tags:{nameZh:'博尔扎诺塔尔维拉公园游乐场',name:'Area Giochi Parco Talvera',leisure:'playground','addr:city':'Bolzano'}},
+  { type:'node',id:1338,lat:45.8100,lon:9.0800, tags:{nameZh:'科莫湖边游乐场',name:'Area Giochi Lungolago Como',leisure:'playground','addr:city':'Como'}},
+  { type:'node',id:1339,lat:40.6300,lon:15.8000, tags:{nameZh:'马泰拉公园游乐场',name:'Area Giochi Parco del Castello Matera',leisure:'playground','addr:city':'Matera'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // SWIMMING POOLS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1350,lat:45.480770,lon:9.226712, tags:{nameZh:'米兰水上中心',name:'Centro Balneare Milano',leisure:'swimming_pool','addr:city':'Milano',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1351,lat:41.830817,lon:12.462474, tags:{nameZh:'罗马水上中心',name:'Piscina delle Rose Roma',leisure:'swimming_pool','addr:city':'Roma',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:1352,lat:45.037182,lon:7.678888, tags:{nameZh:'都灵水上中心',name:'Piscina Lido Torino',leisure:'swimming_pool','addr:city':'Torino',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1353,lat:43.775962,lon:11.284203, tags:{nameZh:'佛罗伦萨水上中心',name:'Piscina Costoli Firenze',leisure:'swimming_pool','addr:city':'Firenze',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1354,lat:44.505878,lon:11.343343, tags:{nameZh:'博洛尼亚水上中心',name:'Centro Natatorio Bologna',leisure:'swimming_pool','addr:city':'Bologna',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1355,lat:40.822055,lon:14.180929, tags:{nameZh:'那不勒斯水上中心',name:'Piscina Scandone Napoli',leisure:'swimming_pool','addr:city':'Napoli',opening_hours:'Mo-Su 10:00-19:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // THEATRES (~10)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1370,lat:45.4672,lon:9.1894, tags:{nameZh:'米兰斯卡拉歌剧院',name:'Teatro alla Scala',amenity:'theatre',website:'https://www.teatroallascala.org','addr:city':'Milano'}},
+  { type:'node',id:1371,lat:40.8367,lon:14.2497, tags:{nameZh:'那不勒斯圣卡洛歌剧院',name:'Teatro di San Carlo',amenity:'theatre',website:'https://www.teatrosancarlo.it','addr:city':'Napoli'}},
+  { type:'node',id:1372,lat:45.4397,lon:12.3369, tags:{nameZh:'威尼斯凤凰剧院',name:'Teatro La Fenice',amenity:'theatre',website:'https://www.teatrolafenice.it','addr:city':'Venezia'}},
+  { type:'node',id:1373,lat:44.4978,lon:11.3536, tags:{nameZh:'博洛尼亚市立剧院',name:'Teatro Comunale di Bologna',amenity:'theatre','addr:city':'Bologna'}},
+  { type:'node',id:1374,lat:43.7750,lon:11.2530, tags:{nameZh:'佛罗伦萨五月歌剧院',name:'Teatro del Maggio Musicale Fiorentino',amenity:'theatre','addr:city':'Firenze'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // ATTRACTIONS & VISITOR CENTRES (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1390,lat:45.4400,lon:12.3200, tags:{nameZh:'威尼斯贡多拉',name:'Gondola Venezia',tourism:'attraction','addr:city':'Venezia'}},
+  { type:'node',id:1391,lat:45.911634,lon:8.538311, tags:{nameZh:'博罗美群岛',name:'Isole Borromee Stresa',tourism:'attraction','addr:city':'Stresa',opening_hours:'Mo-Su 09:00-17:30 (seasonal)'}},
+  { type:'node',id:1392,lat:40.6500,lon:14.6000, tags:{nameZh:'阿马尔菲海岸游船',name:'Costiera Amalfitana Boat Tour',tourism:'attraction','addr:city':'Amalfi'}},
+  { type:'node',id:1393,lat:40.7500,lon:13.9400, tags:{nameZh:'卡普里岛蓝洞',name:'Grotta Azzurra Capri',tourism:'attraction','addr:city':'Capri',opening_hours:'Mo-Su 09:00-17:00 (seasonal)'}},
+  { type:'node',id:1394,lat:45.442005,lon:10.998619, tags:{nameZh:'维罗纳朱丽叶阳台',name:'Casa di Giulietta',tourism:'attraction',website:'https://casadigiulietta.comune.verona.it','addr:city':'Verona',opening_hours:'Tu-Su 09:00-19:00'}},
+  { type:'node',id:1395,lat:44.061324,lon:12.565504, tags:{nameZh:'里米尼费里尼博物馆',name:'Cinema Fulgor - Museo Fellini',tourism:'museum','addr:city':'Rimini',opening_hours:'Tu-Su 10:00-19:00'}},
+  { type:'node',id:1396,lat:43.723086,lon:10.395321, tags:{nameZh:'比萨奇迹广场',name:'Piazza dei Miracoli',tourism:'attraction','addr:city':'Pisa'}},
+  { type:'node',id:1397,lat:45.434257,lon:12.338672, tags:{nameZh:'威尼斯圣马可广场',name:'Piazza San Marco',tourism:'attraction','addr:city':'Venezia'}},
+  { type:'node',id:1398,lat:41.900978,lon:12.483285, tags:{nameZh:'罗马特莱维喷泉',name:'Fontana di Trevi',tourism:'attraction','addr:city':'Roma'}},
+  { type:'node',id:1399,lat:41.905995,lon:12.483389, tags:{nameZh:'罗马西班牙阶梯',name:'Scalinata di Trinita dei Monti',tourism:'attraction','addr:city':'Roma'}},
+  { type:'node',id:1400,lat:43.467799,lon:11.043211, tags:{nameZh:'圣吉米尼亚诺',name:'San Gimignano',tourism:'attraction','addr:city':'San Gimignano'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MORE SWIMMING POOLS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1410,lat:45.4400,lon:10.9900, tags:{nameZh:'维罗纳水上中心',name:'Piscina Comunale Verona',leisure:'swimming_pool','addr:city':'Verona',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1411,lat:44.404584,lon:8.966412, tags:{nameZh:'热那亚水上中心',name:'Piscina di Albaro Genova',leisure:'swimming_pool','addr:city':'Genova',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1412,lat:38.150349,lon:13.342207, tags:{nameZh:'巴勒莫水上中心',name:'Piscina Comunale Palermo',leisure:'swimming_pool','addr:city':'Palermo',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1413,lat:37.519012,lon:15.044837, tags:{nameZh:'卡塔尼亚水上中心',name:'Piscina Nesima Catania',leisure:'swimming_pool','addr:city':'Catania',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1414,lat:41.1100,lon:16.8700, tags:{nameZh:'巴里水上中心',name:'Piscina Comunale Bari',leisure:'swimming_pool','addr:city':'Bari',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1415,lat:45.692528,lon:9.656922, tags:{nameZh:'贝加莫水上中心',name:'Centro Natatorio Bergamo',leisure:'swimming_pool','addr:city':'Bergamo',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1416,lat:45.819971,lon:9.066707, tags:{nameZh:'科莫水上中心',name:'Lido di Villa Olmo Como',leisure:'swimming_pool','addr:city':'Como',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:1417,lat:45.896197,lon:10.846418, tags:{nameZh:'特伦托水上中心',name:'Piscina Comunale Trento',leisure:'swimming_pool','addr:city':'Trento',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1418,lat:43.110720,lon:12.381552, tags:{nameZh:'佩鲁贾水上中心',name:'Piscina Olimpica Perugia',leisure:'swimming_pool','addr:city':'Perugia',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1419,lat:45.612511,lon:13.858577, tags:{nameZh:'的里雅斯特水上中心',name:'Bagno Comunale Trieste',leisure:'swimming_pool','addr:city':'Trieste',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1420,lat:39.204632,lon:9.133625, tags:{nameZh:'卡利亚里水上中心',name:'Piscina Comunale Cagliari',leisure:'swimming_pool','addr:city':'Cagliari',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1421,lat:40.3500,lon:18.1700, tags:{nameZh:'莱切水上中心',name:'Piscina Comunale Lecce',leisure:'swimming_pool','addr:city':'Lecce',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1422,lat:44.079143,lon:12.552239, tags:{nameZh:'里米尼水上中心',name:'Aquapark Rimini',leisure:'swimming_pool','addr:city':'Rimini',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:1423,lat:46.5000,lon:11.3500, tags:{nameZh:'博尔扎诺水上中心',name:'Acquarena Bolzano',leisure:'swimming_pool',website:'https://www.acquarena.info','addr:city':'Bolzano',opening_hours:'Mo-Su 10:00-21:00'}},
+  { type:'node',id:1424,lat:40.6300,lon:15.8000, tags:{nameZh:'马泰拉水上中心',name:'Piscina Comunale Matera',leisure:'swimming_pool','addr:city':'Matera',opening_hours:'Mo-Su 10:00-19:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MORE PLAYGROUNDS (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1430,lat:45.474572,lon:9.200348, tags:{nameZh:'米兰因德罗蒙塔内利公园游乐场',name:'Area Giochi Giardini Indro Montanelli',leisure:'playground','addr:city':'Milano'}},
+  { type:'node',id:1431,lat:41.9100,lon:12.4600, tags:{nameZh:'罗马阿达别墅公园游乐场',name:'Area Giochi Villa Ada',leisure:'playground','addr:city':'Roma'}},
+  { type:'node',id:1432,lat:45.086866,lon:7.642089, tags:{nameZh:'都灵佩莱利纳公园游乐场',name:'Area Giochi Parco della Pellerina',leisure:'playground','addr:city':'Torino'}},
+  { type:'node',id:1433,lat:44.502332,lon:11.346600, tags:{nameZh:'博洛尼亚蒙塔尼奥拉公园游乐场',name:'Area Giochi Parco della Montagnola',leisure:'playground','addr:city':'Bologna'}},
+  { type:'node',id:1434,lat:40.871119,lon:14.248828, tags:{nameZh:'那不勒斯卡波迪蒙特公园游乐场',name:'Area Giochi Bosco di Capodimonte',leisure:'playground','addr:city':'Napoli'}},
+  { type:'node',id:1435,lat:44.429479,lon:8.817336, tags:{nameZh:'热那亚别墅公园游乐场',name:'Area Giochi Villa Durazzo Pallavicini',leisure:'playground','addr:city':'Genova'}},
+  { type:'node',id:1436,lat:45.493326,lon:12.228331, tags:{nameZh:'威尼斯梅斯特雷比萨尼公园游乐场',name:'Area Giochi Parco Bissuola Mestre',leisure:'playground','addr:city':'Mestre'}},
+  { type:'node',id:1437,lat:43.711805,lon:10.407297, tags:{nameZh:'比萨公园游乐场',name:'Area Giochi Giardino Scotto Pisa',leisure:'playground','addr:city':'Pisa'}},
+  { type:'node',id:1438,lat:43.3200,lon:11.3300, tags:{nameZh:'锡耶纳公园游乐场',name:'Area Giochi Giardini La Lizza Siena',leisure:'playground','addr:city':'Siena'}},
+  { type:'node',id:1439,lat:44.414123,lon:12.208087, tags:{nameZh:'拉文纳公园游乐场',name:'Area Giochi Giardini Pubblici Ravenna',leisure:'playground','addr:city':'Ravenna'}},
+  { type:'node',id:1440,lat:43.841279,lon:10.512495, tags:{nameZh:'卢卡城墙上的游乐场',name:'Area Giochi Mura di Lucca',leisure:'playground','addr:city':'Lucca'}},
+  { type:'node',id:1441,lat:45.541404,lon:10.224648, tags:{nameZh:'布雷西亚城堡公园游乐场',name:'Area Giochi Parco del Castello Brescia',leisure:'playground','addr:city':'Brescia'}},
+  { type:'node',id:1442,lat:44.542493,lon:10.777699, tags:{nameZh:'摩德纳公园游乐场',name:'Area Giochi Parco Ducale Modena',leisure:'playground','addr:city':'Modena'}},
+  { type:'node',id:1443,lat:44.702316,lon:10.630709, tags:{nameZh:'雷焦艾米利亚公园游乐场',name:'Area Giochi Parco del Popolo Reggio Emilia',leisure:'playground','addr:city':'Reggio Emilia'}},
+  { type:'node',id:1444,lat:43.900523,lon:11.110528, tags:{nameZh:'普拉托公园游乐场',name:'Area Giochi Parco Centrale Prato',leisure:'playground','addr:city':'Prato'}},
+  { type:'node',id:1445,lat:42.352505,lon:13.403902, tags:{nameZh:'拉奎拉公园游乐场',name:'Area Giochi Parco del Castello L\'Aquila',leisure:'playground','addr:city':'L\'Aquila'}},
+  { type:'node',id:1446,lat:40.424950,lon:17.237976, tags:{nameZh:'塔兰托公园游乐场',name:'Area Giochi Villa Peripato Taranto',leisure:'playground','addr:city':'Taranto'}},
+  { type:'node',id:1447,lat:39.285786,lon:16.263024, tags:{nameZh:'科森扎公园游乐场',name:'Area Giochi Villa Vecchia Cosenza',leisure:'playground','addr:city':'Cosenza'}},
+  { type:'node',id:1448,lat:37.073161,lon:15.282138, tags:{nameZh:'锡拉库萨公园游乐场',name:'Area Giochi Parco Archeologico Siracusa',leisure:'playground','addr:city':'Siracusa'}},
+  { type:'node',id:1449,lat:44.806558,lon:10.319140, tags:{nameZh:'帕尔马公园游乐场',name:'Area Giochi Parco Ducale Parma',leisure:'playground','addr:city':'Parma'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MORE HISTORIC / MUSEUMS / ATTRACTIONS (~30)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1450,lat:44.8000,lon:10.3300, tags:{nameZh:'帕尔马大教堂',name:'Duomo di Parma',historic:'monument','addr:city':'Parma'}},
+  { type:'node',id:1451,lat:44.6500,lon:10.9300, tags:{nameZh:'摩德纳大教堂',name:'Duomo di Modena',historic:'monument','addr:city':'Modena'}},
+  { type:'node',id:1452,lat:44.4944,lon:11.3464, tags:{nameZh:'博洛尼亚双塔',name:'Due Torri Bologna',historic:'monument','addr:city':'Bologna'}},
+  { type:'node',id:1453,lat:44.409370,lon:8.927403, tags:{nameZh:'热那亚旧港',name:'Porto Antico Genova',tourism:'attraction','addr:city':'Genova'}},
+  { type:'node',id:1454,lat:45.0600,lon:7.6900, tags:{nameZh:'都灵安托内利尖塔',name:'Mole Antonelliana',historic:'monument',website:'https://www.museocinema.it','addr:city':'Torino'}},
+  { type:'node',id:1455,lat:38.111037,lon:15.578644, tags:{nameZh:'墨西拿海峡',name:'Stretto di Messina Panorama',tourism:'attraction','addr:city':'Messina'}},
+  { type:'node',id:1456,lat:40.851079,lon:14.256847, tags:{nameZh:'那不勒斯地下城',name:'Napoli Sotterranea',tourism:'museum',website:'https://www.napolisotterranea.org','addr:city':'Napoli',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1457,lat:43.318439,lon:11.331558, tags:{nameZh:'锡耶纳广场',name:'Piazza del Campo Siena',tourism:'attraction','addr:city':'Siena'}},
+  { type:'node',id:1458,lat:45.438051,lon:12.335935, tags:{nameZh:'威尼斯里亚托桥',name:'Ponte di Rialto',tourism:'attraction','addr:city':'Venezia'}},
+  { type:'node',id:1459,lat:43.274037,lon:11.987631, tags:{nameZh:'科尔托纳',name:'Cortona',tourism:'attraction','addr:city':'Cortona'}},
+  { type:'node',id:1460,lat:42.854658,lon:13.575505, tags:{nameZh:'阿斯科利皮切诺人民广场',name:'Piazza del Popolo Ascoli Piceno',tourism:'attraction','addr:city':'Ascoli Piceno'}},
+  { type:'node',id:1461,lat:40.7600,lon:14.3300, tags:{nameZh:'那不勒斯新堡',name:'Castel Nuovo (Maschio Angioino)',historic:'castle','addr:city':'Napoli',opening_hours:'Mo-Sa 09:00-19:00'}},
+  { type:'node',id:1462,lat:43.317579,lon:11.329659, tags:{nameZh:'锡耶纳主教座堂博物馆',name:'Museo dell\'Opera del Duomo Siena',tourism:'museum','addr:city':'Siena',opening_hours:'Mo-Su 10:30-17:00'}},
+  { type:'node',id:1463,lat:45.5400,lon:10.2200, tags:{nameZh:'布雷西亚罗马遗址',name:'Parco Archeologico di Brescia',historic:'ruins','addr:city':'Brescia',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1464,lat:37.0700,lon:15.2900, tags:{nameZh:'锡拉库萨考古公园',name:'Parco Archeologico della Neapolis',historic:'ruins','addr:city':'Siracusa',opening_hours:'Mo-Su 08:30-18:00'}},
+  { type:'node',id:1465,lat:37.2900,lon:13.5900, tags:{nameZh:'阿格里真托神庙谷',name:'Valle dei Templi',historic:'ruins',website:'https://www.parcovalledeitempli.it','addr:city':'Agrigento',opening_hours:'Mo-Su 08:30-19:00'}},
+  { type:'node',id:1466,lat:40.867031,lon:14.250875, tags:{nameZh:'那不勒斯国家博物馆',name:'Museo di Capodimonte',tourism:'museum',website:'https://capodimonte.cultura.gov.it','addr:city':'Napoli',opening_hours:'Th-Tu 08:30-19:30'}},
+  { type:'node',id:1467,lat:44.804981,lon:10.325973, tags:{nameZh:'帕尔马国家美术馆',name:'Galleria Nazionale Parma',tourism:'museum','addr:city':'Parma',opening_hours:'Tu-Su 08:30-19:30'}},
+  { type:'node',id:1468,lat:45.472242,lon:9.188407, tags:{nameZh:'米兰布雷拉画廊',name:'Pinacoteca di Brera',tourism:'museum',website:'https://pinacotecabrera.org','addr:city':'Milano',opening_hours:'Tu-Su 08:30-19:15'}},
+  { type:'node',id:1469,lat:43.765281,lon:11.250257, tags:{nameZh:'佛罗伦萨皮蒂宫',name:'Palazzo Pitti',tourism:'museum',website:'https://www.uffizi.it/palazzo-pitti','addr:city':'Firenze',opening_hours:'Tu-Su 08:15-18:50'}},
+  { type:'node',id:1470,lat:41.8900,lon:12.4800, tags:{nameZh:'罗马万神殿',name:'Pantheon',historic:'monument','addr:city':'Roma',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:1471,lat:41.898928,lon:12.473118, tags:{nameZh:'罗马纳沃纳广场',name:'Piazza Navona',tourism:'attraction','addr:city':'Roma'}},
+  { type:'node',id:1472,lat:40.648675,lon:14.612663, tags:{nameZh:'拉韦洛别墅花园',name:'Villa Rufolo Ravello',tourism:'attraction','addr:city':'Ravello',opening_hours:'Mo-Su 09:00-sunset'}},
+  { type:'node',id:1473,lat:45.5400,lon:10.6300, tags:{nameZh:'西尔米奥内温泉城堡',name:'Grotte di Catullo Sirmione',historic:'ruins','addr:city':'Sirmione',opening_hours:'Tu-Su 08:30-19:30'}},
+  { type:'node',id:1474,lat:42.551162,lon:12.715248, tags:{nameZh:'翁布里亚马尔莫雷瀑布',name:'Cascata delle Marmore',leisure:'nature_reserve',website:'https://www.cascatadellemarmore.info','addr:city':'Terni',opening_hours:'Mo-Su (seasonal)'}},
+  { type:'node',id:1475,lat:43.7300,lon:10.3000, tags:{nameZh:'比萨洗礼堂',name:'Battistero di Pisa',historic:'monument','addr:city':'Pisa',opening_hours:'Mo-Su 09:00-20:00'}},
+  { type:'node',id:1476,lat:40.7500,lon:14.5000, tags:{nameZh:'庞贝红屋',name:'Villa dei Misteri Pompei',historic:'ruins','addr:city':'Pompei',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:1477,lat:44.1400,lon:12.2400, tags:{nameZh:'切塞纳马拉泰斯塔图书馆',name:'Biblioteca Malatestiana',historic:'monument','addr:city':'Cesena',opening_hours:'Tu-Su 10:00-19:00'}},
+  { type:'node',id:1478,lat:42.7300,lon:12.1100, tags:{nameZh:'奥尔维耶托大教堂',name:'Duomo di Orvieto',historic:'monument','addr:city':'Orvieto',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:1479,lat:42.462934,lon:14.228627, tags:{nameZh:'佩斯卡拉海滨',name:'Lungomare di Pescara',tourism:'attraction','addr:city':'Pescara'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MORE NATURE (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1480,lat:45.738878,lon:10.070866, tags:{nameZh:'伊塞奥湖',name:'Lago d\'Iseo',leisure:'nature_reserve','addr:city':'Iseo'}},
+  { type:'node',id:1481,lat:42.646118,lon:11.985554, tags:{nameZh:'博尔塞纳湖',name:'Lago di Bolsena',leisure:'nature_reserve','addr:city':'Bolsena'}},
+  { type:'node',id:1482,lat:41.320974,lon:12.990650, tags:{nameZh:'切尔切奥国家公园',name:'Parco Nazionale del Circeo',leisure:'nature_reserve','addr:city':'Sabaudia'}},
+  { type:'node',id:1483,lat:38.197535,lon:15.940362, tags:{nameZh:'阿斯普罗蒙特国家公园',name:'Parco Nazionale dell\'Aspromonte',leisure:'nature_reserve','addr:city':'Reggio Calabria'}},
+  { type:'node',id:1484,lat:40.229104,lon:15.268113, tags:{nameZh:'奇伦托国家公园',name:'Parco Nazionale del Cilento',leisure:'nature_reserve','addr:city':'Vallo della Lucania'}},
+  { type:'node',id:1485,lat:41.5200,lon:13.8200, tags:{nameZh:'阿布鲁佐国家公园',name:'Parco Nazionale d\'Abruzzo',leisure:'nature_reserve','addr:city':'Pescasseroli'}},
+  { type:'node',id:1486,lat:44.1900,lon:10.0300, tags:{nameZh:'五渔村马纳罗拉步道',name:'Sentiero Azzurro Manarola',leisure:'nature_reserve','addr:city':'Manarola'}},
+  { type:'node',id:1487,lat:46.617750,lon:12.295393, tags:{nameZh:'三峰山',name:'Tre Cime di Lavaredo',leisure:'nature_reserve','addr:city':'Auronzo di Cadore'}},
+  { type:'node',id:1488,lat:38.7900,lon:16.5200, tags:{nameZh:'卡拉布里亚海角',name:'Capo Vaticano',leisure:'nature_reserve','addr:city':'Ricadi'}},
+  { type:'node',id:1489,lat:44.4400,lon:8.7800, tags:{nameZh:'波尔托菲诺自然保护区',name:'Parco di Portofino',leisure:'nature_reserve','addr:city':'Portofino'}},
+  { type:'node',id:1490,lat:43.2800,lon:13.8100, tags:{nameZh:'科内罗山自然保护区',name:'Parco del Conero',leisure:'nature_reserve','addr:city':'Sirolo'}},
+  { type:'node',id:1491,lat:38.481370,lon:14.939662, tags:{nameZh:'埃奥利群岛',name:'Isole Eolie',leisure:'nature_reserve','addr:city':'Lipari'}},
+  { type:'node',id:1492,lat:42.7600,lon:11.1100, tags:{nameZh:'奥尔比泰洛泻湖',name:'Laguna di Orbetello',leisure:'nature_reserve','addr:city':'Orbetello'}},
+  { type:'node',id:1493,lat:45.3500,lon:6.6300, tags:{nameZh:'奥斯塔山谷',name:'Valle d\'Aosta Panorama',leisure:'nature_reserve','addr:city':'Aosta'}},
+  { type:'node',id:1494,lat:40.6200,lon:15.6000, tags:{nameZh:'波利诺国家公园',name:'Parco Nazionale del Pollino',leisure:'nature_reserve','addr:city':'Rotonda'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MORE CHINESE RESTAURANTS (~10)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1500,lat:44.0600,lon:12.5700, tags:{nameZh:'里米尼华人餐厅',name:'Ristorante Cinese Rimini',amenity:'chinese_restaurant','addr:city':'Rimini','addr:street':'Viale Vespucci'}},
+  { type:'node',id:1501,lat:44.8000,lon:10.3300, tags:{nameZh:'帕尔马华人饭店',name:'Ristorante Cinese Parma',amenity:'chinese_restaurant','addr:city':'Parma','addr:street':'Via Garibaldi'}},
+  { type:'node',id:1502,lat:44.6500,lon:10.9300, tags:{nameZh:'摩德纳华人餐厅',name:'Ristorante Cinese Modena Centro',amenity:'chinese_restaurant','addr:city':'Modena','addr:street':'Via Emilia'}},
+  { type:'node',id:1503,lat:45.5400,lon:10.2200, tags:{nameZh:'布雷西亚华人饭店',name:'Ristorante Orientale Brescia',amenity:'chinese_restaurant','addr:city':'Brescia','addr:street':'Corso Zanardelli'}},
+  { type:'node',id:1504,lat:43.1200,lon:12.3900, tags:{nameZh:'佩鲁贾华人餐厅',name:'Ristorante Cinese Perugia',amenity:'chinese_restaurant','addr:city':'Perugia','addr:street':'Corso Vannucci'}},
+  { type:'node',id:1505,lat:45.6500,lon:13.7700, tags:{nameZh:'的里雅斯特华人餐厅',name:'Ristorante Cinese Trieste',amenity:'chinese_restaurant','addr:city':'Trieste','addr:street':'Via Carducci'}},
+  { type:'node',id:1506,lat:39.2200,lon:9.1100, tags:{nameZh:'卡利亚里华人餐厅',name:'Ristorante Cinese Cagliari',amenity:'chinese_restaurant','addr:city':'Cagliari','addr:street':'Via Roma'}},
+  { type:'node',id:1507,lat:40.3500,lon:18.1700, tags:{nameZh:'莱切华人饭店',name:'Ristorante Cinese Lecce',amenity:'chinese_restaurant','addr:city':'Lecce','addr:street':'Via Trinchese'}},
+  { type:'node',id:1508,lat:37.5000,lon:15.0900, tags:{nameZh:'卡塔尼亚龙凤酒楼',name:'Drago e Fenice Catania',amenity:'chinese_restaurant','addr:city':'Catania','addr:street':'Corso Italia'}},
+  { type:'node',id:1509,lat:46.0700,lon:11.1200, tags:{nameZh:'特伦托华人餐厅',name:'Ristorante Cinese Trento',amenity:'chinese_restaurant','addr:city':'Trento','addr:street':'Via Belenzani'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MORE BUFFET (~5)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1520,lat:38.1200,lon:13.3600, tags:{nameZh:'巴勒莫亚洲自助',name:'Sushi Wok Palermo',amenity:'buffet_restaurant','addr:city':'Palermo','addr:street':'Via Liberta'}},
+  { type:'node',id:1521,lat:43.7700,lon:11.2600, tags:{nameZh:'佛罗伦萨铁板烧自助',name:'Wok Firenze Centro',amenity:'buffet_restaurant','addr:city':'Firenze','addr:street':'Via de\' Cerretani'}},
+  { type:'node',id:1522,lat:43.1200,lon:12.3900, tags:{nameZh:'佩鲁贾铁板烧自助',name:'Wok Perugia',amenity:'buffet_restaurant','addr:city':'Perugia','addr:street':'Via XX Settembre'}},
+  { type:'node',id:1523,lat:40.3500,lon:18.1700, tags:{nameZh:'莱切亚洲自助',name:'Sushi Wok Lecce',amenity:'buffet_restaurant','addr:city':'Lecce','addr:street':'Viale Lo Re'}},
+  { type:'node',id:1524,lat:44.8000,lon:10.3300, tags:{nameZh:'帕尔马亚洲自助',name:'Wok Sushi Parma',amenity:'buffet_restaurant','addr:city':'Parma','addr:street':'Via Mazzini'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MORE SARDINIA & SICILY (~25)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:400,lat:39.2200,lon:9.1100, tags:{nameZh:'卡利亚里海滩波埃托',name:'Spiaggia del Poetto',natural:'beach','addr:city':'Cagliari'}},
+  { type:'node',id:401,lat:40.9200,lon:9.5000, tags:{nameZh:'翡翠海岸',name:'Costa Smeralda',natural:'beach','addr:city':'Arzachena'}},
+  { type:'node',id:402,lat:40.9300,lon:9.5100, tags:{nameZh:'撒丁岛马达莱纳群岛',name:'Arcipelago di La Maddalena',tourism:'attraction','addr:city':'La Maddalena'}},
+  { type:'node',id:403,lat:40.6200,lon:9.6300, tags:{nameZh:'奥罗塞伊湾海滩',name:'Cala Goloritzé',natural:'beach','addr:city':'Baunei'}},
+  { type:'node',id:404,lat:39.140642,lon:8.274634, tags:{nameZh:'圣彼得罗岛',name:'Isola di San Pietro',tourism:'attraction','addr:city':'Carloforte'}},
+  { type:'node',id:405,lat:40.7200,lon:8.5600, tags:{nameZh:'阿尔盖罗老城',name:'Centro Storico di Alghero',historic:'monument','addr:city':'Alghero'}},
+  { type:'node',id:406,lat:40.564926,lon:8.160238, tags:{nameZh:'海王星洞穴',name:'Grotte di Nettuno',tourism:'attraction','addr:city':'Alghero',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:407,lat:39.9000,lon:8.5900, tags:{nameZh:'撒丁岛努拉吉遗址',name:'Su Nuraxi di Barumini',historic:'ruins',website:'https://www.fondazionebarumini.it','addr:city':'Barumini',opening_hours:'Mo-Su 09:00-17:30'}},
+  { type:'node',id:408,lat:39.2100,lon:9.1200, tags:{nameZh:'卡利亚里城堡区',name:'Quartiere Castello Cagliari',historic:'castle','addr:city':'Cagliari'}},
+  { type:'node',id:409,lat:39.3000,lon:9.5200, tags:{nameZh:'维拉西米乌斯海滩',name:'Spiaggia di Villasimius',natural:'beach','addr:city':'Villasimius'}},
+  { type:'node',id:410,lat:38.1100,lon:13.3500, tags:{nameZh:'巴勒莫大教堂',name:'Cattedrale di Palermo',historic:'monument','addr:city':'Palermo',opening_hours:'Mo-Sa 07:00-19:00'}},
+  { type:'node',id:411,lat:38.111206,lon:13.353250, tags:{nameZh:'巴勒莫诺曼宫',name:'Palazzo dei Normanni',tourism:'museum','addr:city':'Palermo',opening_hours:'Mo-Sa 08:15-17:40'}},
+  { type:'node',id:412,lat:37.501601,lon:15.087160, tags:{nameZh:'卡塔尼亚鱼市场',name:'La Pescheria Catania',tourism:'attraction','addr:city':'Catania'}},
+  { type:'node',id:413,lat:37.8600,lon:15.2900, tags:{nameZh:'陶尔米纳古剧场',name:'Teatro Antico di Taormina',historic:'ruins','addr:city':'Taormina',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:414,lat:37.2900,lon:13.5900, tags:{nameZh:'神殿谷',name:'Valle dei Templi',historic:'ruins',website:'https://www.parcovalledeitempli.it','addr:city':'Agrigento',opening_hours:'Mo-Su 08:30-19:00'}},
+  { type:'node',id:415,lat:38.118540,lon:13.370556, tags:{nameZh:'巴勒莫木偶博物馆',name:'Museo Internazionale delle Marionette',tourism:'museum','addr:city':'Palermo',opening_hours:'Tu-Sa 10:00-18:00'}},
+  { type:'node',id:416,lat:37.059997,lon:15.295018, tags:{nameZh:'锡拉库扎奥提伽岛',name:'Isola di Ortigia',tourism:'attraction','addr:city':'Siracusa'}},
+  { type:'node',id:417,lat:36.9300,lon:14.7300, tags:{nameZh:'拉古萨伊布拉老城',name:'Ragusa Ibla',historic:'monument','addr:city':'Ragusa'}},
+  { type:'node',id:418,lat:38.111037,lon:15.578644, tags:{nameZh:'墨西拿海峡',name:'Stretto di Messina',tourism:'attraction','addr:city':'Messina'}},
+  { type:'node',id:419,lat:37.751025,lon:14.994032, tags:{nameZh:'埃特纳火山',name:'Vulcano Etna',tourism:'attraction','addr:city':'Nicolosi',opening_hours:'Mo-Su (weather dependent)'}},
+  { type:'node',id:420,lat:38.416395,lon:14.958186, tags:{nameZh:'利帕里群岛',name:'Isole Eolie',tourism:'attraction','addr:city':'Lipari'}},
+  { type:'node',id:421,lat:38.111233,lon:13.374078, tags:{nameZh:'巴勒莫植物园',name:'Orto Botanico di Palermo',leisure:'park','addr:city':'Palermo',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:422,lat:37.528828,lon:15.082016, tags:{nameZh:'卡塔尼亚儿童游乐场',name:'Parco Gioeni Catania',leisure:'playground','addr:city':'Catania'}},
+  { type:'node',id:423,lat:38.115276,lon:13.358345, tags:{nameZh:'巴勒莫室内游乐场',name:'Fun City Palermo',leisure:'indoor_playground','addr:city':'Palermo'}},
+  { type:'node',id:424,lat:37.8700,lon:15.2800, tags:{nameZh:'陶尔米纳海滩',name:'Spiaggia Isola Bella',natural:'beach','addr:city':'Taormina'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: DOLOMITES FAMILY ACTIVITIES (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:425,lat:46.577043,lon:11.673924, tags:{nameZh:'白云石山塞切达缆车',name:'Funivia Seceda',tourism:'attraction','addr:city':'Ortisei',opening_hours:'Mo-Su 08:30-17:00'}},
+  { type:'node',id:426,lat:46.531056,lon:11.624709, tags:{nameZh:'白云石山阿尔佩迪苏西高原',name:'Alpe di Siusi',tourism:'attraction','addr:city':'Castelrotto'}},
+  { type:'node',id:427,lat:46.640022,lon:11.682936, tags:{nameZh:'富纳斯山谷',name:'Val di Funes',tourism:'attraction','addr:city':'Funes'}},
+  { type:'node',id:428,lat:46.4300,lon:12.0900, tags:{nameZh:'卡雷扎湖',name:'Lago di Carezza',tourism:'attraction','addr:city':'Nova Levante'}},
+  { type:'node',id:429,lat:46.673428,lon:11.163519, tags:{nameZh:'梅拉诺家庭步道',name:'Passeggiata Tappeiner',tourism:'attraction','addr:city':'Merano'}},
+  { type:'node',id:430,lat:46.668039,lon:11.160087, tags:{nameZh:'梅拉诺温泉浴场',name:'Terme Merano',leisure:'swimming_pool',website:'https://www.termemerano.it','addr:city':'Merano',opening_hours:'Mo-Su 09:00-22:00'}},
+  { type:'node',id:431,lat:46.499973,lon:11.364250, tags:{nameZh:'波尔扎诺缆车',name:'Funivia del Renon',tourism:'attraction','addr:city':'Bolzano',opening_hours:'Mo-Su 06:40-22:45'}},
+  { type:'node',id:432,lat:46.499795,lon:11.349554, tags:{nameZh:'南蒂罗尔考古博物馆冰人',name:'Museo Archeologico dell\'Alto Adige',tourism:'museum',website:'https://www.iceman.it','addr:city':'Bolzano',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:433,lat:46.4400,lon:11.7600, tags:{nameZh:'卡尔代罗湖',name:'Lago di Caldaro',natural:'beach','addr:city':'Caldaro sulla Strada del Vino'}},
+  { type:'node',id:434,lat:46.5000,lon:11.3500, tags:{nameZh:'提洛尔城堡',name:'Castel Tirolo',historic:'castle','addr:city':'Tirolo',opening_hours:'Tu-Su 10:00-17:00'}},
+  { type:'node',id:435,lat:46.6100,lon:11.4600, tags:{nameZh:'波尔扎诺冒险公园',name:'Parco Avventura Bolzano',tourism:'theme_park','addr:city':'Bolzano'}},
+  { type:'node',id:436,lat:46.719086,lon:11.655902, tags:{nameZh:'布雷萨诺内水上乐园',name:'Acquarena Bressanone',leisure:'swimming_pool','addr:city':'Bressanone',opening_hours:'Mo-Su 10:00-21:00'}},
+  { type:'node',id:437,lat:46.5800,lon:11.9400, tags:{nameZh:'奥蒂塞伊缆车',name:'Funivia Ortisei-Alpe di Siusi',tourism:'attraction','addr:city':'Ortisei'}},
+  { type:'node',id:438,lat:46.511832,lon:11.607573, tags:{nameZh:'科尔帕扎通家庭步道',name:'Sentiero del Colbertaldo',tourism:'attraction','addr:city':'Castelrotto'}},
+  { type:'node',id:439,lat:46.694721,lon:12.085843, tags:{nameZh:'布莱埃斯湖',name:'Lago di Braies',tourism:'attraction','addr:city':'Braies'}},
+  { type:'node',id:440,lat:46.5400,lon:11.7600, tags:{nameZh:'特伦托科学博物馆',name:'MUSE Trento',tourism:'museum',website:'https://www.muse.it','addr:city':'Trento',opening_hours:'Tu-Fr 10:00-18:00'}},
+  { type:'node',id:441,lat:46.0700,lon:11.1200, tags:{nameZh:'加达湖北岸里瓦',name:'Spiaggia di Riva del Garda',natural:'beach','addr:city':'Riva del Garda'}},
+  { type:'node',id:442,lat:46.498226,lon:11.346340, tags:{nameZh:'波尔扎诺儿童游乐场',name:'Parco Giochi Talvera',leisure:'playground','addr:city':'Bolzano'}},
+  { type:'node',id:443,lat:46.573884,lon:11.674551, tags:{nameZh:'奥蒂塞伊木偶博物馆',name:'Museum de Gherdëina',tourism:'museum','addr:city':'Ortisei',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:444,lat:46.3700,lon:11.3300, tags:{nameZh:'特拉米因恐龙步道',name:'Sentiero dei Dinosauri',tourism:'attraction','addr:city':'Rovereto'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: LAKES (COMO, GARDA, MAGGIORE) (~25)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:445,lat:45.980042,lon:9.254039, tags:{nameZh:'贝拉吉奥梅尔齐花园',name:'Giardini di Villa Melzi',leisure:'park','addr:city':'Bellagio',opening_hours:'Mo-Su 09:30-18:30'}},
+  { type:'node',id:446,lat:45.987049,lon:9.264206, tags:{nameZh:'贝拉吉奥塞尔贝洛尼别墅',name:'Villa Serbelloni',tourism:'attraction','addr:city':'Bellagio'}},
+  { type:'node',id:447,lat:46.013873,lon:9.282834, tags:{nameZh:'科莫湖游船',name:'Navigazione Lago di Como',tourism:'attraction','addr:city':'Como'}},
+  { type:'node',id:448,lat:45.986402,lon:9.230836, tags:{nameZh:'特雷梅佐卡洛塔别墅',name:'Villa Carlotta',tourism:'museum',website:'https://www.villacarlotta.it','addr:city':'Tremezzina',opening_hours:'Mo-Su 09:30-19:00'}},
+  { type:'node',id:449,lat:45.840817,lon:9.400288, tags:{nameZh:'莱科儿童游乐场',name:'Parco Addio Monti Lecco',leisure:'playground','addr:city':'Lecco'}},
+  { type:'node',id:450,lat:45.4400,lon:10.6800, tags:{nameZh:'加达湖主题乐园加达兰',name:'Gardaland Splash',leisure:'water_park','addr:city':'Castelnuovo del Garda',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:451,lat:45.6400,lon:10.6300, tags:{nameZh:'萨洛海滩',name:'Spiaggia di Salò',natural:'beach','addr:city':'Salò'}},
+  { type:'node',id:452,lat:45.6300,lon:10.7100, tags:{nameZh:'马德尔诺海滩',name:'Spiaggia di Maderno',natural:'beach','addr:city':'Toscolano Maderno'}},
+  { type:'node',id:453,lat:45.4400,lon:10.6900, tags:{nameZh:'佩斯基耶拉海滩',name:'Spiaggia di Peschiera del Garda',natural:'beach','addr:city':'Peschiera del Garda'}},
+  { type:'node',id:454,lat:45.4500,lon:10.5700, tags:{nameZh:'锡尔苗内城堡',name:'Castello Scaligero Sirmione',historic:'castle','addr:city':'Sirmione',opening_hours:'Tu-Su 08:30-19:30'}},
+  { type:'node',id:455,lat:45.494930,lon:10.604691, tags:{nameZh:'锡尔苗内温泉',name:'Terme di Sirmione',leisure:'swimming_pool','addr:city':'Sirmione',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:456,lat:45.4300,lon:10.5600, tags:{nameZh:'锡尔苗内罗马遗址',name:'Grotte di Catullo',historic:'ruins','addr:city':'Sirmione',opening_hours:'Tu-Su 08:30-19:30'}},
+  { type:'node',id:457,lat:45.911634,lon:8.538311, tags:{nameZh:'马焦雷湖博罗梅群岛',name:'Isole Borromee',tourism:'attraction','addr:city':'Stresa'}},
+  { type:'node',id:458,lat:45.895143,lon:8.527825, tags:{nameZh:'伊索拉贝拉花园',name:'Giardini di Isola Bella',leisure:'park',website:'https://www.isoleborromee.it','addr:city':'Stresa',opening_hours:'Mo-Su 09:00-17:30'}},
+  { type:'node',id:459,lat:45.884088,lon:8.477452, tags:{nameZh:'斯特雷萨缆车',name:'Funivia Stresa-Mottarone',tourism:'attraction','addr:city':'Stresa',opening_hours:'Mo-Su 09:30-17:20'}},
+  { type:'node',id:460,lat:45.861744,lon:8.792484, tags:{nameZh:'瓦雷泽萨克罗蒙特',name:'Sacro Monte di Varese',tourism:'attraction','addr:city':'Varese'}},
+  { type:'node',id:461,lat:45.909078,lon:8.618474, tags:{nameZh:'马焦雷湖游船',name:'Navigazione Lago Maggiore',tourism:'attraction','addr:city':'Stresa'}},
+  { type:'node',id:462,lat:45.5200,lon:10.2200, tags:{nameZh:'加达湖利蒙尼柠檬园',name:'Limonaia del Castel',tourism:'attraction','addr:city':'Limone sul Garda',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:463,lat:45.5500,lon:10.5200, tags:{nameZh:'加达湖家庭自行车道',name:'Pista Ciclabile del Garda',tourism:'attraction','addr:city':'Limone sul Garda'}},
+  { type:'node',id:464,lat:45.881627,lon:9.265220, tags:{nameZh:'科莫儿童游乐场',name:'Parco Giochi di Como',leisure:'playground','addr:city':'Como'}},
+  { type:'node',id:465,lat:46.013873,lon:9.282834, tags:{nameZh:'莱科湖游船',name:'Navigazione Lago di Lecco',tourism:'attraction','addr:city':'Lecco'}},
+  { type:'node',id:466,lat:45.9500,lon:8.5700, tags:{nameZh:'阿罗纳城堡',name:'Rocca di Angera',historic:'castle','addr:city':'Angera',opening_hours:'Mo-Su 10:00-17:30'}},
+  { type:'node',id:467,lat:45.890154,lon:8.523523, tags:{nameZh:'斯特雷萨水族馆',name:'Acquario di Stresa',tourism:'aquarium','addr:city':'Stresa'}},
+  { type:'node',id:468,lat:45.767525,lon:10.822365, tags:{nameZh:'马尔切西内缆车',name:'Funivia Malcesine-Monte Baldo',tourism:'attraction','addr:city':'Malcesine',opening_hours:'Mo-Su 08:00-18:45'}},
+  { type:'node',id:469,lat:45.5800,lon:10.6500, tags:{nameZh:'加尔尼亚诺海滩',name:'Spiaggia di Gargnano',natural:'beach','addr:city':'Gargnano'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: TUSCANY FAMILY FARMS & ATTRACTIONS (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:470,lat:43.318439,lon:11.331558, tags:{nameZh:'锡耶纳贝壳广场',name:'Piazza del Campo',tourism:'attraction','addr:city':'Siena'}},
+  { type:'node',id:471,lat:43.3100,lon:11.3400, tags:{nameZh:'锡耶纳大教堂',name:'Duomo di Siena',historic:'monument','addr:city':'Siena',opening_hours:'Mo-Sa 10:00-19:00'}},
+  { type:'node',id:472,lat:43.0700,lon:11.7800, tags:{nameZh:'蒙特普尔恰诺葡萄园',name:'Agriturismo Montepulciano',tourism:'children_farm','addr:city':'Montepulciano'}},
+  { type:'node',id:473,lat:43.4700,lon:11.0400, tags:{nameZh:'圣吉米尼亚诺古塔',name:'Torri di San Gimignano',historic:'monument','addr:city':'San Gimignano'}},
+  { type:'node',id:474,lat:43.7700,lon:11.2500, tags:{nameZh:'佛罗伦萨圣母百花大教堂',name:'Cattedrale di Santa Maria del Fiore',historic:'monument','addr:city':'Firenze',opening_hours:'Mo-Sa 10:15-16:30'}},
+  { type:'node',id:475,lat:43.769143,lon:11.256140, tags:{nameZh:'佛罗伦萨旧宫',name:'Palazzo Vecchio',tourism:'museum','addr:city':'Firenze',opening_hours:'Fr-We 09:00-19:00'}},
+  { type:'node',id:476,lat:43.723016,lon:10.396632, tags:{nameZh:'比萨斜塔',name:'Torre di Pisa',tourism:'attraction',website:'https://www.opapisa.it','addr:city':'Pisa',opening_hours:'Mo-Su 09:00-20:00'}},
+  { type:'node',id:477,lat:43.2500,lon:11.1800, tags:{nameZh:'基安蒂酒庄家庭体验',name:'Agriturismo Chianti Family',tourism:'children_farm','addr:city':'Castellina in Chianti'}},
+  { type:'node',id:478,lat:42.5600,lon:11.4500, tags:{nameZh:'塔拉莫内海滩',name:'Spiaggia di Talamone',natural:'beach','addr:city':'Orbetello'}},
+  { type:'node',id:479,lat:42.7700,lon:10.3200, tags:{nameZh:'埃尔巴岛海滩',name:'Spiaggia di Biodola',natural:'beach','addr:city':'Portoferraio'}},
+  { type:'node',id:480,lat:43.535540,lon:10.299130, tags:{nameZh:'利沃诺水族馆',name:'Acquario di Livorno',tourism:'aquarium','addr:city':'Livorno',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:481,lat:43.073564,lon:11.802200, tags:{nameZh:'蒙特普尔恰诺温泉',name:'Terme di Montepulciano',leisure:'swimming_pool','addr:city':'Montepulciano'}},
+  { type:'node',id:482,lat:43.1800,lon:11.7900, tags:{nameZh:'皮恩扎老城',name:'Centro Storico di Pienza',historic:'monument','addr:city':'Pienza'}},
+  { type:'node',id:483,lat:42.4300,lon:11.2100, tags:{nameZh:'萨图尔尼亚温泉瀑布',name:'Cascate del Mulino Saturnia',leisure:'swimming_pool','addr:city':'Manciano'}},
+  { type:'node',id:484,lat:43.782931,lon:11.215493, tags:{nameZh:'佛罗伦萨儿童游乐场',name:'Parco delle Cascine',leisure:'playground','addr:city':'Firenze'}},
+  { type:'node',id:485,lat:43.767664,lon:11.255906, tags:{nameZh:'佛罗伦萨科学博物馆',name:'Museo Galileo',tourism:'museum',website:'https://www.museogalileo.it','addr:city':'Firenze',opening_hours:'We-Mo 09:30-18:00'}},
+  { type:'node',id:486,lat:43.5400,lon:10.3200, tags:{nameZh:'利沃诺儿童农场',name:'Fattoria di Collesalvetti',tourism:'children_farm','addr:city':'Collesalvetti'}},
+  { type:'node',id:487,lat:43.3300,lon:11.7800, tags:{nameZh:'阿雷佐家庭农场',name:'Agriturismo Arezzo Family',tourism:'children_farm','addr:city':'Arezzo'}},
+  { type:'node',id:488,lat:42.8600,lon:10.5200, tags:{nameZh:'马萨马里蒂马家庭农场',name:'Fattoria Maremmana',tourism:'children_farm','addr:city':'Massa Marittima'}},
+  { type:'node',id:489,lat:43.1000,lon:10.4200, tags:{nameZh:'维亚雷焦海滩',name:'Spiaggia di Viareggio',natural:'beach','addr:city':'Viareggio'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MORE NAPLES / CAMPANIA (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:490,lat:40.7500,lon:14.4900, tags:{nameZh:'庞贝古城',name:'Scavi di Pompei',historic:'ruins',website:'https://www.pompeiisites.org','addr:city':'Pompei',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:491,lat:40.851079,lon:14.256847, tags:{nameZh:'那不勒斯地下城',name:'Napoli Sotterranea',tourism:'attraction','addr:city':'Napoli',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:492,lat:40.668778,lon:14.719629, tags:{nameZh:'阿马尔菲海岸',name:'Costiera Amalfitana',tourism:'attraction','addr:city':'Amalfi'}},
+  { type:'node',id:493,lat:40.6500,lon:14.5000, tags:{nameZh:'波西塔诺海滩',name:'Spiaggia Grande Positano',natural:'beach','addr:city':'Positano'}},
+  { type:'node',id:494,lat:40.560939,lon:14.205736, tags:{nameZh:'卡普里岛蓝洞',name:'Grotta Azzurra',tourism:'attraction','addr:city':'Anacapri',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:495,lat:40.7600,lon:14.5000, tags:{nameZh:'赫库兰尼姆古城',name:'Scavi di Ercolano',historic:'ruins',website:'https://www.ercolano.beniculturali.it','addr:city':'Ercolano',opening_hours:'Mo-Su 08:30-19:30'}},
+  { type:'node',id:496,lat:40.853606,lon:14.251150, tags:{nameZh:'那不勒斯国家考古博物馆',name:'Museo Archeologico Nazionale',tourism:'museum','addr:city':'Napoli',opening_hours:'We-Mo 09:00-19:30'}},
+  { type:'node',id:497,lat:40.821396,lon:14.426197, tags:{nameZh:'那不勒斯维苏威火山',name:'Vesuvio',tourism:'attraction','addr:city':'Ercolano'}},
+  { type:'node',id:498,lat:40.8400,lon:14.2500, tags:{nameZh:'那不勒斯新城堡',name:'Castel Nuovo',historic:'castle','addr:city':'Napoli',opening_hours:'Mo-Sa 09:00-19:00'}},
+  { type:'node',id:499,lat:40.8300,lon:14.2400, tags:{nameZh:'那不勒斯蛋堡',name:'Castel dell\'Ovo',historic:'castle','addr:city':'Napoli',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:500,lat:40.832699,lon:14.236797, tags:{nameZh:'那不勒斯儿童游乐场',name:'Villa Comunale Napoli',leisure:'playground','addr:city':'Napoli'}},
+  { type:'node',id:501,lat:40.832731,lon:14.235550, tags:{nameZh:'那不勒斯水族馆',name:'Acquario di Napoli',tourism:'aquarium','addr:city':'Napoli',opening_hours:'Tu-Su 09:00-17:00'}},
+  { type:'node',id:502,lat:40.6200,lon:14.3700, tags:{nameZh:'索伦托海滩',name:'Marina Grande Sorrento',natural:'beach','addr:city':'Sorrento'}},
+  { type:'node',id:503,lat:40.624900,lon:14.376265, tags:{nameZh:'索伦托深谷花园',name:'Vallone dei Mulini',tourism:'attraction','addr:city':'Sorrento'}},
+  { type:'node',id:504,lat:40.740901,lon:14.503912, tags:{nameZh:'庞贝儿童游乐场',name:'Parco Giochi Pompei',leisure:'playground','addr:city':'Pompei'}},
+  { type:'node',id:505,lat:40.824356,lon:14.332617, tags:{nameZh:'那不勒斯市立游泳池',name:'Piscina Comunale di Napoli',leisure:'swimming_pool','addr:city':'Napoli'}},
+  { type:'node',id:506,lat:40.821553,lon:14.182516, tags:{nameZh:'那不勒斯室内游乐场',name:'Edenlandia Napoli',tourism:'theme_park',website:'https://www.edenlandia.it','addr:city':'Napoli',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:507,lat:40.676221,lon:14.763258, tags:{nameZh:'萨莱诺海滨步道',name:'Lungomare di Salerno',tourism:'attraction','addr:city':'Salerno'}},
+  { type:'node',id:508,lat:40.7200,lon:13.9500, tags:{nameZh:'伊斯基亚岛温泉',name:'Giardini Poseidon Ischia',leisure:'swimming_pool','addr:city':'Forio - Ischia',opening_hours:'Mo-Su 08:30-19:00'}},
+  { type:'node',id:509,lat:40.7300,lon:13.8900, tags:{nameZh:'伊斯基亚城堡',name:'Castello Aragonese Ischia',historic:'castle','addr:city':'Ischia',opening_hours:'Mo-Su 09:00-sunset'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MORE PLAYGROUNDS & POOLS ACROSS ITALY (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:510,lat:45.472996,lon:9.176967, tags:{nameZh:'米兰森皮奥内公园游乐场',name:'Parco Sempione Playground',leisure:'playground','addr:city':'Milano'}},
+  { type:'node',id:511,lat:45.052393,lon:7.684936, tags:{nameZh:'都灵瓦伦蒂诺公园游乐场',name:'Parco del Valentino Playground',leisure:'playground','addr:city':'Torino'}},
+  { type:'node',id:512,lat:44.482212,lon:11.352675, tags:{nameZh:'博洛尼亚马尔盖里塔花园',name:'Giardini Margherita',leisure:'playground','addr:city':'Bologna'}},
+  { type:'node',id:513,lat:43.778278,lon:10.660885, tags:{nameZh:'比萨儿童游乐场',name:'Parco Giochi di Pisa',leisure:'playground','addr:city':'Pisa'}},
+  { type:'node',id:514,lat:44.066544,lon:12.584824, tags:{nameZh:'里米尼海滩游乐场',name:'Rimini Beach Playground',leisure:'playground','addr:city':'Rimini'}},
+  { type:'node',id:515,lat:40.6400,lon:15.8100, tags:{nameZh:'马泰拉儿童游乐场',name:'Parco del Castello Matera',leisure:'playground','addr:city':'Matera'}},
+  { type:'node',id:516,lat:41.124894,lon:16.874275, tags:{nameZh:'巴里海滨游乐场',name:'Lungomare di Bari Playground',leisure:'playground','addr:city':'Bari'}},
+  { type:'node',id:517,lat:45.4400,lon:12.3400, tags:{nameZh:'威尼斯丽都海滩',name:'Spiaggia del Lido di Venezia',natural:'beach','addr:city':'Venezia'}},
+  { type:'node',id:518,lat:44.478778,lon:8.834055, tags:{nameZh:'热那亚儿童游乐场',name:'Parco Giochi Nervi',leisure:'playground','addr:city':'Genova'}},
+  { type:'node',id:519,lat:41.880716,lon:12.447450, tags:{nameZh:'罗马博尔盖塞公园游乐场',name:'Parco Giochi Villa Borghese',leisure:'playground','addr:city':'Roma'}},
+  { type:'node',id:520,lat:45.450697,lon:9.173518, tags:{nameZh:'米兰市立游泳池',name:'Piscina Argelati Milano',leisure:'swimming_pool','addr:city':'Milano'}},
+  { type:'node',id:521,lat:45.0800,lon:7.7000, tags:{nameZh:'都灵市立游泳池',name:'Piscina Comunale Torino',leisure:'swimming_pool','addr:city':'Torino'}},
+  { type:'node',id:522,lat:44.492849,lon:11.308554, tags:{nameZh:'博洛尼亚市立游泳池',name:'Piscina Carmen Longo',leisure:'swimming_pool','addr:city':'Bologna'}},
+  { type:'node',id:523,lat:43.717749,lon:10.384453, tags:{nameZh:'比萨市立游泳池',name:'Piscina Comunale di Pisa',leisure:'swimming_pool','addr:city':'Pisa'}},
+  { type:'node',id:524,lat:41.830817,lon:12.462474, tags:{nameZh:'罗马市立游泳池',name:'Piscina delle Rose Roma',leisure:'swimming_pool','addr:city':'Roma'}},
+  { type:'node',id:525,lat:45.441084,lon:11.014996, tags:{nameZh:'维罗纳儿童游乐场',name:'Parco Giochi Santa Lucia Verona',leisure:'playground','addr:city':'Verona'}},
+  { type:'node',id:526,lat:45.513446,lon:11.853917, tags:{nameZh:'帕多瓦儿童游乐场',name:'Parco Giochi Padova',leisure:'playground','addr:city':'Padova'}},
+  { type:'node',id:527,lat:43.001274,lon:12.148734, tags:{nameZh:'佩鲁贾儿童游乐场',name:'Parco Giochi di Perugia',leisure:'playground','addr:city':'Perugia'}},
+  { type:'node',id:528,lat:42.353852,lon:13.402695, tags:{nameZh:'拉奎拉儿童游乐场',name:'Parco del Castello L\'Aquila',leisure:'playground','addr:city':'L\'Aquila'}},
+  { type:'node',id:529,lat:39.324239,lon:16.250070, tags:{nameZh:'科森扎儿童游乐场',name:'Parco Nicholas Green Cosenza',leisure:'playground','addr:city':'Cosenza'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: CHINESE RESTAURANTS (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:530,lat:43.8800,lon:11.1000, tags:{nameZh:'普拉托温州中餐',name:'Ristorante Wenzhou Prato',amenity:'chinese_restaurant','addr:city':'Prato','addr:street':'Via Pistoiese'}},
+  { type:'node',id:531,lat:43.8800,lon:11.0900, tags:{nameZh:'普拉托金龙中餐',name:'Ristorante Dragone d\'Oro Prato',amenity:'chinese_restaurant','addr:city':'Prato','addr:street':'Via Filzi'}},
+  { type:'node',id:532,lat:43.8700,lon:11.1000, tags:{nameZh:'普拉托新世界中餐',name:'Nuovo Mondo Prato',amenity:'chinese_restaurant','addr:city':'Prato','addr:street':'Via Valentini'}},
+  { type:'node',id:533,lat:45.4800,lon:9.2300, tags:{nameZh:'米兰保罗萨尔皮中餐街',name:'Via Paolo Sarpi Milano',amenity:'chinese_restaurant','addr:city':'Milano','addr:street':'Via Paolo Sarpi'}},
+  { type:'node',id:534,lat:45.4700,lon:9.2200, tags:{nameZh:'米兰金龙中餐',name:'Ristorante Dragone d\'Oro Milano',amenity:'chinese_restaurant','addr:city':'Milano','addr:street':'Via Canonica'}},
+  { type:'node',id:535,lat:45.5500,lon:10.2200, tags:{nameZh:'布雷西亚中华楼',name:'Ristorante China House Brescia',amenity:'chinese_restaurant','addr:city':'Brescia','addr:street':'Via San Faustino'}},
+  { type:'node',id:536,lat:45.5400,lon:10.2100, tags:{nameZh:'布雷西亚金宫中餐',name:'Palazzo d\'Oro Brescia',amenity:'chinese_restaurant','addr:city':'Brescia','addr:street':'Corso Palestro'}},
+  { type:'node',id:537,lat:44.7000,lon:10.6300, tags:{nameZh:'雷焦艾米利亚中华园',name:'Giardino di Cina Reggio Emilia',amenity:'chinese_restaurant','addr:city':'Reggio Emilia','addr:street':'Via Emilia San Pietro'}},
+  { type:'node',id:538,lat:44.6900,lon:10.6200, tags:{nameZh:'雷焦艾米利亚龙凤中餐',name:'Dragone e Fenice Reggio',amenity:'chinese_restaurant','addr:city':'Reggio Emilia','addr:street':'Via Roma'}},
+  { type:'node',id:539,lat:44.4200,lon:8.9500, tags:{nameZh:'热那亚中华楼',name:'China House Genova',amenity:'chinese_restaurant','addr:city':'Genova','addr:street':'Via XX Settembre'}},
+  { type:'node',id:540,lat:45.4400,lon:10.9900, tags:{nameZh:'维罗纳金龙中餐',name:'Dragone d\'Oro Verona',amenity:'chinese_restaurant','addr:city':'Verona','addr:street':'Via Mazzini'}},
+  { type:'node',id:541,lat:45.4100,lon:11.8800, tags:{nameZh:'帕多瓦中华园',name:'Giardino di Cina Padova',amenity:'chinese_restaurant','addr:city':'Padova','addr:street':'Via Roma'}},
+  { type:'node',id:542,lat:44.4900,lon:11.3400, tags:{nameZh:'博洛尼亚金宫中餐',name:'Palazzo d\'Oro Bologna',amenity:'chinese_restaurant','addr:city':'Bologna','addr:street':'Via dell\'Indipendenza'}},
+  { type:'node',id:543,lat:43.7700,lon:11.2500, tags:{nameZh:'佛罗伦萨龙凤中餐',name:'Dragone e Fenice Firenze',amenity:'chinese_restaurant','addr:city':'Firenze','addr:street':'Via dei Neri'}},
+  { type:'node',id:544,lat:40.8500,lon:14.2600, tags:{nameZh:'那不勒斯中华楼',name:'China House Napoli',amenity:'chinese_restaurant','addr:city':'Napoli','addr:street':'Via Toledo'}},
+  { type:'node',id:545,lat:41.9000,lon:12.5000, tags:{nameZh:'罗马金龙中餐',name:'Dragone d\'Oro Roma',amenity:'chinese_restaurant','addr:city':'Roma','addr:street':'Via Nazionale'}},
+  { type:'node',id:546,lat:45.0700,lon:7.6800, tags:{nameZh:'都灵中华园',name:'Giardino di Cina Torino',amenity:'chinese_restaurant','addr:city':'Torino','addr:street':'Via Garibaldi'}},
+  { type:'node',id:547,lat:41.1200,lon:16.8700, tags:{nameZh:'巴里金龙中餐',name:'Dragone d\'Oro Bari',amenity:'chinese_restaurant','addr:city':'Bari','addr:street':'Via Sparano'}},
+  { type:'node',id:548,lat:39.2200,lon:9.1200, tags:{nameZh:'卡利亚里中华楼',name:'China House Cagliari',amenity:'chinese_restaurant','addr:city':'Cagliari','addr:street':'Via Roma'}},
+  { type:'node',id:549,lat:44.8100,lon:10.3300, tags:{nameZh:'帕尔马中华园',name:'Giardino di Cina Parma',amenity:'chinese_restaurant','addr:city':'Parma','addr:street':'Via d\'Azeglio'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: BUFFET RESTAURANTS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:550,lat:45.4600,lon:9.2000, tags:{nameZh:'米兰铁板烧自助中心',name:'Wok Milano Centrale',amenity:'buffet_restaurant','addr:city':'Milano','addr:street':'Corso Buenos Aires'}},
+  { type:'node',id:551,lat:45.0800,lon:7.6900, tags:{nameZh:'都灵亚洲自助',name:'Asia Buffet Torino',amenity:'buffet_restaurant','addr:city':'Torino','addr:street':'Via Roma'}},
+  { type:'node',id:552,lat:44.4900,lon:11.3500, tags:{nameZh:'博洛尼亚亚洲自助',name:'Wok Bologna',amenity:'buffet_restaurant','addr:city':'Bologna','addr:street':'Via dell\'Indipendenza'}},
+  { type:'node',id:553,lat:45.4400,lon:10.9900, tags:{nameZh:'维罗纳亚洲自助',name:'Sushi Wok Verona',amenity:'buffet_restaurant','addr:city':'Verona','addr:street':'Corso Porta Nuova'}},
+  { type:'node',id:554,lat:45.4100,lon:11.8800, tags:{nameZh:'帕多瓦亚洲自助',name:'Wok Padova',amenity:'buffet_restaurant','addr:city':'Padova','addr:street':'Via Altinate'}},
+  { type:'node',id:555,lat:45.5400,lon:10.2200, tags:{nameZh:'布雷西亚亚洲自助',name:'Wok Brescia',amenity:'buffet_restaurant','addr:city':'Brescia','addr:street':'Via San Faustino'}},
+  { type:'node',id:556,lat:44.7000,lon:10.6300, tags:{nameZh:'雷焦艾米利亚亚洲自助',name:'Asia Wok Reggio Emilia',amenity:'buffet_restaurant','addr:city':'Reggio Emilia','addr:street':'Via Emilia'}},
+  { type:'node',id:557,lat:44.6400,lon:10.9200, tags:{nameZh:'摩德纳亚洲自助',name:'Wok Modena',amenity:'buffet_restaurant','addr:city':'Modena','addr:street':'Viale Gramsci'}},
+  { type:'node',id:558,lat:43.7200,lon:10.4000, tags:{nameZh:'比萨亚洲自助',name:'Wok Pisa',amenity:'buffet_restaurant','addr:city':'Pisa','addr:street':'Corso Italia'}},
+  { type:'node',id:559,lat:44.4100,lon:8.9500, tags:{nameZh:'热那亚亚洲自助',name:'Sushi Wok Genova',amenity:'buffet_restaurant','addr:city':'Genova','addr:street':'Via XX Settembre'}},
+  { type:'node',id:560,lat:41.9000,lon:12.5000, tags:{nameZh:'罗马亚洲自助',name:'Wok Roma Termini',amenity:'buffet_restaurant','addr:city':'Roma','addr:street':'Via Nazionale'}},
+  { type:'node',id:561,lat:40.8500,lon:14.2600, tags:{nameZh:'那不勒斯亚洲自助',name:'Sushi Wok Napoli',amenity:'buffet_restaurant','addr:city':'Napoli','addr:street':'Via Toledo'}},
+  { type:'node',id:562,lat:43.8800,lon:11.1000, tags:{nameZh:'普拉托亚洲自助',name:'Asia Buffet Prato',amenity:'buffet_restaurant','addr:city':'Prato','addr:street':'Via Pistoiese'}},
+  { type:'node',id:563,lat:37.5100,lon:15.0800, tags:{nameZh:'卡塔尼亚亚洲自助',name:'Wok Catania',amenity:'buffet_restaurant','addr:city':'Catania','addr:street':'Via Etnea'}},
+  { type:'node',id:564,lat:39.2200,lon:9.1100, tags:{nameZh:'卡利亚里亚洲自助',name:'Sushi Wok Cagliari',amenity:'buffet_restaurant','addr:city':'Cagliari','addr:street':'Via Roma'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: INDOOR PLAYGROUNDS (~10)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:565,lat:45.522274,lon:9.216161, tags:{nameZh:'米兰室内游乐场',name:'Playcity Milano',leisure:'indoor_playground','addr:city':'Milano'}},
+  { type:'node',id:566,lat:45.069170,lon:7.681771, tags:{nameZh:'都灵室内游乐场',name:'King Kong Torino',leisure:'indoor_playground','addr:city':'Torino'}},
+  { type:'node',id:567,lat:44.496280,lon:11.338933, tags:{nameZh:'博洛尼亚室内游乐场',name:'Fun Park Bologna',leisure:'indoor_playground','addr:city':'Bologna'}},
+  { type:'node',id:568,lat:41.836507,lon:12.476272, tags:{nameZh:'罗马室内游乐场',name:'Luneur Park Roma',tourism:'theme_park',website:'https://www.luneurpark.it','addr:city':'Roma',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:569,lat:40.850059,lon:14.260272, tags:{nameZh:'那不勒斯室内游乐场',name:'Fun World Napoli',leisure:'indoor_playground','addr:city':'Napoli'}},
+  { type:'node',id:570,lat:43.766994,lon:11.281807, tags:{nameZh:'佛罗伦萨室内游乐场',name:'Mondo Bimbo Firenze',leisure:'indoor_playground','addr:city':'Firenze'}},
+  { type:'node',id:571,lat:45.439214,lon:11.005396, tags:{nameZh:'维罗纳室内游乐场',name:'Happy Park Verona',leisure:'indoor_playground','addr:city':'Verona'}},
+  { type:'node',id:572,lat:45.407717,lon:11.873446, tags:{nameZh:'帕多瓦室内游乐场',name:'Giocaland Padova',leisure:'indoor_playground','addr:city':'Padova'}},
+  { type:'node',id:573,lat:44.410154,lon:8.926709, tags:{nameZh:'热那亚室内游乐场',name:'La Città dei Bambini',leisure:'indoor_playground',website:'https://www.cittadeibambini.net','addr:city':'Genova',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:574,lat:45.545727,lon:10.214038, tags:{nameZh:'布雷西亚室内游乐场',name:'Fun City Brescia',leisure:'indoor_playground','addr:city':'Brescia'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MORE MUSEUMS & HISTORIC (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:575,lat:41.9000,lon:12.4900, tags:{nameZh:'罗马斗兽场',name:'Colosseo',historic:'monument',website:'https://www.colosseo.it','addr:city':'Roma',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:576,lat:41.9100,lon:12.4800, tags:{nameZh:'罗马古罗马广场',name:'Foro Romano',historic:'ruins','addr:city':'Roma',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:577,lat:41.795029,lon:12.249680, tags:{nameZh:'梵蒂冈博物馆',name:'Musei Vaticani',tourism:'museum',website:'https://www.museivaticani.va','addr:city':'Roma',opening_hours:'Mo-Sa 09:00-18:00'}},
+  { type:'node',id:578,lat:45.434257,lon:12.338672, tags:{nameZh:'威尼斯圣马可广场',name:'Piazza San Marco',tourism:'attraction','addr:city':'Venezia'}},
+  { type:'node',id:579,lat:45.434211,lon:12.340592, tags:{nameZh:'威尼斯总督府',name:'Palazzo Ducale',tourism:'museum','addr:city':'Venezia',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:580,lat:45.4600,lon:9.1900, tags:{nameZh:'米兰大教堂',name:'Duomo di Milano',historic:'monument','addr:city':'Milano',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:581,lat:45.461781,lon:9.170587, tags:{nameZh:'米兰科学技术博物馆',name:'Museo Nazionale Scienza e Tecnologia',tourism:'museum',website:'https://www.museoscienza.org','addr:city':'Milano',opening_hours:'Tu-Fr 10:00-18:00'}},
+  { type:'node',id:582,lat:44.414212,lon:8.923258, tags:{nameZh:'热那亚加拉塔海洋博物馆',name:'Galata Museo del Mare',tourism:'museum','addr:city':'Genova',opening_hours:'Tu-Su 10:00-19:30'}},
+  { type:'node',id:583,lat:45.068435,lon:7.684351, tags:{nameZh:'都灵埃及博物馆',name:'Museo Egizio',tourism:'museum',website:'https://www.museoegizio.it','addr:city':'Torino',opening_hours:'Mo 09:00-14:00, Tu-Su 09:00-18:30'}},
+  { type:'node',id:584,lat:45.031849,lon:7.673455, tags:{nameZh:'都灵汽车博物馆',name:'Museo Nazionale dell\'Automobile',tourism:'museum',website:'https://www.museoauto.com','addr:city':'Torino',opening_hours:'Mo 10:00-14:00, Tu-Su 10:00-19:00'}},
+  { type:'node',id:585,lat:44.4900,lon:11.3500, tags:{nameZh:'博洛尼亚双塔',name:'Le Due Torri',historic:'monument','addr:city':'Bologna'}},
+  { type:'node',id:586,lat:43.723086,lon:10.395321, tags:{nameZh:'比萨奇迹广场',name:'Piazza dei Miracoli',tourism:'attraction','addr:city':'Pisa'}},
+  { type:'node',id:587,lat:45.4400,lon:12.3300, tags:{nameZh:'威尼斯贡多拉',name:'Gondola Venezia',tourism:'attraction','addr:city':'Venezia'}},
+  { type:'node',id:588,lat:40.6400,lon:15.8100, tags:{nameZh:'马泰拉石窟民居',name:'Sassi di Matera',historic:'monument','addr:city':'Matera'}},
+  { type:'node',id:589,lat:41.1200,lon:16.8600, tags:{nameZh:'巴里老城',name:'Bari Vecchia',historic:'monument','addr:city':'Bari'}},
+  { type:'node',id:1525,lat:45.484561,lon:9.187344, tags:{nameZh:'米兰蹦床公园',name:'Bounce Milano',leisure:'indoor_playground',website:'https://www.bounceitalia.it','addr:city':'Milano',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1526,lat:41.887915,lon:12.491566, tags:{nameZh:'罗马蹦床公园',name:'Jump World Roma',leisure:'indoor_playground','addr:city':'Roma',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1527,lat:43.766831,lon:11.295041, tags:{nameZh:'佛罗伦萨蹦床公园',name:'Trampoline Park Firenze',leisure:'indoor_playground','addr:city':'Firenze',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1528,lat:40.933811,lon:14.332994, tags:{nameZh:'那不勒斯蹦床公园',name:'Jump Arena Napoli',leisure:'indoor_playground','addr:city':'Napoli',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1529,lat:45.067755,lon:7.682489, tags:{nameZh:'都灵蹦床公园',name:'Jump Torino',leisure:'indoor_playground','addr:city':'Torino',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1530,lat:44.493820,lon:11.342633, tags:{nameZh:'博洛尼亚蹦床公园',name:'Bounce Bologna',leisure:'indoor_playground','addr:city':'Bologna',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1531,lat:45.4600,lon:9.2000, tags:{nameZh:'米兰卡丁车',name:'Kart Indoor Milano',leisure:'sports_centre',website:'https://www.kartindoor.it','addr:city':'Milano',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:1532,lat:41.8800,lon:12.4800, tags:{nameZh:'罗马卡丁车',name:'Roma Karting',leisure:'sports_centre','addr:city':'Roma',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:1533,lat:45.0600,lon:7.7000, tags:{nameZh:'都灵卡丁车',name:'Pista Kart Torino',leisure:'sports_centre','addr:city':'Torino',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:1534,lat:44.4100,lon:8.9400, tags:{nameZh:'热那亚卡丁车',name:'Karting Genova',leisure:'sports_centre','addr:city':'Genova',opening_hours:'Mo-Su 12:00-22:00'}},
+  { type:'node',id:1535,lat:45.531737,lon:9.138794, tags:{nameZh:'米兰密室逃脱',name:'Escape Room Milano',tourism:'attraction',website:'https://www.escaperoommilano.it','addr:city':'Milano',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:1536,lat:41.899587,lon:12.431013, tags:{nameZh:'罗马密室逃脱',name:'Intrappola.to Roma',tourism:'attraction',website:'https://www.intrappolato.com','addr:city':'Roma',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:1537,lat:43.794157,lon:11.217230, tags:{nameZh:'佛罗伦萨密室逃脱',name:'Escape Room Firenze',tourism:'attraction','addr:city':'Firenze',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:1538,lat:40.841784,lon:14.248935, tags:{nameZh:'那不勒斯密室逃脱',name:'Intrappola.to Napoli',tourism:'attraction','addr:city':'Napoli',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:1539,lat:45.4400,lon:12.3200, tags:{nameZh:'威尼斯迷你高尔夫',name:'Minigolf Punta Verde',leisure:'miniature_golf','addr:city':'Lignano Sabbiadoro',opening_hours:'Mo-Su 10:00-22:00 (seasonal)'}},
+  { type:'node',id:1540,lat:44.056907,lon:12.565287, tags:{nameZh:'里米尼迷你高尔夫',name:'Minigolf Rimini',leisure:'miniature_golf','addr:city':'Rimini',opening_hours:'Mo-Su 10:00-22:00 (seasonal)'}},
+  { type:'node',id:1541,lat:45.4300,lon:10.9900, tags:{nameZh:'加尔达湖迷你高尔夫',name:'Minigolf Garda',leisure:'miniature_golf','addr:city':'Garda',opening_hours:'Mo-Su 10:00-22:00 (seasonal)'}},
+  { type:'node',id:1542,lat:45.4500,lon:9.1800, tags:{nameZh:'米兰攀岩中心',name:'Urban Wall Milano',leisure:'sports_centre',website:'https://www.urbanwall.it','addr:city':'Milano',opening_hours:'Mo-Fr 10:00-22:00; Sa-Su 10:00-20:00'}},
+  { type:'node',id:1543,lat:41.8900,lon:12.5200, tags:{nameZh:'罗马攀岩中心',name:'King Rock Roma',leisure:'sports_centre',website:'https://www.kingrock.it','addr:city':'Roma',opening_hours:'Mo-Fr 10:00-22:00; Sa-Su 10:00-20:00'}},
+  { type:'node',id:1544,lat:45.359135,lon:11.665231, tags:{nameZh:'帕多瓦攀爬冒险',name:'Parco Avventura Le Fiorine',tourism:'theme_park','addr:city':'Teolo',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1545,lat:46.173706,lon:11.074023, tags:{nameZh:'特伦托攀爬冒险',name:'Parco Avventura Trentino',tourism:'theme_park','addr:city':'Fai della Paganella',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1546,lat:43.3200,lon:11.3300, tags:{nameZh:'锡耶纳攀爬冒险',name:'Parco Avventura Saltalbero Siena',tourism:'theme_park','addr:city':'Siena',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1547,lat:45.5200,lon:10.2200, tags:{nameZh:'加尔达兰探险公园',name:'Jungle Adventure Garda',tourism:'theme_park',website:'https://www.jungleadventurepark.com','addr:city':'Salò',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+];
+
+// ===== Category config =====
+const CATS = {
+  theme_park:  {emoji:'🎢', en:'Theme parks',   it:'Parchi a tema',     zh:'主题乐园'},
+  zoo:         {emoji:'🦒', en:'Zoos',          it:'Zoo',   zh:'动物园'},
+  aquarium:    {emoji:'🐠', en:'Aquariums',     it:'Acquari',        zh:'水族馆'},
+  museum:      {emoji:'🏛️', en:'Museums',       it:'Musei',          zh:'博物馆'},
+  nature:      {emoji:'🌳', en:'Nature',        it:'Natura',         zh:'自然'},
+  beach:       {emoji:'🏖️', en:'Beaches',       it:'Spiagge',       zh:'海滩'},
+  playground:  {emoji:'🎪', en:'Playgrounds',   it:'Parchi giochi',    zh:'游乐场'},
+  indoor_play: {emoji:'🏠', en:'Indoor play',   it:'Giochi al coperto',zh:'室内游乐'},
+  trampoline:  {emoji:'🤸', en:'Trampoline',    it:'Trampolino',     zh:'蹦床'},
+  swim:        {emoji:'🏊', en:'Swimming',      it:'Piscina',        zh:'游泳'},
+  climbing:    {emoji:'🧗', en:'Climbing',      it:'Arrampicata',       zh:'攀爬'},
+  karting:     {emoji:'🏎️', en:'Karting',       it:'Karting',           zh:'卡丁车'},
+  farm:         {emoji:'🐑', en:'Farms',         it:'Fattoria',zh:'农场'},
+  attraction:  {emoji:'⭐', en:'Attractions',   it:'Attrazioni',     zh:'景点'},
+  theatre:     {emoji:'🎭', en:'Theatre',       it:'Teatro',        zh:'剧院'},
+  cinema:      {emoji:'🎬', en:'Cinema',        it:'Cinema',       zh:'电影院'},
+  ice_rink:    {emoji:'⛸️', en:'Ice rink',      it:'Pista pattinaggio',        zh:'滑冰'},
+  minigolf:    {emoji:'⛳', en:'Minigolf',      it:'Minigolf',     zh:'迷你高尔夫'},
+  castle:      {emoji:'🏰', en:'Castles',       it:'Castelli',       zh:'城堡'},
+  windmill:    {emoji:'🌬️', en:'Windmills',     it:'Mulini',         zh:'风车'},
+  escape:      {emoji:'🔓', en:'Escape rooms',  it:'Escape room',   zh:'密室逃脱'},
+  sports:      {emoji:'🏆', en:'Sports centre', it:'Centro sportivo',   zh:'运动中心'},
+  restaurant:  {emoji:'🍽️', en:'Family dining', it:'Ristoranti famiglia',           zh:'亲子餐厅'},
+  monument:    {emoji:'🗿', en:'Monuments',     it:'Monumenti',     zh:'古迹'},
+  ship:        {emoji:'⛵', en:'Historic ships',it:'Navi storiche',zh:'历史船只'},
+  ruins:       {emoji:'🏺', en:'Ruins',         it:'Rovine',         zh:'遗址'},
+  other:       {emoji:'📍', en:'Other',         it:'Altro',         zh:'其他'}
+};
+
+// Richer emoji mapping using venue name keywords
+function emojiFor(name, cat){
+  const n = (name||'').toLowerCase();
+  // Zoo subtype refinements
+  if(cat==='zoo'){
+    if(/safari|wild|beekse/.test(n)) return '🦁';
+    if(/dolf|sea|seal|marine/.test(n)) return '🐬';
+    if(/bird|vogel|avifauna/.test(n)) return '🦜';
+    if(/ape|monkey|apen/.test(n)) return '🐒';
+    if(/butterfly|vlinder/.test(n)) return '🦋';
+    if(/reptile|snake|slang/.test(n)) return '🐍';
+    return '🦒';
+  }
+  // Museum subtype
+  if(cat==='museum'){
+    if(/science|nemo|natur/.test(n)) return '🔬';
+    if(/art|van gogh|rijks|kunstmuseum|stedelijk|gemeente/.test(n)) return '🖼️';
+    if(/maritime|ship|scheepvaart|maritiem/.test(n)) return '⚓';
+    if(/railway|spoorweg|train|tram/.test(n)) return '🚂';
+    if(/aviation|air|luchtvaart/.test(n)) return '✈️';
+    if(/corpus|body|anatomie/.test(n)) return '🫀';
+    if(/music|muziek|instrument/.test(n)) return '🎼';
+    if(/toy|speelgoed/.test(n)) return '🧸';
+    if(/history|histori|oorlog|war|museum van de geest/.test(n)) return '📜';
+    return '🏛️';
+  }
+  // Theme park subtype
+  if(cat==='theme_park'){
+    if(/water|waterpark|splash|aqua/.test(n)) return '💦';
+    if(/snow|ski|slope/.test(n)) return '❄️';
+    if(/mini|madurodam|miniatuur/.test(n)) return '🏘️';
+    if(/fairy|sprookje|efteling/.test(n)) return '🏰';
+    return '🎢';
+  }
+  // Nature subtype
+  if(cat==='nature'){
+    if(/forest|bos|wald/.test(n)) return '🌲';
+    if(/heath|heide/.test(n)) return '🌾';
+    if(/dune|duin/.test(n)) return '🏝️';
+    if(/lake|meer|lak/.test(n)) return '🏞️';
+    if(/tulip|tulp|keukenhof/.test(n)) return '🌷';
+    return '🌳';
+  }
+  // Playground subtype
+  if(cat==='playground'){
+    if(/water|splash/.test(n)) return '💦';
+    if(/adventure|avontur/.test(n)) return '🧗';
+    return '🛝';
+  }
+  // Indoor play
+  if(cat==='indoor_play'){
+    if(/monkey/.test(n)) return '🐒';
+    if(/ballorig|ball/.test(n)) return '🎈';
+    if(/jimmy|jimmi/.test(n)) return '🤹';
+    return '🏠';
+  }
+  // Restaurant subtype
+  if(cat==='restaurant'){
+    if(/pannenkoek|pancake/.test(n)) return '🥞';
+    if(/chinese|chinees|china|asia|asian|sushi|wok/.test(n)) return '🥢';
+    if(/pizza|pizzer/.test(n)) return '🍕';
+    if(/ice cream|ijssalon|gelato/.test(n)) return '🍦';
+    if(/buffet/.test(n)) return '🍱';
+    if(/burger|mcdonalds/.test(n)) return '🍔';
+    return '🍽️';
+  }
+  // Theme parks extras
+  if(cat==='theme_park' && /petting|boerderij/.test(n)) return '🐄';
+  // Castle/fort
+  if(cat==='castle'){
+    if(/fort|bourtange/.test(n)) return '⚔️';
+    return '🏰';
+  }
+  // Windmill
+  if(cat==='windmill') return '🌬️';
+  // Sports
+  if(cat==='sports'){
+    if(/klim|climb/.test(n)) return '🧗';
+    if(/bow|boog/.test(n)) return '🏹';
+    return '🏆';
+  }
+  // Farm animals
+  if(cat==='farm'){
+    if(/geiten|goat/.test(n)) return '🐐';
+    if(/paarden|horse/.test(n)) return '🐴';
+    return '🐑';
+  }
+  return CATS[cat]?.emoji || '📍';
+}
+
+function classify(t){
+  if(t.tourism==='theme_park') return 'theme_park';
+  if(t.tourism==='zoo') return 'zoo';
+  if(t.tourism==='children_farm') return 'farm';
+  if(t.tourism==='aquarium') return 'aquarium';
+  if(t.tourism==='museum') return 'museum';
+  if(t.tourism==='attraction' || t.tourism==='visitor_centre') return 'attraction';
+  if(t.leisure==='nature_reserve' || t.leisure==='park') return 'nature';
+  if(t.leisure==='playground') return 'playground';
+  if(t.leisure==='indoor_playground') return 'indoor_play';
+  if(t.leisure==='trampoline_park') return 'trampoline';
+  if(t.leisure==='swimming_pool') return 'swim';
+  if(t.leisure==='climbing_park') return 'climbing';
+  if(t.leisure==='go_kart') return 'karting';
+  if(t.leisure==='miniature_golf') return 'minigolf';
+  if(t.leisure==='ice_rink') return 'ice_rink';
+  if(t.leisure==='sports_centre') return 'sports';
+  if(t.leisure==='escape_room') return 'escape';
+  if(t.amenity==='theatre') return 'theatre';
+  if(t.amenity==='cinema') return 'cinema';
+  if(t.amenity && t.amenity.indexOf('restaurant')>=0) return 'restaurant';
+  if(t.historic==='castle') return 'castle';
+  if(t.historic==='fort') return 'castle';
+  if(t.historic==='windmill' || t.man_made==='windmill') return 'windmill';
+  if(t.historic==='monument' || t.historic==='archaeological_site') return 'monument';
+  if(t.historic==='ship') return 'ship';
+  if(t.historic==='ruins') return 'ruins';
+  if(t.natural==='beach') return 'beach';
+  return 'other';
+}
+
+// ===== Transform data =====
+const VENUES = STATIC_IT_VENUES.map(v=>{
+  const t = v.tags || {};
+  const cat = classify(t);
+  return {
+    id: v.id, lat: v.lat, lon: v.lon,
+    name: t.name || 'Unnamed',
+    zh: t.nameZh || '',
+    cat: cat,
+    emoji: emojiFor(t.name, cat),
+    city: t['addr:city'] || '',
+    street: t['addr:street'] || '',
+    house: t['addr:housenumber'] || '',
+    postcode: t['addr:postcode'] || '',
+    website: t.website || '',
+    hours: t.opening_hours || '',
+    rating: parseFloat(t.rating || '0') || null,
+    reviews: parseInt(t.reviews || '0') || 0,
+  };
+});
+
+// ===== State =====
+const FAV_KEY = 'ke_favs_it';
+const LANG_KEY = 'ke_lang_it';
+const LANGS = ['en','it','zh'];  // cycle: en → nl → zh → en
+const state = {
+  activeCats: new Set(),  // empty = all
+  search: '',
+  sortBy: 'rating',
+  filtered: [],
+  selectedId: null,
+  markers: new Map(),
+  favs: new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')),
+  favsOnly: false,
+  lang: localStorage.getItem(LANG_KEY) || (navigator.language.startsWith('it') ? 'it' : navigator.language.startsWith('zh') ? 'zh' : 'en'),
+};
+
+// ===== i18n =====
+const I18N = {
+  en: {
+    in_view: 'in view', favs: '♡ Favs', filters: '🏷 Category', sort: '↕ Sort',
+    category: 'Category', clear: 'Clear', show_results: 'Show results',
+    near_me: 'Near me', map: '🗺 Map', list: '☰ List',
+    directions: '🗺 Directions', website: '🌐 Website',
+    rating: 'Rating', address: 'Address', city: 'City', hours: 'Hours', reviews: 'reviews',
+    empty: 'No venues in this area. Try moving the map or clearing filters.',
+    search_ph: 'Search places or cities…',
+    lang_next: 'IT',
+  },
+  it: {
+    in_view:'in vista', favs:'♡ Preferiti', filters:'🏷 Categoria', sort:'↕ Ordina',
+    category:'Categoria', clear:'Cancella', show_results:'Mostra risultati',
+    near_me:'Vicino a me', map:'🗺 Mappa', list:'☰ Elenco',
+    directions:'🗺 Indicazioni', website:'🌐 Sito web',
+    rating:'Valutazione', address:'Indirizzo', city:'Città', hours:'Orari', reviews:'recensioni',
+    empty:'Nessun luogo in questa zona.',
+    search_ph:'Cerca luoghi o città…',
+    lang_next:'中',
+  },
+  zh: {
+    in_view: '可见', favs: '♡ 收藏', filters: '🏷 品类', sort: '↕ 排序',
+    category: '品类', clear: '清空', show_results: '显示结果',
+    near_me: '我附近', map: '🗺 地图', list: '☰ 列表',
+    directions: '🗺 导航', website: '🌐 官网',
+    rating: '评分', address: '地址', city: '城市', hours: '开放时间', reviews: '评价',
+    empty: '当前视口内没有场所。拖动地图或清空筛选。',
+    search_ph: '搜索场所或城市…',
+    lang_next: 'EN',
+  }
+};
+function t(k){return I18N[state.lang][k] || k;}
+
+function toggleLang(){
+  const idx = LANGS.indexOf(state.lang);
+  state.lang = LANGS[(idx+1) % LANGS.length];
+  localStorage.setItem(LANG_KEY, state.lang);
+  applyLang();
+  renderList();
+  buildCatGrid();
+}
+function applyLang(){
+  // Header button shows NEXT language
+  document.getElementById('lang-btn').textContent = t('lang_next');
+  // Update chips
+  document.getElementById('favs-chip').innerHTML = t('favs');
+  document.querySelector('.actions .chip:nth-child(2)').innerHTML = t('filters');
+  document.querySelector('.actions .chip:nth-child(3)').innerHTML = t('sort');
+  // Filter drawer title + section
+  document.querySelector('.filter-hdr h3').textContent = t('category');
+  document.querySelector('.filter-section h4').textContent = t('category');
+  document.querySelector('.btn-clear').textContent = t('clear');
+  document.querySelector('.btn-apply').textContent = t('show_results');
+  // Near me button
+  document.querySelector('.fab.near').innerHTML = `<span>📍</span><span>${t('near_me')}</span>`;
+  // Map/List toggle
+  document.getElementById('tog-map').textContent = t('map');
+  document.getElementById('tog-list').textContent = t('list');
+  // Search placeholder
+  document.getElementById('search').placeholder = t('search_ph');
+  // Count label
+  document.getElementById('count-label').textContent = t('in_view');
+}
+function saveFavs(){localStorage.setItem(FAV_KEY, JSON.stringify([...state.favs]));}
+function toggleFav(){
+  if(state.selectedId == null) return;
+  if(state.favs.has(state.selectedId)) state.favs.delete(state.selectedId);
+  else state.favs.add(state.selectedId);
+  saveFavs();
+  updateFavBtn();
+  renderList();
+}
+function updateFavBtn(){
+  const btn = document.getElementById('ov-fav');
+  if(!btn) return;
+  const on = state.favs.has(state.selectedId);
+  btn.classList.toggle('on', on);
+  btn.textContent = on ? '♥' : '♡';
+}
+function toggleFavsOnly(){
+  state.favsOnly = !state.favsOnly;
+  document.getElementById('favs-chip').classList.toggle('on', state.favsOnly);
+  document.getElementById('favs-chip').style.background = state.favsOnly ? '#fff5f0' : '';
+  document.getElementById('favs-chip').style.color = state.favsOnly ? 'var(--brand)' : '';
+  document.getElementById('favs-chip').style.borderColor = state.favsOnly ? 'var(--brand)' : '';
+  renderList();
+}
+function cardFavClick(ev, id){
+  ev.stopPropagation();
+  if(state.favs.has(id)) state.favs.delete(id); else state.favs.add(id);
+  saveFavs();
+  if(state.selectedId===id) updateFavBtn();
+  renderList();
+}
+
+// ===== Map =====
+const map = L.map('map', {zoomControl:false, attributionControl:false}).setView([42.5,12.5],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+L.control.attribution({prefix:false}).addTo(map);
+
+const clusterGroup = L.markerClusterGroup({
+  maxClusterRadius: 50,
+  showCoverageOnHover: false,
+});
+map.addLayer(clusterGroup);
+
+function makeIcon(v, selected=false){
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim();
+  return L.divIcon({
+    className: selected ? 'selected' : '',
+    html: `<div class="venue-marker" style="border-color:${color}">${v.emoji}</div>`,
+    iconSize:[36,36], iconAnchor:[18,18]
+  });
+}
+
+VENUES.forEach(v=>{
+  const m = L.marker([v.lat, v.lon], {icon: makeIcon(v)});
+  m.on('click', ()=>openDetail(v));
+  clusterGroup.addLayer(m);
+  state.markers.set(v.id, m);
+});
+
+// ===== Filter + render =====
+function computeFiltered(){
+  const q = state.search.trim().toLowerCase();
+  const bounds = map.getBounds();
+  let list = VENUES.filter(v=>{
+    if(state.favsOnly && !state.favs.has(v.id)) return false;
+    if(state.activeCats.size && !state.activeCats.has(v.cat)) return false;
+    if(q && !(v.name.toLowerCase().includes(q) || v.zh.includes(q) || v.city.toLowerCase().includes(q))) return false;
+    if(!state.favsOnly && !bounds.contains([v.lat, v.lon])) return false;
+    return true;
+  });
+  if(state.sortBy==='rating'){
+    list.sort((a,b)=>(b.rating||0)-(a.rating||0));
+  } else if(state.sortBy==='name'){
+    list.sort((a,b)=>a.name.localeCompare(b.name));
+  }
+  state.filtered = list;
+  return list;
+}
+
+function renderList(){
+  const list = computeFiltered();
+  const el = document.getElementById('list');
+  document.getElementById('count').textContent = list.length;
+  if(!list.length){
+    el.innerHTML = `<div class="empty">No venues in this area. Try moving the map or clearing filters.</div>`;
+    return;
+  }
+  el.innerHTML = list.slice(0,200).map(v=>{
+    const isFav = state.favs.has(v.id);
+    // NL venues: original name is already Dutch → use for en & nl; zh uses nameZh
+    const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+    const secondary = state.lang==='zh' ? v.name : (v.zh || '');
+    const catLabel = CATS[v.cat]?.[state.lang] || v.cat;
+    return `
+    <div class="venue-card" data-id="${v.id}" onclick="openDetail(VENUES.find(x=>x.id===${v.id}))">
+      <div class="venue-thumb cat-${v.cat}">${v.emoji}<button class="card-fav ${isFav?'on':''}" onclick="cardFavClick(event,${v.id})" title="Favorite">${isFav?'♥':'♡'}</button></div>
+      <div class="venue-info">
+        <div class="venue-name">${primary}</div>
+        ${secondary?`<div class="venue-zh">${secondary}</div>`:''}
+        <div class="venue-meta">
+          ${v.rating?`<span class="rating">★ ${v.rating.toFixed(1)}</span><span class="dot">·</span>`:''}
+          <span>${catLabel}</span>
+          ${v.city?`<span class="dot">·</span><span>${v.city}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== Detail overlay =====
+function openDetail(v){
+  if(!v) return;
+  state.selectedId = v.id;
+  const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+  const secondary = state.lang==='zh' && v.zh ? v.name : v.zh;
+  document.getElementById('ov-name').textContent = primary;
+  document.getElementById('ov-zh').textContent = secondary;
+  const rows = [];
+  if(v.rating) rows.push([t('rating'), `★ ${v.rating.toFixed(1)} · ${v.reviews.toLocaleString()} ${t('reviews')}`]);
+  if(v.street) rows.push([t('address'), `${v.street} ${v.house}, ${v.postcode} ${v.city}`.trim()]);
+  else if(v.city) rows.push([t('city'), v.city]);
+  rows.push([t('category'), `${v.emoji} ${CATS[v.cat]?.[state.lang] || v.cat}`]);
+  if(v.hours) rows.push([t('hours'), v.hours]);
+  document.getElementById('ov-body').innerHTML = rows.map(([k,val])=>
+    `<div class="detail-row"><div class="lbl">${k}</div><div>${val}</div></div>`
+  ).join('');
+  document.getElementById('ov-directions').href = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}&destination_place_id=${encodeURIComponent(v.name)}`;
+  document.getElementById('ov-directions').textContent = t('directions');
+  document.getElementById('ov-website').textContent = t('website');
+  const wsBtn = document.getElementById('ov-website');
+  if(v.website){
+    wsBtn.href = v.website; wsBtn.style.display='flex';
+  } else {
+    wsBtn.style.display='none';
+  }
+  updateFavBtn();
+  document.getElementById('overlay').classList.add('open');
+  // pan to marker
+  map.flyTo([v.lat, v.lon], Math.max(map.getZoom(), 13), {duration:.6});
+}
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('open');
+  state.selectedId = null;
+}
+
+// ===== Filter drawer =====
+function buildCatGrid(){
+  const counts = {};
+  VENUES.forEach(v=>counts[v.cat]=(counts[v.cat]||0)+1);
+  const el = document.getElementById('cat-grid');
+  el.innerHTML = Object.entries(CATS)
+    .filter(([k])=>counts[k])
+    .sort(([a],[b])=>(counts[b]||0)-(counts[a]||0))
+    .map(([k,c])=>`<button class="cat-btn ${state.activeCats.has(k)?'active':''}" data-cat="${k}" onclick="toggleCat('${k}')">
+      <span class="emoji">${c.emoji}</span>${c[state.lang]}<span class="count">${counts[k]}</span>
+    </button>`).join('');
+}
+function toggleCat(k){
+  if(state.activeCats.has(k)) state.activeCats.delete(k); else state.activeCats.add(k);
+  buildCatGrid();
+  renderList();
+}
+function clearFilter(){
+  state.activeCats.clear();
+  buildCatGrid();
+  renderList();
+}
+function openFilter(){document.getElementById('filter').classList.add('open');}
+function closeFilter(){document.getElementById('filter').classList.remove('open');}
+
+// ===== Drawer interactions =====
+function toggleDrawer(){
+  const d = document.getElementById('drawer');
+  const s = d.dataset.state;
+  d.dataset.state = s==='peek'?'half':(s==='half'?'full':'peek');
+}
+
+// ===== Near me (geolocation) =====
+function locateMe(){
+  if(!navigator.geolocation) return alert('Geolocation not supported');
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      const {latitude, longitude} = pos.coords;
+      map.flyTo([latitude, longitude], 12, {duration:.8});
+      L.circleMarker([latitude, longitude], {radius:10, color:'#c96442', fillColor:'#c96442', fillOpacity:.3, weight:3}).addTo(map);
+    },
+    (err)=>alert('Could not get location: '+err.message)
+  );
+}
+
+// ===== Zoom =====
+function zoomIn(){map.zoomIn();}
+function zoomOut(){map.zoomOut();}
+
+// ===== Search =====
+document.getElementById('search').addEventListener('input', e=>{
+  state.search = e.target.value;
+  renderList();
+});
+
+// ===== Country picker (placeholder — links to /) =====
+function openCountryPicker(){
+  window.location.href = '/';
+}
+
+// ===== Map/List view toggle (mobile) =====
+function setView(v){
+  document.body.dataset.view = v;
+  document.getElementById('tog-map').classList.toggle('active', v==='map');
+  document.getElementById('tog-list').classList.toggle('active', v==='list');
+  if(v==='map'){
+    setTimeout(()=>map.invalidateSize(), 50);
+  }
+}
+document.body.dataset.view = 'map';
+
+// ===== Sort toggle =====
+function toggleSort(){
+  state.sortBy = state.sortBy==='rating'?'name':'rating';
+  renderList();
+}
+
+// ===== Sync list when map moves =====
+let moveTimer;
+map.on('moveend', ()=>{
+  clearTimeout(moveTimer);
+  moveTimer = setTimeout(renderList, 150);
+});
+
+// ===== Initial render =====
+applyLang();
+buildCatGrid();
+renderList();
+
+// ===== Click outside to close overlays =====
+map.on('click', ()=>{
+  closeOverlay();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>France Kids Explorer · KidsExplorer.eu</title>
+<meta name="description" content="Family-friendly venues across France on one interactive map. Multilingual. Free.">
+<link rel="canonical" href="https://kidsexplorer.eu/fr/">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Original Holland Kids palette (restored from v1) */
+  --bg:#F2F4F8;
+  --surface:#FFFFFF;
+  --border:#CBD5E1;
+  --border-strong:#94A3B8;
+  --text:#1A2B4A;
+  --text-soft:#5A6A84;
+  --text-mute:#9AA5B8;
+  --brand:#E05A1E;
+  --brand-dark:#B84515;
+  --brand-light:#FFF0E9;
+  --teal:#0EA5A0;
+  --navy:#1A2B4A;
+  --shadow:0 1px 3px rgba(26,43,74,.12), 0 0 0 1px rgba(26,43,74,.04);
+  --shadow-lg:0 8px 24px rgba(26,43,74,.20), 0 0 0 1px rgba(26,43,74,.08);
+  --radius:14px;
+  --header-h:56px;
+  --safe-bottom:env(safe-area-inset-bottom,0);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input{font-family:inherit;border:none;outline:none;background:none;color:inherit}
+
+/* ===== Top Header ===== */
+.hdr{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);z-index:900;display:flex;align-items:center;gap:10px;padding:0 14px}
+.hdr-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;letter-spacing:-.3px;color:var(--brand);white-space:nowrap}
+.hdr-brand .logo{font-size:20px}
+.hdr-country{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--bg);border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:600;cursor:pointer}
+.hdr-country:hover{border-color:var(--brand)}
+.hdr-country .flag{font-size:16px}
+.hdr-search{flex:1;display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:999px;cursor:text;min-width:0}
+.hdr-search input{flex:1;font-size:14px;min-width:0}
+.hdr-search .icon{color:var(--text-mute);flex-shrink:0}
+.hdr-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--bg);border:1px solid var(--border);font-size:16px;flex-shrink:0}
+.hdr-btn:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ===== Map ===== */
+#map{position:fixed;top:var(--header-h);left:0;right:0;bottom:0;z-index:1}
+.leaflet-popup-content-wrapper{border-radius:14px}
+.leaflet-popup-content{margin:14px 16px;font-family:'Inter',sans-serif;font-size:13px}
+
+/* ===== Map/List Toggle (mobile) ===== */
+.view-toggle{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--header-h) + 12px);z-index:600;display:flex;background:#fff;border:1px solid var(--border);border-radius:999px;box-shadow:var(--shadow);padding:3px}
+.view-toggle button{padding:8px 18px;font-size:13px;font-weight:600;border-radius:999px;color:var(--text-soft)}
+.view-toggle button.active{background:var(--text);color:#fff}
+.view-toggle button:not(.active):hover{color:var(--text)}
+body[data-view="list"] #map{display:none}
+body[data-view="list"] .drawer{transform:translateY(0)!important;top:calc(var(--header-h) + 58px);border-radius:20px 20px 0 0;max-height:calc(100vh - var(--header-h) - 58px);height:calc(100vh - var(--header-h) - 58px)}
+body[data-view="list"] .drawer-handle{display:none}
+body[data-view="list"] .fab-stack{display:none}
+@media (min-width:1024px){
+  .view-toggle{display:none} /* desktop shows both */
+}
+
+/* ===== Floating Action Buttons ===== */
+.fab-stack{position:fixed;right:14px;top:calc(var(--header-h) + 14px);z-index:500;display:flex;flex-direction:column;gap:10px}
+.fab{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s}
+.fab:hover{border-color:var(--brand);color:var(--brand);transform:scale(1.05)}
+.fab.near{background:var(--brand);color:#fff;border-color:var(--brand);width:auto;padding:0 18px;border-radius:22px;font-size:13px;font-weight:600;gap:6px}
+.fab.near:hover{background:var(--brand-dark);color:#fff}
+
+/* ===== Bottom Drawer (List) ===== */
+.drawer{position:fixed;left:0;right:0;bottom:0;z-index:700;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:80vh;display:flex;flex-direction:column}
+.drawer[data-state="peek"]{transform:translateY(calc(100% - 72px))}
+.drawer[data-state="half"]{transform:translateY(calc(100% - 48vh))}
+.drawer[data-state="full"]{transform:translateY(8vh)}
+.drawer-handle{flex-shrink:0;padding:8px 0 4px;text-align:center;cursor:grab;touch-action:none}
+.drawer-handle::before{content:'';display:inline-block;width:40px;height:4px;background:var(--border-strong);border-radius:2px}
+.drawer-hdr{flex-shrink:0;padding:6px 18px 12px;display:flex;align-items:center;justify-content:space-between}
+.drawer-hdr .count{font-weight:700;font-size:14px}
+.drawer-hdr .count small{font-weight:500;color:var(--text-mute);font-size:12px;margin-left:4px}
+.drawer-hdr .actions{display:flex;gap:6px}
+.drawer-hdr .chip{padding:6px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.drawer-hdr .chip:hover{border-color:var(--brand);color:var(--brand)}
+.drawer-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 18px calc(20px + var(--safe-bottom))}
+.venue-card{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.venue-card:last-child{border-bottom:none}
+.venue-card:hover{background:#fafaf7}
+.venue-card:hover .venue-name{color:var(--brand)}
+.venue-thumb{width:56px;height:56px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;position:relative;overflow:hidden}
+.venue-thumb::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.2),transparent)}
+.venue-info{flex:1;min-width:0}
+.venue-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-zh{font-size:12px;color:var(--text-mute);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft)}
+.venue-meta .rating{color:var(--brand);font-weight:600}
+.venue-meta .dot{color:var(--text-mute)}
+.empty{padding:40px 20px;text-align:center;color:var(--text-mute);font-size:14px}
+
+/* ===== Detail Overlay (bottom sheet, half-screen) ===== */
+.overlay{position:fixed;left:0;right:0;bottom:0;z-index:900;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);max-height:50vh;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.overlay.open{transform:translateY(0)}
+.overlay-hdr{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;padding:18px 18px 12px;gap:10px}
+.overlay-title{flex:1;min-width:0}
+.overlay-title h3{font-size:18px;font-weight:700;line-height:1.2;margin-bottom:4px}
+.overlay-title .zh{font-size:13px;color:var(--text-mute)}
+.overlay-close{width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-soft)}
+.overlay-body{flex:1;overflow-y:auto;padding:0 18px 20px}
+.detail-row{display:flex;gap:10px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--text-soft)}
+.detail-row .lbl{min-width:70px;font-weight:600;color:var(--text)}
+.overlay-actions{flex-shrink:0;padding:12px 18px calc(12px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:8px}
+.overlay-actions .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+.overlay-actions .btn-primary{background:var(--brand);color:#fff}
+.overlay-actions .btn-primary:hover{background:var(--brand-dark)}
+.overlay-actions .btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.overlay-actions .btn-secondary:hover{border-color:var(--brand);color:var(--brand)}
+.overlay-fav{width:44px;height:44px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:all .15s}
+.overlay-fav:hover{border-color:var(--brand)}
+.overlay-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.card-fav{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.9);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text-mute);z-index:2;transition:all .15s}
+.card-fav:hover{color:var(--brand);border-color:var(--brand)}
+.card-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.venue-thumb{position:relative}
+
+/* ===== Filter Drawer (slides from right) ===== */
+.filter-drawer{position:fixed;top:var(--header-h);right:0;bottom:0;width:min(360px,92vw);background:#fff;border-left:1px solid var(--border);box-shadow:-10px 0 40px rgba(0,0,0,.12);z-index:950;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;pointer-events:none}
+.filter-drawer.open{pointer-events:auto}
+.filter-drawer.open{transform:translateX(0)}
+.filter-hdr{flex-shrink:0;padding:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.filter-hdr h3{font-size:18px;font-weight:700}
+.filter-body{flex:1;overflow-y:auto;padding:20px}
+.filter-section{margin-bottom:24px}
+.filter-section h4{font-size:12px;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.cat-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:500;color:var(--text)}
+.cat-btn.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.cat-btn:not(.active):hover{border-color:var(--brand);color:var(--brand)}
+.cat-btn .emoji{font-size:16px}
+.cat-btn .count{margin-left:auto;font-size:11px;opacity:.75}
+.filter-footer{flex-shrink:0;padding:16px 20px calc(16px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:10px}
+.filter-footer .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600}
+.filter-footer .btn-clear{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.filter-footer .btn-apply{background:var(--brand);color:#fff}
+
+/* Gradient covers for thumbnails */
+.cat-theme_park{background:linear-gradient(135deg,#ff9a56,#ff6b9d)}
+.cat-zoo{background:linear-gradient(135deg,#22c55e,#059669)}
+.cat-aquarium{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-museum{background:linear-gradient(135deg,#8b5cf6,#4f46e5)}
+.cat-nature{background:linear-gradient(135deg,#84cc16,#15803d)}
+.cat-beach{background:linear-gradient(135deg,#38bdf8,#0ea5e9)}
+.cat-playground{background:linear-gradient(135deg,#fbbf24,#f97316)}
+.cat-indoor_play{background:linear-gradient(135deg,#a855f7,#7e22ce)}
+.cat-trampoline{background:linear-gradient(135deg,#ec4899,#be185d)}
+.cat-swim{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-climbing{background:linear-gradient(135deg,#f59e0b,#b45309)}
+.cat-karting{background:linear-gradient(135deg,#ef4444,#991b1b)}
+.cat-farm{background:linear-gradient(135deg,#a3e635,#65a30d)}
+.cat-attraction{background:linear-gradient(135deg,#fb923c,#c2410c)}
+.cat-theatre{background:linear-gradient(135deg,#d946ef,#86198f)}
+.cat-cinema{background:linear-gradient(135deg,#64748b,#334155)}
+.cat-ice_rink{background:linear-gradient(135deg,#60a5fa,#1d4ed8)}
+.cat-minigolf{background:linear-gradient(135deg,#10b981,#047857)}
+.cat-other{background:linear-gradient(135deg,#94a3b8,#475569)}
+.cat-castle{background:linear-gradient(135deg,#a78bfa,#6d28d9)}
+.cat-windmill{background:linear-gradient(135deg,#bae6fd,#0284c7)}
+.cat-escape{background:linear-gradient(135deg,#fdba74,#c2410c)}
+.cat-sports{background:linear-gradient(135deg,#fde047,#ca8a04)}
+.cat-restaurant{background:linear-gradient(135deg,#f87171,#b91c1c)}
+.cat-monument{background:linear-gradient(135deg,#d6d3d1,#57534e)}
+.cat-ship{background:linear-gradient(135deg,#67e8f9,#0e7490)}
+.cat-ruins{background:linear-gradient(135deg,#fde68a,#92400e)}
+
+/* Marker icons */
+.venue-marker{width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.leaflet-marker-icon.selected .venue-marker{transform:scale(1.2);border-width:4px}
+
+/* Cluster */
+.marker-cluster-small{background:rgba(201,100,66,.25)}
+.marker-cluster-small div{background:rgba(201,100,66,.8)}
+.marker-cluster-medium{background:rgba(201,100,66,.35)}
+.marker-cluster-medium div{background:rgba(201,100,66,.9)}
+.marker-cluster-large{background:rgba(201,100,66,.45)}
+.marker-cluster-large div{background:var(--brand)}
+.marker-cluster div{color:#fff;font-weight:700}
+
+@media (max-width:640px){
+  .hdr-brand span:not(.logo){display:none}
+  .drawer-hdr{padding:6px 14px 10px}
+  .drawer-body{padding:0 14px calc(20px + var(--safe-bottom))}
+  .cat-grid{grid-template-columns:1fr}
+}
+@media (min-width:1024px){
+  /* Desktop: drawer becomes sidebar */
+  .drawer{top:var(--header-h);right:auto;left:0;width:420px;max-width:420px;max-height:none;height:calc(100vh - var(--header-h));border-radius:0;border-right:1px solid var(--border);border-top:none;transform:translateX(0) !important;box-shadow:4px 0 24px rgba(0,0,0,.06)}
+  .drawer-handle{display:none}
+  #map{left:420px}
+  .overlay{left:auto;right:20px;bottom:20px;width:400px;max-width:calc(100vw - 440px);max-height:70vh;border-radius:20px;border:1px solid var(--border)}
+  .fab-stack{top:calc(var(--header-h) + 14px);right:14px}
+}
+</style>
+</head>
+<body>
+
+<!-- Top Header -->
+<header class="hdr">
+  <a href="/" class="hdr-brand"><span class="logo">🌍</span><span>KidsExplorer</span></a>
+  <button class="hdr-country" onclick="openCountryPicker()">
+    <span class="flag">🇫🇷</span><span>FR</span><span style="opacity:.5">▾</span>
+  </button>
+  <div class="hdr-search">
+    <span class="icon">🔍</span>
+    <input id="search" placeholder="Search / 搜索…">
+  </div>
+  <button class="hdr-btn" id="lang-btn" onclick="toggleLang()" title="Language">中</button>
+  <button class="hdr-btn" onclick="openFilter()" title="Category">🏷️</button>
+</header>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- View Toggle (mobile only) -->
+<div class="view-toggle">
+  <button id="tog-map" class="active" onclick="setView('map')">🗺 Map</button>
+  <button id="tog-list" onclick="setView('list')">☰ List</button>
+</div>
+
+<!-- Floating Actions -->
+<div class="fab-stack">
+  <button class="fab near" onclick="locateMe()"><span>📍</span><span>Near me</span></button>
+  <button class="fab" onclick="zoomIn()">+</button>
+  <button class="fab" onclick="zoomOut()">−</button>
+</div>
+
+<!-- Bottom Drawer: Venue list -->
+<section class="drawer" id="drawer" data-state="peek">
+  <div class="drawer-handle" onclick="toggleDrawer()"></div>
+  <div class="drawer-hdr">
+    <div class="count"><span id="count">0</span> <small id="count-label">in view</small></div>
+    <div class="actions">
+      <button class="chip" id="favs-chip" onclick="toggleFavsOnly()">♡ Favs</button>
+      <button class="chip" onclick="openFilter()">🏷 Category</button>
+      <button class="chip" onclick="toggleSort()">↕ Sort</button>
+    </div>
+  </div>
+  <div class="drawer-body" id="list"></div>
+</section>
+
+<!-- Detail Overlay -->
+<aside class="overlay" id="overlay">
+  <div class="overlay-hdr">
+    <div class="overlay-title">
+      <h3 id="ov-name"></h3>
+      <div class="zh" id="ov-zh"></div>
+    </div>
+    <button class="overlay-close" onclick="closeOverlay()">×</button>
+  </div>
+  <div class="overlay-body" id="ov-body"></div>
+  <div class="overlay-actions">
+    <button class="overlay-fav" id="ov-fav" onclick="toggleFav()" title="Save to favorites">♡</button>
+    <a class="btn btn-secondary" id="ov-directions" target="_blank">🗺 Directions</a>
+    <a class="btn btn-primary" id="ov-website" target="_blank">🌐 Website</a>
+  </div>
+</aside>
+
+<!-- Filter Drawer -->
+<aside class="filter-drawer" id="filter">
+  <div class="filter-hdr">
+    <h3>Category</h3>
+    <button class="overlay-close" onclick="closeFilter()">×</button>
+  </div>
+  <div class="filter-body">
+    <div class="filter-section">
+      <h4>Category</h4>
+      <div class="cat-grid" id="cat-grid"></div>
+    </div>
+  </div>
+  <div class="filter-footer">
+    <button class="btn btn-clear" onclick="clearFilter()">Clear</button>
+    <button class="btn btn-apply" onclick="closeFilter()">Show results</button>
+  </div>
+</aside>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+const STATIC_FR_VENUES = [
+  // ══════════════════════════════════════════════════════════════
+  // THEME PARKS (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1001,lat:48.8722,lon:2.7758, tags:{nameZh:'巴黎迪士尼乐园',name:'Disneyland Paris',tourism:'theme_park',website:'https://www.disneylandparis.com','addr:city':'Marne-la-Vallee',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'142847'}},
+  { type:'node',id:1002,lat:49.132925,lon:2.571884, tags:{nameZh:'阿斯泰利克斯公园',name:'Parc Asterix',tourism:'theme_park',website:'https://www.parcasterix.fr','addr:city':'Plailly',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.4',reviews:'48217'}},
+  { type:'node',id:1003,lat:46.670389,lon:0.370111, tags:{nameZh:'未来世界',name:'Futuroscope',tourism:'theme_park',website:'https://www.futuroscope.com','addr:city':'Chasseneuil-du-Poitou',opening_hours:'Mo-Su 10:00-19:00 (seasonal)',rating:'4.3',reviews:'32841'}},
+  { type:'node',id:1004,lat:46.888833,lon:-0.930440, tags:{nameZh:'疯狂城堡',name:'Puy du Fou',tourism:'theme_park',website:'https://www.puydufou.com','addr:city':'Les Epesses',opening_hours:'Mo-Su 10:00-22:00 (seasonal)',rating:'4.7',reviews:'68247'}},
+  { type:'node',id:1005,lat:48.261478,lon:4.612913, tags:{nameZh:'尼格兰乐园',name:'Nigloland',tourism:'theme_park',website:'https://www.nigloland.fr','addr:city':'Dolancourt',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.3',reviews:'14821'}},
+  { type:'node',id:1006,lat:45.813550,lon:2.943211, tags:{nameZh:'火山探险公园',name:'Vulcania',tourism:'theme_park',website:'https://www.vulcania.com','addr:city':'Saint-Ours-les-Roches',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.2',reviews:'11247'}},
+  { type:'node',id:1007,lat:45.621896,lon:5.569925, tags:{nameZh:'瓦利比罗纳-阿尔卑斯',name:'Walibi Rhone-Alpes',tourism:'theme_park',website:'https://www.walibi.com/rhone-alpes','addr:city':'Les Avenieres',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.0',reviews:'12438'}},
+  { type:'node',id:1008,lat:46.509175,lon:3.626366, tags:{nameZh:'勒帕尔动物游乐园',name:'Le Pal',tourism:'theme_park',website:'https://www.lepal.com','addr:city':'Dompierre-sur-Besbre',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.5',reviews:'18247'}},
+  { type:'node',id:1009,lat:50.429520,lon:1.601531, tags:{nameZh:'巴加泰尔游乐园',name:'Bagatelle',tourism:'theme_park',website:'https://www.parcbagatelle.com','addr:city':'Merlimont',opening_hours:'Mo-Su 10:30-18:00 (seasonal)',rating:'3.9',reviews:'5842'}},
+  { type:'node',id:1010,lat:47.500479,lon:-0.569860, tags:{nameZh:'泰拉植物园',name:'Terra Botanica',tourism:'theme_park',website:'https://www.terrabotanica.fr','addr:city':'Angers',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.3',reviews:'8247'}},
+  { type:'node',id:1011,lat:43.615319,lon:7.126082, tags:{nameZh:'安提布海洋公园',name:'Marineland Antibes',tourism:'theme_park',website:'https://www.marineland.fr','addr:city':'Antibes',opening_hours:'Mo-Su 10:00-19:00 (seasonal)',rating:'4.0',reviews:'21438'}},
+  { type:'node',id:1012,lat:48.861871,lon:2.333320, tags:{nameZh:'驯化花园',name:"Jardin d'Acclimatation",tourism:'theme_park',website:'https://www.jardindacclimatation.fr','addr:city':'Paris',opening_hours:'Mo-Su 10:00-19:00',rating:'4.2',reviews:'18247'}},
+  { type:'node',id:1013,lat:48.872316,lon:2.775712, tags:{nameZh:'迪士尼影城',name:'Walt Disney Studios Park',tourism:'theme_park',website:'https://www.disneylandparis.com','addr:city':'Marne-la-Vallee',opening_hours:'Mo-Su 10:00-21:00',rating:'4.3',reviews:'52418'}},
+  { type:'node',id:1015,lat:43.3950,lon:3.1650, tags:{nameZh:'月神公园',name:'Luna Park Cap d\'Agde',tourism:'theme_park','addr:city':'Cap d\'Agde',opening_hours:'Mo-Su 20:00-01:00 (seasonal)'}},
+  { type:'node',id:1016,lat:47.838345,lon:-3.407564, tags:{nameZh:'洛里昂探险公园',name:'Parc Aventure Lorient',tourism:'theme_park','addr:city':'Lorient',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:1017,lat:48.567159,lon:2.781875, tags:{nameZh:'布兰维尔动物冒险',name:'Blandy Aventures',tourism:'theme_park','addr:city':'Blandy-les-Tours',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1018,lat:50.4500,lon:2.8500, tags:{nameZh:'艾诺丹乐园',name:'Dennlys Parc',tourism:'theme_park',website:'https://www.dennlys-parc.com','addr:city':'Dennebroeucq',opening_hours:'Mo-Su 10:30-18:00 (seasonal)'}},
+  { type:'node',id:1019,lat:43.188566,lon:2.392386, tags:{nameZh:'澳大利亚公园',name:'Parc Australien',tourism:'theme_park','addr:city':'Carcassonne',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1020,lat:48.389920,lon:-4.435977, tags:{nameZh:'海底世界布雷斯特',name:'Oceanopolis Brest',tourism:'aquarium',website:'https://www.oceanopolis.com','addr:city':'Brest',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'12847'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // ZOOS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1030,lat:47.246493,lon:1.348073, tags:{nameZh:'博瓦尔动物园',name:'ZooParc de Beauval',tourism:'zoo',website:'https://www.zoobeauval.com','addr:city':'Saint-Aignan',opening_hours:'Mo-Su 09:00-19:00',rating:'4.6',reviews:'72841'}},
+  { type:'node',id:1031,lat:48.831884,lon:2.418394, tags:{nameZh:'巴黎动物园',name:'Parc Zoologique de Paris',tourism:'zoo',website:'https://www.parczoologiquedeparis.fr','addr:city':'Paris','addr:street':'Avenue Daumesnil',opening_hours:'Mo-Su 09:30-18:00',rating:'4.2',reviews:'24318'}},
+  { type:'node',id:1032,lat:45.687156,lon:-1.165790, tags:{nameZh:'拉帕尔米尔动物园',name:'Zoo de la Palmyre',tourism:'zoo',website:'https://www.zoo-palmyre.fr','addr:city':'Les Mathes',opening_hours:'Mo-Su 09:00-19:00',rating:'4.4',reviews:'28431'}},
+  { type:'node',id:1033,lat:48.861863,lon:1.792442, tags:{nameZh:'图瓦里野生动物园',name:'Zoo Safari de Thoiry',tourism:'zoo',website:'https://www.thoiry.net','addr:city':'Thoiry',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'18247'}},
+  { type:'node',id:1034,lat:45.991175,lon:5.029403, tags:{nameZh:'鸟类公园',name:'Parc des Oiseaux',tourism:'zoo',website:'https://www.parcdesoiseaux.com','addr:city':'Villars-les-Dombes',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.4',reviews:'9247'}},
+  { type:'node',id:1035,lat:47.188469,lon:-0.298132, tags:{nameZh:'杜埃拉丰丹动物园',name:'Bioparc de Doue-la-Fontaine',tourism:'zoo',website:'https://www.bioparc-zoo.fr','addr:city':'Doue-en-Anjou',opening_hours:'Mo-Su 10:00-19:00 (seasonal)',rating:'4.5',reviews:'12847'}},
+  { type:'node',id:1036,lat:47.678843,lon:-0.048044, tags:{nameZh:'拉弗莱什动物园',name:'Zoo de la Fleche',tourism:'zoo',website:'https://www.zoo-la-fleche.com','addr:city':'La Fleche',opening_hours:'Mo-Su 09:30-18:00',rating:'4.5',reviews:'16247'}},
+  { type:'node',id:1037,lat:43.642695,lon:3.879442, tags:{nameZh:'蒙彼利埃动物园',name:'Parc Zoologique de Montpellier',tourism:'zoo',website:'https://zoo.montpellier.fr','addr:city':'Montpellier',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1038,lat:45.777365,lon:4.855399, tags:{nameZh:'里昂动物园',name:'Zoo de Lyon - Parc de la Tete d\'Or',tourism:'zoo','addr:city':'Lyon',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:1039,lat:48.1200,lon:-1.6500, tags:{nameZh:'雷恩动物生态空间',name:'Espace Zoologique de la Bourbansais',tourism:'zoo',website:'https://www.labourbansais.com','addr:city':'Pleugueneuc',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1040,lat:44.802456,lon:-0.699217, tags:{nameZh:'佩萨克动物园',name:'Zoo de Bordeaux-Pessac',tourism:'zoo',website:'https://www.zoo-bordeaux-pessac.com','addr:city':'Pessac',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:1041,lat:48.832333,lon:-1.323361, tags:{nameZh:'尚普雷普斯动物园',name:'Parc Zoologique de Champrepus',tourism:'zoo','addr:city':'Champrepus',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1042,lat:47.227980,lon:6.035219, tags:{nameZh:'贝桑松城堡动物园',name:'Zoo de la Citadelle de Besancon',tourism:'zoo',website:'https://www.citadelle.com','addr:city':'Besancon',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1043,lat:46.8800,lon:6.6300, tags:{nameZh:'朱拉动物园',name:'Parc Animalier du Jura',tourism:'zoo','addr:city':'Les Rousses',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1044,lat:43.623924,lon:5.210881, tags:{nameZh:'普罗旺斯动物园',name:'Zoo La Barben',tourism:'zoo',website:'https://www.zoolabarben.com','addr:city':'La Barben',opening_hours:'Mo-Su 10:00-18:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // MUSEUMS (~25)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1060,lat:48.8961,lon:2.3868, tags:{nameZh:'科学与工业城',name:'Cite des Sciences et de l\'Industrie',tourism:'museum',website:'https://www.cite-sciences.fr','addr:city':'Paris','addr:street':'30 Avenue Corentin Cariou',opening_hours:'Tu-Sa 10:00-18:00, Su 10:00-19:00',rating:'4.4',reviews:'28431'}},
+  { type:'node',id:1061,lat:48.8600,lon:2.3266, tags:{nameZh:'奥赛博物馆',name:'Musee d\'Orsay',tourism:'museum',website:'https://www.musee-orsay.fr','addr:city':'Paris','addr:street':'1 Rue de la Legion d\'Honneur',opening_hours:'Tu-Su 09:30-18:00',rating:'4.6',reviews:'92847'}},
+  { type:'node',id:1062,lat:48.8606,lon:2.3376, tags:{nameZh:'卢浮宫',name:'Musee du Louvre',tourism:'museum',website:'https://www.louvre.fr','addr:city':'Paris','addr:street':'Rue de Rivoli',opening_hours:'Mo,Th,Sa,Su 09:00-18:00; We,Fr 09:00-21:45',rating:'4.7',reviews:'324218'}},
+  { type:'node',id:1063,lat:48.8719,lon:2.3422, tags:{nameZh:'格雷万蜡像馆',name:'Musee Grevin',tourism:'museum',website:'https://www.grevin-paris.com','addr:city':'Paris','addr:street':'10 Boulevard Montmartre',opening_hours:'Mo-Su 10:00-18:00',rating:'4.1',reviews:'18247'}},
+  { type:'node',id:1064,lat:43.5863,lon:1.4926, tags:{nameZh:'图卢兹太空城',name:'Cite de l\'Espace',tourism:'museum',website:'https://www.cite-espace.com','addr:city':'Toulouse','addr:street':'Avenue Jean Gonord',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'21847'}},
+  { type:'node',id:1065,lat:50.721301,lon:1.594801, tags:{nameZh:'海洋生态馆',name:'Nausicaa - Centre National de la Mer',tourism:'aquarium',website:'https://www.nausicaa.fr','addr:city':'Boulogne-sur-Mer',opening_hours:'Mo-Su 09:30-18:30',rating:'4.5',reviews:'32418'}},
+  { type:'node',id:1066,lat:48.694554,lon:2.497560, tags:{nameZh:'国家自然史博物馆',name:'Museum National d\'Histoire Naturelle',tourism:'museum',website:'https://www.mnhn.fr','addr:city':'Paris','addr:street':'57 Rue Cuvier',opening_hours:'We-Mo 10:00-18:00',rating:'4.4',reviews:'18431'}},
+  { type:'node',id:1067,lat:48.8584,lon:2.2945, tags:{nameZh:'埃菲尔铁塔',name:'Tour Eiffel',tourism:'attraction',website:'https://www.toureiffel.paris','addr:city':'Paris','addr:street':'Champ de Mars',opening_hours:'Mo-Su 09:00-00:45',rating:'4.6',reviews:'284218'}},
+  { type:'node',id:1068,lat:48.8867,lon:2.3431, tags:{nameZh:'蒙马特圣心大教堂',name:'Basilique du Sacre-Coeur',tourism:'attraction','addr:city':'Paris','addr:street':'35 Rue du Chevalier de la Barre'}},
+  { type:'node',id:1069,lat:45.764788,lon:4.923236, tags:{nameZh:'里昂迷你世界',name:'Mini World Lyon',tourism:'museum',website:'https://www.miniworldlyon.com','addr:city':'Lyon',opening_hours:'We-Su 10:00-18:00'}},
+  { type:'node',id:1070,lat:43.296729,lon:5.361026, tags:{nameZh:'马赛欧洲和地中海文明博物馆',name:'MuCEM',tourism:'museum',website:'https://www.mucem.org','addr:city':'Marseille','addr:street':'7 Promenade Robert Laffont',opening_hours:'We-Mo 10:00-19:00',rating:'4.4',reviews:'28247'}},
+  { type:'node',id:1071,lat:48.844036,lon:2.359732, tags:{nameZh:'巴黎植物园',name:'Jardin des Plantes',leisure:'park',website:'https://www.jardindesplantesdeparis.fr','addr:city':'Paris',opening_hours:'Mo-Su 07:30-20:00'}},
+  { type:'node',id:1072,lat:44.860777,lon:-0.554284, tags:{nameZh:'波尔多葡萄酒博物馆',name:'La Cite du Vin',tourism:'museum',website:'https://www.laciteduvin.com','addr:city':'Bordeaux','addr:street':'134 Quai de Bacalan',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1073,lat:48.860496,lon:2.352422, tags:{nameZh:'蓬皮杜中心',name:'Centre Pompidou',tourism:'museum',website:'https://www.centrepompidou.fr','addr:city':'Paris','addr:street':'Place Georges-Pompidou',opening_hours:'We-Mo 11:00-21:00',rating:'4.4',reviews:'52847'}},
+  { type:'node',id:1074,lat:43.7102,lon:7.2620, tags:{nameZh:'尼斯海洋博物馆',name:'Musee Oceanographique de Monaco',tourism:'museum',website:'https://www.oceano.org','addr:city':'Monaco',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1075,lat:47.3220,lon:5.0418, tags:{nameZh:'第戎美术博物馆',name:'Musee des Beaux-Arts de Dijon',tourism:'museum','addr:city':'Dijon','addr:street':'Palais des ducs de Bourgogne',opening_hours:'We-Mo 09:30-18:00'}},
+  { type:'node',id:1076,lat:48.579480,lon:7.736100, tags:{nameZh:'斯特拉斯堡现代艺术馆',name:'Musee d\'Art Moderne et Contemporain de Strasbourg',tourism:'museum','addr:city':'Strasbourg',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1077,lat:50.630458,lon:3.062811, tags:{nameZh:'里尔美术馆',name:'Palais des Beaux-Arts de Lille',tourism:'museum',website:'https://www.pfrba-lille.fr','addr:city':'Lille','addr:street':'Place de la Republique',opening_hours:'We-Mo 10:00-18:00'}},
+  { type:'node',id:1078,lat:48.854747,lon:2.315867, tags:{nameZh:'罗丹美术馆',name:'Musee Rodin',tourism:'museum',website:'https://www.musee-rodin.fr','addr:city':'Paris','addr:street':'77 Rue de Varenne',opening_hours:'Tu-Su 10:00-18:30'}},
+  { type:'node',id:1079,lat:45.745088,lon:4.870615, tags:{nameZh:'里昂电影博物馆',name:'Musee Lumiere',tourism:'museum',website:'https://www.institut-lumiere.org','addr:city':'Lyon','addr:street':'25 Rue du Premier-Film',opening_hours:'Tu-Su 10:00-18:30'}},
+  { type:'node',id:1080,lat:48.863765,lon:2.322660, tags:{nameZh:'橘园美术馆',name:'Musee de l\'Orangerie',tourism:'museum',website:'https://www.musee-orangerie.fr','addr:city':'Paris',opening_hours:'We-Mo 09:00-18:00'}},
+  { type:'node',id:1081,lat:43.607831,lon:1.441120, tags:{nameZh:'图卢兹自然史博物馆',name:'Museum de Toulouse',tourism:'museum',website:'https://www.museum.toulouse.fr','addr:city':'Toulouse',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1082,lat:48.895735,lon:2.388694, tags:{nameZh:'巴黎儿童科学城',name:'Cite des Enfants',tourism:'museum',website:'https://www.cite-sciences.fr/fr/au-programme/expos-temporaires/la-cite-des-enfants','addr:city':'Paris',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1083,lat:47.206000,lon:-1.564340, tags:{nameZh:'南特机械岛',name:'Les Machines de l\'ile',tourism:'museum',website:'https://www.lesmachines-nantes.fr','addr:city':'Nantes',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'24318'}},
+  { type:'node',id:1084,lat:49.253770,lon:4.033919, tags:{nameZh:'兰斯圣母院',name:'Cathedrale Notre-Dame de Reims',tourism:'attraction','addr:city':'Reims','addr:street':'Place du Cardinal Lucon'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // CHINESE RESTAURANTS (~35)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1100,lat:48.8290,lon:2.3660, tags:{nameZh:'新亚洲大酒楼',name:'Nouveau Village Tao Tao',amenity:'chinese_restaurant','addr:city':'Paris 13e','addr:street':'Avenue de Choisy',phone:'+33 1 45 84 72 22'}},
+  { type:'node',id:1101,lat:48.8305,lon:2.3645, tags:{nameZh:'陈氏兄弟',name:'Tang Freres',amenity:'chinese_restaurant','addr:city':'Paris 13e','addr:street':'48 Avenue d\'Ivry'}},
+  { type:'node',id:1102,lat:48.8310,lon:2.3630, tags:{nameZh:'巴黎兴隆饭店',name:'Sinorama',amenity:'chinese_restaurant','addr:city':'Paris 13e','addr:street':'Avenue de Choisy'}},
+  { type:'node',id:1103,lat:48.8700,lon:2.3700, tags:{nameZh:'翠林苑',name:'Chez Ly',amenity:'chinese_restaurant','addr:city':'Paris 11e','addr:street':'Rue de la Roquette',phone:'+33 1 43 55 27 27'}},
+  { type:'node',id:1104,lat:48.8720,lon:2.3690, tags:{nameZh:'美丽华',name:'Belleville Chinese Restaurant',amenity:'chinese_restaurant','addr:city':'Paris 20e','addr:street':'Boulevard de Belleville'}},
+  { type:'node',id:1105,lat:48.8600,lon:2.3400, tags:{nameZh:'北京大饭店',name:'Les Pates Vivantes',amenity:'chinese_restaurant','addr:city':'Paris 5e','addr:street':'46 Rue du Faubourg Montmartre'}},
+  { type:'node',id:1106,lat:48.8650,lon:2.3380, tags:{nameZh:'大华饭店',name:'Tai Yuen',amenity:'chinese_restaurant','addr:city':'Paris 2e','addr:street':'Rue Saint-Denis'}},
+  { type:'node',id:1107,lat:48.8740,lon:2.3450, tags:{nameZh:'川味居',name:'Sichuan Cuisine Paris',amenity:'chinese_restaurant','addr:city':'Paris 10e','addr:street':'Rue du Faubourg Saint-Denis'}},
+  { type:'node',id:1108,lat:48.8280,lon:2.3570, tags:{nameZh:'海鲜大酒楼',name:'Mer de Chine',amenity:'chinese_restaurant','addr:city':'Paris 13e','addr:street':'159 Rue du Chateau des Rentiers',website:'https://www.merdechine.fr'}},
+  { type:'node',id:1109,lat:48.8640,lon:2.3500, tags:{nameZh:'小肥羊',name:'Little Sheep Hot Pot Paris',amenity:'chinese_restaurant','addr:city':'Paris 6e','addr:street':'Rue Gregoire de Tours'}},
+  { type:'node',id:1110,lat:48.8670,lon:2.3510, tags:{nameZh:'松鹤楼',name:'Song Heng',amenity:'chinese_restaurant','addr:city':'Paris 3e','addr:street':'Rue au Maire'}},
+  { type:'node',id:1111,lat:48.8730,lon:2.3680, tags:{nameZh:'新龙门客栈',name:'Nouveau Dragon',amenity:'chinese_restaurant','addr:city':'Paris 20e','addr:street':'Boulevard de Belleville'}},
+  { type:'node',id:1112,lat:48.8540,lon:2.3500, tags:{nameZh:'金凤凰',name:'Golden Phoenix',amenity:'chinese_restaurant','addr:city':'Paris 5e','addr:street':'Rue de la Huchette'}},
+  { type:'node',id:1113,lat:45.7570,lon:4.8320, tags:{nameZh:'里昂金龙大酒楼',name:'Restaurant le Dragon d\'Or',amenity:'chinese_restaurant','addr:city':'Lyon','addr:street':'Rue de la Republique'}},
+  { type:'node',id:1114,lat:45.7590,lon:4.8480, tags:{nameZh:'里昂新天地',name:'Nouveau Monde Lyon',amenity:'chinese_restaurant','addr:city':'Lyon','addr:street':'Rue Paul Bert'}},
+  { type:'node',id:1115,lat:43.2970,lon:5.3830, tags:{nameZh:'马赛华宫',name:'Palais de Chine Marseille',amenity:'chinese_restaurant','addr:city':'Marseille','addr:street':'Rue de la Republique'}},
+  { type:'node',id:1116,lat:43.3050,lon:5.3700, tags:{nameZh:'马赛龙城',name:'Dragon City Marseille',amenity:'chinese_restaurant','addr:city':'Marseille','addr:street':'Avenue de la Capelette'}},
+  { type:'node',id:1117,lat:44.8400,lon:-0.5750, tags:{nameZh:'波尔多万里红',name:'Wan Li Hong Bordeaux',amenity:'chinese_restaurant','addr:city':'Bordeaux','addr:street':'Rue Sainte-Catherine'}},
+  { type:'node',id:1118,lat:43.6050,lon:1.4450, tags:{nameZh:'图卢兹金凤凰',name:'Phoenix d\'Or Toulouse',amenity:'chinese_restaurant','addr:city':'Toulouse','addr:street':'Rue des Filatiers'}},
+  { type:'node',id:1119,lat:43.7100,lon:7.2700, tags:{nameZh:'尼斯东方明珠',name:'Perle d\'Orient Nice',amenity:'chinese_restaurant','addr:city':'Nice','addr:street':'Rue de France'}},
+  { type:'node',id:1120,lat:48.5800,lon:7.7400, tags:{nameZh:'斯特拉斯堡华园',name:'Jardin de Chine Strasbourg',amenity:'chinese_restaurant','addr:city':'Strasbourg','addr:street':'Grand Rue'}},
+  { type:'node',id:1121,lat:50.6300,lon:3.0600, tags:{nameZh:'里尔福临门',name:'Fu Lin Men Lille',amenity:'chinese_restaurant','addr:city':'Lille','addr:street':'Rue de Bethune'}},
+  { type:'node',id:1122,lat:47.2150,lon:-1.5560, tags:{nameZh:'南特龙宫',name:'Palais du Dragon Nantes',amenity:'chinese_restaurant','addr:city':'Nantes','addr:street':'Rue Crebillon'}},
+  { type:'node',id:1123,lat:48.1100,lon:-1.6800, tags:{nameZh:'雷恩翠华轩',name:'Jade Garden Rennes',amenity:'chinese_restaurant','addr:city':'Rennes','addr:street':'Rue de la Visitation'}},
+  { type:'node',id:1124,lat:43.6100,lon:3.8800, tags:{nameZh:'蒙彼利埃金筷子',name:'Baguettes d\'Or Montpellier',amenity:'chinese_restaurant','addr:city':'Montpellier','addr:street':'Rue de l\'Aiguillerie'}},
+  { type:'node',id:1125,lat:48.8570,lon:2.3510, tags:{nameZh:'锦里川菜',name:'Jin Li Sichuan Paris',amenity:'chinese_restaurant','addr:city':'Paris 5e','addr:street':'Rue Monge'}},
+  { type:'node',id:1126,lat:45.1850,lon:5.7300, tags:{nameZh:'格勒诺布尔金龙',name:'Dragon d\'Or Grenoble',amenity:'chinese_restaurant','addr:city':'Grenoble','addr:street':'Avenue Alsace-Lorraine'}},
+  { type:'node',id:1127,lat:43.5300,lon:5.4500, tags:{nameZh:'艾克斯中华园',name:'Jardin de Chine Aix',amenity:'chinese_restaurant','addr:city':'Aix-en-Provence','addr:street':'Cours Mirabeau'}},
+  { type:'node',id:1128,lat:48.8920,lon:2.3420, tags:{nameZh:'巴黎兰州拉面',name:'Lanzhou Lamian Paris',amenity:'chinese_restaurant','addr:city':'Paris 18e','addr:street':'Rue de Steinkerque'}},
+  { type:'node',id:1129,lat:48.8315,lon:2.3555, tags:{nameZh:'温州城',name:'Wenzhou City Paris',amenity:'chinese_restaurant','addr:city':'Paris 13e','addr:street':'Avenue d\'Ivry'}},
+  { type:'node',id:1130,lat:48.8695,lon:2.3655, tags:{nameZh:'北京烤鸭',name:'Canard Laque Pekinois',amenity:'chinese_restaurant','addr:city':'Paris 11e','addr:street':'Rue Oberkampf'}},
+  { type:'node',id:1131,lat:44.8370,lon:-0.5680, tags:{nameZh:'波尔多明珠',name:'Perle de Bordeaux',amenity:'chinese_restaurant','addr:city':'Bordeaux','addr:street':'Rue du Parlement Saint-Pierre'}},
+  { type:'node',id:1132,lat:43.6040,lon:1.4500, tags:{nameZh:'图卢兹龙城',name:'Dragon City Toulouse',amenity:'chinese_restaurant','addr:city':'Toulouse','addr:street':'Place du Capitole'}},
+  { type:'node',id:1133,lat:45.7640,lon:4.8360, tags:{nameZh:'里昂福满楼',name:'Fu Man Lou Lyon',amenity:'chinese_restaurant','addr:city':'Lyon','addr:street':'Rue Merciere'}},
+  { type:'node',id:1134,lat:48.8550,lon:2.3300, tags:{nameZh:'巴黎老四川',name:'Lao Sichuan Paris',amenity:'chinese_restaurant','addr:city':'Paris 7e','addr:street':'Rue de Grenelle'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // BUFFET / ALL-YOU-CAN-EAT (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1150,lat:48.8480,lon:2.3950, tags:{nameZh:'巴黎铁板烧自助',name:'Wok n Grill Paris Bercy',amenity:'buffet_restaurant','addr:city':'Paris 12e','addr:street':'Cour Saint-Emilion'}},
+  { type:'node',id:1151,lat:48.8960,lon:2.2340, tags:{nameZh:'瓦克自助餐厅',name:'Wok Grill La Defense',amenity:'buffet_restaurant','addr:city':'Courbevoie','addr:street':'Boulevard de la Mission Marchand'}},
+  { type:'node',id:1152,lat:45.7300,lon:4.8600, tags:{nameZh:'里昂亚洲铁板自助',name:'Royal Wok Lyon',amenity:'buffet_restaurant','addr:city':'Lyon','addr:street':'Route de Vienne'}},
+  { type:'node',id:1153,lat:43.3200,lon:5.4000, tags:{nameZh:'马赛亚洲自助',name:'Wok Asia Marseille',amenity:'buffet_restaurant','addr:city':'Marseille','addr:street':'Avenue du Prado'}},
+  { type:'node',id:1154,lat:43.6000,lon:1.4500, tags:{nameZh:'图卢兹铁板自助',name:'Wok to Walk Toulouse',amenity:'buffet_restaurant','addr:city':'Toulouse','addr:street':'Rue des Lois'}},
+  { type:'node',id:1155,lat:44.8500,lon:-0.5500, tags:{nameZh:'波尔多皇家铁板烧',name:'Royal Wok Bordeaux',amenity:'buffet_restaurant','addr:city':'Bordeaux','addr:street':'Quai des Chartrons'}},
+  { type:'node',id:1156,lat:43.7000,lon:7.2500, tags:{nameZh:'尼斯亚洲自助',name:'Wok Asian Nice',amenity:'buffet_restaurant','addr:city':'Nice','addr:street':'Avenue Jean Medecin'}},
+  { type:'node',id:1157,lat:47.2200,lon:-1.5400, tags:{nameZh:'南特铁板自助',name:'Wok Grill Nantes',amenity:'buffet_restaurant','addr:city':'Nantes','addr:street':'Rue de Strasbourg'}},
+  { type:'node',id:1158,lat:48.5900,lon:7.7600, tags:{nameZh:'斯特拉斯堡铁板自助',name:'Flam\'s Strasbourg',amenity:'buffet_restaurant','addr:city':'Strasbourg','addr:street':'Rue des Freres'}},
+  { type:'node',id:1159,lat:50.6350,lon:3.0650, tags:{nameZh:'里尔铁板自助',name:'Wok Grill Lille',amenity:'buffet_restaurant','addr:city':'Lille','addr:street':'Rue de Paris'}},
+  { type:'node',id:1160,lat:48.8300,lon:2.3500, tags:{nameZh:'巴黎13区Flunch',name:'Flunch Paris Italie',amenity:'buffet_restaurant','addr:city':'Paris 13e','addr:street':'Place d\'Italie'}},
+  { type:'node',id:1161,lat:43.6100,lon:3.8700, tags:{nameZh:'蒙彼利埃亚洲自助',name:'Royal Wok Montpellier',amenity:'buffet_restaurant','addr:city':'Montpellier','addr:street':'Avenue de la Justice de Castelnau'}},
+  { type:'node',id:1162,lat:49.2500,lon:4.0300, tags:{nameZh:'兰斯Flunch',name:'Flunch Reims',amenity:'buffet_restaurant','addr:city':'Reims','addr:street':'Rue de Vesle'}},
+  { type:'node',id:1163,lat:47.3200,lon:5.0400, tags:{nameZh:'第戎亚洲铁板烧',name:'Wok d\'Asie Dijon',amenity:'buffet_restaurant','addr:city':'Dijon','addr:street':'Rue de la Liberte'}},
+  { type:'node',id:1164,lat:45.1900,lon:5.7200, tags:{nameZh:'格勒诺布尔铁板自助',name:'Wok Grill Grenoble',amenity:'buffet_restaurant','addr:city':'Grenoble','addr:street':'Avenue Alsace-Lorraine'}},
+  { type:'node',id:1165,lat:48.1100,lon:-1.6700, tags:{nameZh:'雷恩铁板自助',name:'Wok Grill Rennes',amenity:'buffet_restaurant','addr:city':'Rennes','addr:street':'Rue de Nemours'}},
+  { type:'node',id:1166,lat:49.4400,lon:1.0900, tags:{nameZh:'鲁昂铁板自助',name:'Wok Grill Rouen',amenity:'buffet_restaurant','addr:city':'Rouen','addr:street':'Rue Jeanne d\'Arc'}},
+  { type:'node',id:1167,lat:48.8480,lon:2.2500, tags:{nameZh:'巴黎15区铁板烧自助',name:'Wok Grill Paris 15',amenity:'buffet_restaurant','addr:city':'Paris 15e','addr:street':'Rue de Vaugirard'}},
+  { type:'node',id:1168,lat:47.4700,lon:-0.5500, tags:{nameZh:'昂热铁板自助',name:'Royal Wok Angers',amenity:'buffet_restaurant','addr:city':'Angers','addr:street':'Boulevard du Roi Rene'}},
+  { type:'node',id:1169,lat:46.1600,lon:-1.1500, tags:{nameZh:'拉罗谢尔铁板自助',name:'Wok Grill La Rochelle',amenity:'buffet_restaurant','addr:city':'La Rochelle','addr:street':'Quai Duperre'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // INDOOR PLAYGROUNDS (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1180,lat:48.820318,lon:2.394188, tags:{nameZh:'皇家儿童乐园巴黎',name:'Royal Kids Paris Sud',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Ivry-sur-Seine',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1181,lat:45.732439,lon:4.963239, tags:{nameZh:'皇家儿童乐园里昂',name:'Royal Kids Lyon',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Lyon',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1182,lat:43.289656,lon:5.454131, tags:{nameZh:'皇家儿童乐园马赛',name:'Royal Kids Marseille',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Marseille',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1183,lat:50.636337,lon:3.062200, tags:{nameZh:'皇家儿童乐园里尔',name:'Royal Kids Lille',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Lille',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1184,lat:44.785716,lon:-0.645548, tags:{nameZh:'皇家儿童乐园波尔多',name:'Royal Kids Bordeaux',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Bordeaux',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1185,lat:43.598596,lon:1.426575, tags:{nameZh:'皇家儿童乐园图卢兹',name:'Royal Kids Toulouse',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Toulouse',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1186,lat:47.214170,lon:-1.546384, tags:{nameZh:'欢乐城堡南特',name:'Fun City Nantes',leisure:'indoor_playground','addr:city':'Nantes',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1187,lat:48.569103,lon:7.752492, tags:{nameZh:'Kidzy斯特拉斯堡',name:'Kidzy Strasbourg',leisure:'indoor_playground','addr:city':'Strasbourg',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1188,lat:43.705563,lon:7.290174, tags:{nameZh:'路迪公园尼斯',name:'Ludi Park Nice',leisure:'indoor_playground','addr:city':'Nice',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1189,lat:48.843950,lon:2.372892, tags:{nameZh:'格力帕克巴黎',name:'Gulli Parc Paris',leisure:'indoor_playground',website:'https://www.gulliparc.com','addr:city':'Paris 12e','addr:street':'Bercy Village',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1190,lat:48.8900,lon:2.2400, tags:{nameZh:'格力帕克拉德芳斯',name:'Gulli Parc La Defense',leisure:'indoor_playground',website:'https://www.gulliparc.com','addr:city':'Courbevoie',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1191,lat:45.183990,lon:5.732884, tags:{nameZh:'格勒诺布尔室内乐园',name:'Fun Park Grenoble',leisure:'indoor_playground','addr:city':'Grenoble',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1192,lat:47.321420,lon:5.048848, tags:{nameZh:'第戎儿童乐园',name:'Royal Kids Dijon',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Dijon',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1193,lat:49.260242,lon:4.027114, tags:{nameZh:'兰斯儿童乐园',name:'Fun City Reims',leisure:'indoor_playground','addr:city':'Reims',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1194,lat:48.110926,lon:-1.678177, tags:{nameZh:'雷恩儿童乐园',name:'Royal Kids Rennes',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Rennes',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1195,lat:43.654825,lon:3.997422, tags:{nameZh:'蒙彼利埃儿童乐园',name:'Royal Kids Montpellier',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Montpellier',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1196,lat:49.439513,lon:1.088515, tags:{nameZh:'鲁昂儿童乐园',name:'Royal Kids Rouen',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Rouen',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1197,lat:47.472232,lon:-0.551269, tags:{nameZh:'昂热儿童乐园',name:'Royal Kids Angers',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Angers',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1198,lat:48.841123,lon:2.292766, tags:{nameZh:'巴黎蹦床公园',name:'Trampoline Park Paris',leisure:'indoor_playground','addr:city':'Paris 15e',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1199,lat:43.550552,lon:7.002274, tags:{nameZh:'戛纳室内乐园',name:'Fun Park Cannes',leisure:'indoor_playground','addr:city':'Cannes',opening_hours:'Mo-Su 10:00-19:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // BEACHES (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1210,lat:43.6949,lon:7.2653, tags:{nameZh:'尼斯天使湾',name:'Plage de Nice - Promenade des Anglais',natural:'beach','addr:city':'Nice'}},
+  { type:'node',id:1211,lat:43.5469,lon:7.0178, tags:{nameZh:'戛纳海滩',name:'Plage de la Croisette',natural:'beach','addr:city':'Cannes'}},
+  { type:'node',id:1212,lat:43.2700,lon:6.6400, tags:{nameZh:'圣特罗佩海滩',name:'Plage de Pampelonne',natural:'beach','addr:city':'Saint-Tropez'}},
+  { type:'node',id:1213,lat:43.4900,lon:-1.5400, tags:{nameZh:'比亚里茨大海滩',name:'Grande Plage de Biarritz',natural:'beach','addr:city':'Biarritz'}},
+  { type:'node',id:1214,lat:46.1600,lon:-1.2000, tags:{nameZh:'拉罗谢尔海滩',name:'Plage de la Concurrence',natural:'beach','addr:city':'La Rochelle'}},
+  { type:'node',id:1215,lat:44.6600,lon:-1.2300, tags:{nameZh:'阿卡雄海滩',name:'Plage d\'Arcachon',natural:'beach','addr:city':'Arcachon'}},
+  { type:'node',id:1216,lat:49.4100,lon:0.0700, tags:{nameZh:'多维尔海滩',name:'Plage de Deauville',natural:'beach','addr:city':'Deauville'}},
+  { type:'node',id:1217,lat:49.7100,lon:0.2000, tags:{nameZh:'埃特雷塔海滩',name:'Plage d\'Etretat',natural:'beach','addr:city':'Etretat'}},
+  { type:'node',id:1218,lat:48.6500,lon:-2.0000, tags:{nameZh:'圣马洛海滩',name:'Plage du Sillon',natural:'beach','addr:city':'Saint-Malo'}},
+  { type:'node',id:1219,lat:47.5800,lon:-3.1200, tags:{nameZh:'卡纳克海滩',name:'Plage de Carnac',natural:'beach','addr:city':'Carnac'}},
+  { type:'node',id:1220,lat:43.2500,lon:6.5400, tags:{nameZh:'莱拉旺杜海滩',name:'Plage du Lavandou',natural:'beach','addr:city':'Le Lavandou'}},
+  { type:'node',id:1221,lat:43.4000,lon:6.7600, tags:{nameZh:'圣拉斐尔海滩',name:'Plage de Saint-Raphael',natural:'beach','addr:city':'Saint-Raphael'}},
+  { type:'node',id:1222,lat:42.6900,lon:3.0300, tags:{nameZh:'科利尤尔海滩',name:'Plage de Collioure',natural:'beach','addr:city':'Collioure'}},
+  { type:'node',id:1223,lat:43.3800,lon:3.2000, tags:{nameZh:'阿格德角海滩',name:'Plage du Cap d\'Agde',natural:'beach','addr:city':'Cap d\'Agde'}},
+  { type:'node',id:1224,lat:43.6600,lon:7.1200, tags:{nameZh:'安提布海滩',name:'Plage de la Gravette Antibes',natural:'beach','addr:city':'Antibes'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // HISTORIC (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1240,lat:48.8049,lon:2.1204, tags:{nameZh:'凡尔赛宫',name:'Chateau de Versailles',historic:'castle',website:'https://www.chateauversailles.fr','addr:city':'Versailles',opening_hours:'Tu-Su 09:00-18:30'}},
+  { type:'node',id:1241,lat:48.6360,lon:-1.5115, tags:{nameZh:'圣米歇尔山',name:'Mont Saint-Michel',historic:'monument',website:'https://www.ot-montsaintmichel.com','addr:city':'Le Mont-Saint-Michel',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:1242,lat:43.2065,lon:2.3634, tags:{nameZh:'卡尔卡松城堡',name:'Cite de Carcassonne',historic:'castle',website:'https://www.remparts-carcassonne.fr','addr:city':'Carcassonne',opening_hours:'Mo-Su 10:00-18:30'}},
+  { type:'node',id:1243,lat:47.6161,lon:1.5170, tags:{nameZh:'香波堡',name:'Chateau de Chambord',historic:'castle',website:'https://www.chambord.org','addr:city':'Chambord',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:1244,lat:43.9469,lon:4.5356, tags:{nameZh:'嘉德水道桥',name:'Pont du Gard',historic:'monument',website:'https://www.pontdugard.fr','addr:city':'Vers-Pont-du-Gard',opening_hours:'Mo-Su 09:00-19:00 (seasonal)'}},
+  { type:'node',id:1245,lat:48.8567,lon:2.3125, tags:{nameZh:'荣军院',name:'Les Invalides',historic:'monument',website:'https://www.musee-armee.fr','addr:city':'Paris','addr:street':'129 Rue de Grenelle',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1246,lat:47.3475,lon:0.5168, tags:{nameZh:'舍农索城堡',name:'Chateau de Chenonceau',historic:'castle',website:'https://www.chenonceau.com','addr:city':'Chenonceau',opening_hours:'Mo-Su 09:00-19:00 (seasonal)'}},
+  { type:'node',id:1247,lat:48.8530,lon:2.3498, tags:{nameZh:'巴黎圣母院',name:'Cathedrale Notre-Dame de Paris',historic:'monument','addr:city':'Paris','addr:street':'6 Parvis Notre-Dame'}},
+  { type:'node',id:1248,lat:48.8738,lon:2.2950, tags:{nameZh:'凯旋门',name:'Arc de Triomphe',historic:'monument',website:'https://www.paris-arc-de-triomphe.fr','addr:city':'Paris','addr:street':'Place Charles de Gaulle',opening_hours:'Mo-Su 10:00-23:00'}},
+  { type:'node',id:1249,lat:43.9500,lon:4.8100, tags:{nameZh:'阿维尼翁教皇宫',name:'Palais des Papes',historic:'castle',website:'https://www.palais-des-papes.com','addr:city':'Avignon',opening_hours:'Mo-Su 09:00-19:00 (seasonal)'}},
+  { type:'node',id:1250,lat:47.5642,lon:1.7297, tags:{nameZh:'雪瓦尼城堡',name:'Chateau de Cheverny',historic:'castle',website:'https://www.chateau-cheverny.fr','addr:city':'Cheverny',opening_hours:'Mo-Su 09:15-18:00'}},
+  { type:'node',id:1251,lat:47.4147,lon:0.9897, tags:{nameZh:'昂布瓦兹城堡',name:'Chateau d\'Amboise',historic:'castle',website:'https://www.chateau-amboise.com','addr:city':'Amboise',opening_hours:'Mo-Su 09:00-19:00 (seasonal)'}},
+  { type:'node',id:1252,lat:43.6766,lon:4.6309, tags:{nameZh:'阿尔勒罗马竞技场',name:'Arenes d\'Arles',historic:'ruins',website:'https://www.arles-tourisme.com','addr:city':'Arles',opening_hours:'Mo-Su 09:00-19:00 (seasonal)'}},
+  { type:'node',id:1253,lat:49.1828,lon:-0.3700, tags:{nameZh:'卡昂城堡',name:'Chateau de Caen',historic:'castle','addr:city':'Caen',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1254,lat:47.3230,lon:5.0340, tags:{nameZh:'第戎公爵宫',name:'Palais des Ducs de Bourgogne',historic:'castle','addr:city':'Dijon'}},
+  { type:'node',id:1255,lat:48.5945,lon:7.7508, tags:{nameZh:'斯特拉斯堡大教堂',name:'Cathedrale Notre-Dame de Strasbourg',historic:'monument','addr:city':'Strasbourg'}},
+  { type:'node',id:1256,lat:43.121822,lon:5.928355, tags:{nameZh:'土伦海军博物馆',name:'Musee National de la Marine Toulon',tourism:'museum','addr:city':'Toulon',opening_hours:'We-Mo 10:00-18:00'}},
+  { type:'node',id:1257,lat:48.8462,lon:2.3461, tags:{nameZh:'先贤祠',name:'Pantheon Paris',historic:'monument',website:'https://www.paris-pantheon.fr','addr:city':'Paris','addr:street':'Place du Pantheon',opening_hours:'Mo-Su 10:00-18:30'}},
+  { type:'node',id:1258,lat:49.3400,lon:-0.8700, tags:{nameZh:'D日海滩',name:'Omaha Beach - D-Day Memorial',historic:'monument','addr:city':'Saint-Laurent-sur-Mer'}},
+  { type:'node',id:1259,lat:43.097361,lon:-0.058173, tags:{nameZh:'卢尔德朝圣地',name:'Sanctuaires Notre-Dame de Lourdes',tourism:'attraction',website:'https://www.lourdes-france.org','addr:city':'Lourdes'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // NATURE (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1270,lat:43.749656,lon:6.328562, tags:{nameZh:'韦尔东大峡谷',name:'Gorges du Verdon',leisure:'nature_reserve','addr:city':'Castellane'}},
+  { type:'node',id:1271,lat:43.229434,lon:5.403431, tags:{nameZh:'卡朗格峡湾',name:'Calanques de Marseille',leisure:'nature_reserve',website:'https://www.calanques-parcnational.fr','addr:city':'Marseille'}},
+  { type:'node',id:1272,lat:43.623504,lon:4.526568, tags:{nameZh:'卡马格湿地',name:'Parc Naturel Regional de Camargue',leisure:'nature_reserve','addr:city':'Arles'}},
+  { type:'node',id:1273,lat:45.8326,lon:6.8652, tags:{nameZh:'勃朗峰地区',name:'Mont Blanc Area',leisure:'nature_reserve','addr:city':'Chamonix'}},
+  { type:'node',id:1274,lat:45.5000,lon:2.9000, tags:{nameZh:'奥弗涅火山群',name:'Volcans d\'Auvergne',leisure:'nature_reserve','addr:city':'Clermont-Ferrand'}},
+  { type:'node',id:1275,lat:44.588977,lon:-1.214204, tags:{nameZh:'皮拉大沙丘',name:'Dune du Pilat',leisure:'nature_reserve',website:'https://www.dunedupilat.com','addr:city':'La Teste-de-Buch',opening_hours:'Mo-Su (seasonal)'}},
+  { type:'node',id:1276,lat:45.849360,lon:6.171307, tags:{nameZh:'安纳西湖',name:'Lac d\'Annecy',leisure:'nature_reserve','addr:city':'Annecy'}},
+  { type:'node',id:1277,lat:42.5900,lon:8.9500, tags:{nameZh:'科西嘉自然保护区',name:'Reserve Naturelle de Scandola',leisure:'nature_reserve','addr:city':'Porto - Corse'}},
+  { type:'node',id:1278,lat:44.3000,lon:6.9500, tags:{nameZh:'梅尔康图尔国家公园',name:'Parc National du Mercantour',leisure:'nature_reserve','addr:city':'Nice'}},
+  { type:'node',id:1279,lat:48.4000,lon:7.6000, tags:{nameZh:'孚日山脉',name:'Parc Naturel Regional des Ballons des Vosges',leisure:'nature_reserve','addr:city':'Colmar'}},
+  { type:'node',id:1280,lat:42.8500,lon:1.9000, tags:{nameZh:'比利牛斯国家公园',name:'Parc National des Pyrenees',leisure:'nature_reserve','addr:city':'Cauterets'}},
+  { type:'node',id:1281,lat:44.244467,lon:3.654122, tags:{nameZh:'塞文山脉国家公园',name:'Parc National des Cevennes',leisure:'nature_reserve','addr:city':'Florac'}},
+  { type:'node',id:1282,lat:46.9000,lon:6.4000, tags:{nameZh:'汝拉山自然公园',name:'Parc Naturel Regional du Haut-Jura',leisure:'nature_reserve','addr:city':'Lajoux'}},
+  { type:'node',id:1283,lat:48.3800,lon:-4.7000, tags:{nameZh:'布列塔尼海角',name:'Pointe du Raz',leisure:'nature_reserve','addr:city':'Plogoff'}},
+  { type:'node',id:1284,lat:43.0500,lon:0.1400, tags:{nameZh:'加瓦尔尼冰斗',name:'Cirque de Gavarnie',leisure:'nature_reserve','addr:city':'Gavarnie'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // CHILDREN'S FARMS (~10)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1300,lat:48.8667,lon:2.3833, tags:{nameZh:'巴黎农场公园',name:'Ferme de Paris',tourism:'children_farm',website:'https://www.paris.fr/equipements/ferme-de-paris','addr:city':'Paris',opening_hours:'Tu-Su 13:30-17:00'}},
+  { type:'node',id:1301,lat:48.8200,lon:2.2900, tags:{nameZh:'蒂洛伊农场',name:'Ferme du Piqueur',tourism:'children_farm','addr:city':'Chaville',opening_hours:'We,Sa-Su 14:00-17:00'}},
+  { type:'node',id:1302,lat:45.7800,lon:4.8100, tags:{nameZh:'里昂儿童农场',name:'Ferme Pedagogique de Lyon',tourism:'children_farm','addr:city':'Lyon',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:1303,lat:43.3000,lon:5.4200, tags:{nameZh:'马赛儿童农场',name:'Ferme Pedagogique du Collet des Comtes',tourism:'children_farm','addr:city':'Marseille',opening_hours:'We-Su 09:30-17:00'}},
+  { type:'node',id:1304,lat:44.8500,lon:-0.5800, tags:{nameZh:'波尔多教育农场',name:'Ferme Exotique de Cadaujac',tourism:'children_farm','addr:city':'Cadaujac',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1305,lat:47.2400,lon:-1.5200, tags:{nameZh:'南特农场',name:'Ferme de la Chantrerie',tourism:'children_farm','addr:city':'Nantes',opening_hours:'We-Su 14:00-18:00'}},
+  { type:'node',id:1306,lat:48.1300,lon:-1.6400, tags:{nameZh:'雷恩教育农场',name:'Ferme de l\'Ecomusee de Rennes',tourism:'children_farm','addr:city':'Rennes',opening_hours:'We-Su 14:00-18:00'}},
+  { type:'node',id:1307,lat:43.6200,lon:1.4200, tags:{nameZh:'图卢兹教育农场',name:'Ferme de Cinquante Toulouse',tourism:'children_farm','addr:city':'Toulouse',opening_hours:'We-Su 14:00-18:00'}},
+  { type:'node',id:1308,lat:48.5600,lon:7.7200, tags:{nameZh:'斯特拉斯堡教育农场',name:'Ferme Pedagogique de l\'Ill',tourism:'children_farm','addr:city':'Strasbourg',opening_hours:'We-Su 14:00-17:00'}},
+  { type:'node',id:1309,lat:50.6200,lon:3.0500, tags:{nameZh:'里尔教育农场',name:'Ferme Marcel Dhennin',tourism:'children_farm','addr:city':'Villeneuve-d\'Ascq',opening_hours:'Tu-Su 09:30-12:30, 13:30-17:30'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // PLAYGROUNDS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1320,lat:48.864353,lon:2.327350, tags:{nameZh:'杜伊勒里花园儿童乐园',name:'Aire de Jeux Jardin des Tuileries',leisure:'playground','addr:city':'Paris'}},
+  { type:'node',id:1321,lat:48.845809,lon:2.334224, tags:{nameZh:'卢森堡公园儿童乐园',name:'Aire de Jeux Jardin du Luxembourg',leisure:'playground','addr:city':'Paris'}},
+  { type:'node',id:1322,lat:48.873544,lon:2.376256, tags:{nameZh:'肖蒙山丘公园儿童乐园',name:'Aire de Jeux Buttes-Chaumont',leisure:'playground','addr:city':'Paris'}},
+  { type:'node',id:1323,lat:45.778579,lon:4.852096, tags:{nameZh:'里昂金头公园儿童乐园',name:'Aire de Jeux Parc de la Tete d\'Or',leisure:'playground','addr:city':'Lyon'}},
+  { type:'node',id:1324,lat:43.254569,lon:5.382363, tags:{nameZh:'马赛博雷利公园儿童乐园',name:'Aire de Jeux Parc Borely',leisure:'playground','addr:city':'Marseille'}},
+  { type:'node',id:1325,lat:44.842089,lon:-0.593677, tags:{nameZh:'波尔多公共花园儿童乐园',name:'Aire de Jeux Jardin Public Bordeaux',leisure:'playground','addr:city':'Bordeaux'}},
+  { type:'node',id:1326,lat:43.593076,lon:1.451239, tags:{nameZh:'图卢兹植物园儿童乐园',name:'Aire de Jeux Jardin des Plantes Toulouse',leisure:'playground','addr:city':'Toulouse'}},
+  { type:'node',id:1327,lat:43.7000,lon:7.2500, tags:{nameZh:'尼斯帕永散步道儿童乐园',name:'Aire de Jeux Promenade du Paillon',leisure:'playground','addr:city':'Nice'}},
+  { type:'node',id:1328,lat:47.219766,lon:-1.542945, tags:{nameZh:'南特植物园儿童乐园',name:'Aire de Jeux Jardin des Plantes Nantes',leisure:'playground','addr:city':'Nantes'}},
+  { type:'node',id:1329,lat:48.591730,lon:7.774478, tags:{nameZh:'斯特拉斯堡橘园儿童乐园',name:'Aire de Jeux Parc de l\'Orangerie',leisure:'playground','addr:city':'Strasbourg'}},
+  { type:'node',id:1330,lat:50.642090,lon:3.048222, tags:{nameZh:'里尔城堡公园儿童乐园',name:'Aire de Jeux Parc de la Citadelle',leisure:'playground','addr:city':'Lille'}},
+  { type:'node',id:1331,lat:48.248521,lon:-1.662288, tags:{nameZh:'雷恩塔博尔公园儿童乐园',name:'Aire de Jeux Parc du Thabor',leisure:'playground','addr:city':'Rennes'}},
+  { type:'node',id:1332,lat:49.253827,lon:4.020795, tags:{nameZh:'兰斯鹅爪公园儿童乐园',name:'Aire de Jeux Parc de la Patte d\'Oie',leisure:'playground','addr:city':'Reims'}},
+  { type:'node',id:1333,lat:47.315113,lon:4.971531, tags:{nameZh:'第戎达西花园儿童乐园',name:'Aire de Jeux Jardin Darcy',leisure:'playground','addr:city':'Dijon'}},
+  { type:'node',id:1334,lat:45.241535,lon:5.827151, tags:{nameZh:'格勒诺布尔保罗·米斯特拉尔公园儿童乐园',name:'Aire de Jeux Parc Paul Mistral',leisure:'playground','addr:city':'Grenoble'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // SWIMMING POOLS (~10)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1350,lat:48.831313,lon:2.274816, tags:{nameZh:'巴黎水上乐园',name:'Aquaboulevard de Paris',leisure:'swimming_pool',website:'https://www.aquaboulevard.fr','addr:city':'Paris 15e','addr:street':'4 Rue Louis Armand',opening_hours:'Mo-Su 09:00-23:00'}},
+  { type:'node',id:1351,lat:45.754276,lon:4.838304, tags:{nameZh:'里昂水上运动中心',name:'Centre Nautique Tony Bertrand',leisure:'swimming_pool','addr:city':'Lyon',opening_hours:'Mo-Su 07:00-21:00'}},
+  { type:'node',id:1352,lat:43.344238,lon:5.354008, tags:{nameZh:'马赛吕米尼游泳池',name:'Piscine Municipale Luminy',leisure:'swimming_pool','addr:city':'Marseille',opening_hours:'Mo-Su 07:00-20:00'}},
+  { type:'node',id:1353,lat:44.840252,lon:-0.591047, tags:{nameZh:'波尔多犹太游泳池',name:'Piscine Judaique Bordeaux',leisure:'swimming_pool','addr:city':'Bordeaux',opening_hours:'Mo-Su 07:00-21:00'}},
+  { type:'node',id:1354,lat:43.613875,lon:1.440896, tags:{nameZh:'图卢兹水上中心',name:'Centre Aquatique de Toulouse',leisure:'swimming_pool','addr:city':'Toulouse',opening_hours:'Mo-Su 07:00-21:00'}},
+  { type:'node',id:1355,lat:48.601772,lon:7.767174, tags:{nameZh:'斯特拉斯堡瓦肯游泳池',name:'Piscine du Wacken Strasbourg',leisure:'swimming_pool','addr:city':'Strasbourg',opening_hours:'Mo-Su 07:00-21:00'}},
+  { type:'node',id:1356,lat:47.243358,lon:-1.558588, tags:{nameZh:'南特小港水上中心',name:'Centre Aquatique du Petit Port',leisure:'swimming_pool','addr:city':'Nantes',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1357,lat:50.635998,lon:3.035829, tags:{nameZh:'里尔马克思·多尔穆瓦游泳池',name:'Piscine Marx Dormoy Lille',leisure:'swimming_pool','addr:city':'Lille',opening_hours:'Mo-Su 07:00-21:00'}},
+  { type:'node',id:1358,lat:45.138552,lon:5.701732, tags:{nameZh:'格勒诺布尔南极水上中心',name:'Centre Aquatique Polesud Grenoble',leisure:'swimming_pool','addr:city':'Grenoble',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1359,lat:43.607422,lon:3.893199, tags:{nameZh:'蒙彼利埃安提戈纳奥林匹克泳池',name:'Piscine Olympique d\'Antigone',leisure:'swimming_pool','addr:city':'Montpellier',opening_hours:'Mo-Su 07:00-20:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // THEATRES & CINEMAS (~10)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1370,lat:48.8662,lon:2.3323, tags:{nameZh:'巴黎歌剧院',name:'Opera Garnier',amenity:'theatre',website:'https://www.operadeparis.fr','addr:city':'Paris','addr:street':'Place de l\'Opera',opening_hours:'Check schedule'}},
+  { type:'node',id:1371,lat:45.7640,lon:4.8340, tags:{nameZh:'里昂歌剧院',name:'Opera de Lyon',amenity:'theatre','addr:city':'Lyon','addr:street':'Place de la Comedie'}},
+  { type:'node',id:1372,lat:43.2950,lon:5.3750, tags:{nameZh:'马赛国家剧院',name:'La Criee - Theatre National Marseille',amenity:'theatre','addr:city':'Marseille'}},
+  { type:'node',id:1373,lat:48.8600,lon:2.3500, tags:{nameZh:'巴黎喜剧院',name:'Comedie-Francaise',amenity:'theatre',website:'https://www.comedie-francaise.fr','addr:city':'Paris','addr:street':'Place Colette'}},
+  { type:'node',id:1374,lat:43.6050,lon:1.4480, tags:{nameZh:'图卢兹国会大厦剧院',name:'Theatre du Capitole Toulouse',amenity:'theatre','addr:city':'Toulouse','addr:street':'Place du Capitole'}},
+  { type:'node',id:1375,lat:44.8370,lon:-0.5730, tags:{nameZh:'波尔多大剧院',name:'Grand Theatre de Bordeaux',amenity:'theatre','addr:city':'Bordeaux','addr:street':'Place de la Comedie'}},
+  { type:'node',id:1376,lat:48.8950,lon:2.3880, tags:{nameZh:'巴黎爱乐大厅',name:'Philharmonie de Paris',amenity:'arts_centre',website:'https://philharmoniedeparis.fr','addr:city':'Paris',opening_hours:'Check schedule'}},
+  { type:'node',id:1377,lat:48.8800,lon:2.3400, tags:{nameZh:'红磨坊',name:'Moulin Rouge',amenity:'theatre',website:'https://www.moulinrouge.fr','addr:city':'Paris','addr:street':'82 Boulevard de Clichy'}},
+  { type:'node',id:1378,lat:43.7100,lon:7.2800, tags:{nameZh:'尼斯剧院',name:'Theatre de Nice',amenity:'theatre','addr:city':'Nice','addr:street':'Esplanade des Victoires'}},
+  { type:'node',id:1379,lat:48.5700,lon:7.7500, tags:{nameZh:'莱茵国家歌剧院',name:'Opera National du Rhin',amenity:'theatre','addr:city':'Strasbourg','addr:street':'Place Broglie'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // ATTRACTIONS & VISITOR CENTRES (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1390,lat:48.8600,lon:2.3000, tags:{nameZh:'塞纳河游船',name:'Bateaux Mouches Seine Cruise',tourism:'attraction',website:'https://www.bateaux-mouches.fr','addr:city':'Paris'}},
+  { type:'node',id:1391,lat:43.294580,lon:5.369281, tags:{nameZh:'马赛老港',name:'Vieux-Port de Marseille',tourism:'attraction','addr:city':'Marseille'}},
+  { type:'node',id:1392,lat:45.762495,lon:4.826863, tags:{nameZh:'里昂老城',name:'Vieux Lyon',tourism:'attraction','addr:city':'Lyon'}},
+  { type:'node',id:1393,lat:48.074634,lon:7.360326, tags:{nameZh:'科尔马小威尼斯',name:'Petite Venise Colmar',tourism:'attraction','addr:city':'Colmar'}},
+  { type:'node',id:1394,lat:45.898325,lon:6.124555, tags:{nameZh:'安纳西老城',name:'Vieille Ville d\'Annecy',tourism:'attraction','addr:city':'Annecy'}},
+  { type:'node',id:1395,lat:43.951971,lon:4.807378, tags:{nameZh:'阿维尼翁断桥',name:'Pont d\'Avignon',tourism:'attraction',website:'https://www.avignon-pont.com','addr:city':'Avignon',opening_hours:'Mo-Su 09:00-19:00 (seasonal)'}},
+  { type:'node',id:1396,lat:43.677927,lon:4.625557, tags:{nameZh:'阿尔勒梵高足迹',name:'Fondation Vincent van Gogh Arles',tourism:'museum',website:'https://www.fondation-vincentvangogh-arles.org','addr:city':'Arles',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1397,lat:48.771939,lon:1.998010, tags:{nameZh:'凡尔赛花园',name:'Jardins de Versailles',leisure:'park',website:'https://www.chateauversailles.fr','addr:city':'Versailles',opening_hours:'Mo-Su 08:00-20:30'}},
+  { type:'node',id:1398,lat:49.420177,lon:0.233152, tags:{nameZh:'翁弗勒尔港',name:'Vieux Bassin Honfleur',tourism:'attraction','addr:city':'Honfleur'}},
+  { type:'node',id:1399,lat:48.648702,lon:-2.019943, tags:{nameZh:'圣马洛老城',name:'Intra-Muros Saint-Malo',tourism:'attraction','addr:city':'Saint-Malo'}},
+  { type:'node',id:1400,lat:43.7300,lon:7.4200, tags:{nameZh:'摩纳哥皇宫',name:'Palais Princier de Monaco',tourism:'attraction',website:'https://www.palais.mc','addr:city':'Monaco',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1401,lat:45.878704,lon:6.887551, tags:{nameZh:'南针峰缆车',name:'Aiguille du Midi',tourism:'attraction',website:'https://www.montblancnaturalresort.com','addr:city':'Chamonix',opening_hours:'Mo-Su 08:00-17:00 (seasonal)'}},
+  { type:'node',id:1402,lat:46.153276,lon:-1.150621, tags:{nameZh:'拉罗谢尔水族馆',name:'Aquarium La Rochelle',tourism:'aquarium',website:'https://www.aquarium-larochelle.com','addr:city':'La Rochelle',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1403,lat:47.2400,lon:-1.5700, tags:{nameZh:'南特城堡',name:'Chateau des Ducs de Bretagne',historic:'castle',website:'https://www.chateaunantes.fr','addr:city':'Nantes',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1404,lat:48.381272,lon:-4.492364, tags:{nameZh:'布雷斯特海事博物馆',name:'Musee National de la Marine Brest',tourism:'museum','addr:city':'Brest',opening_hours:'We-Mo 10:00-18:00'}},
+  { type:'node',id:1405,lat:47.345429,lon:0.676079, tags:{nameZh:'图尔水族馆',name:'Aquarium du Val de Loire',tourism:'aquarium',website:'https://www.aquariumduvaldeloire.com','addr:city':'Amboise',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1406,lat:48.835198,lon:2.409077, tags:{nameZh:'巴黎热带水族馆',name:'Aquarium Tropical de Paris',tourism:'aquarium','addr:city':'Paris 12e','addr:street':'293 Avenue Daumesnil',opening_hours:'Tu-Su 10:00-17:30'}},
+  { type:'node',id:1407,lat:43.719400,lon:7.276209, tags:{nameZh:'尼斯马蒂斯博物馆',name:'Musee Matisse Nice',tourism:'museum','addr:city':'Nice',opening_hours:'We-Mo 10:00-18:00'}},
+  { type:'node',id:1408,lat:45.764050,lon:4.827286, tags:{nameZh:'里昂缩影博物馆',name:'Musees Gadagne Lyon',tourism:'museum','addr:city':'Lyon',opening_hours:'We-Su 10:30-18:30'}},
+  { type:'node',id:1409,lat:48.079864,lon:7.355556, tags:{nameZh:'科尔马安特林登博物馆',name:'Musee Unterlinden Colmar',tourism:'museum',website:'https://www.musee-unterlinden.com','addr:city':'Colmar',opening_hours:'We-Mo 09:00-18:00'}},
+  { type:'node',id:1410,lat:43.611754,lon:3.880127, tags:{nameZh:'蒙彼利埃法布尔博物馆',name:'Musee Fabre Montpellier',tourism:'museum','addr:city':'Montpellier',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1411,lat:49.440471,lon:1.095864, tags:{nameZh:'鲁昂圣女贞德博物馆',name:'Historial Jeanne d\'Arc',tourism:'museum','addr:city':'Rouen',opening_hours:'Tu-Su 10:00-19:00'}},
+  { type:'node',id:1412,lat:48.833744,lon:2.332292, tags:{nameZh:'巴黎地下墓穴',name:'Catacombes de Paris',tourism:'museum',website:'https://www.catacombes.paris.fr','addr:city':'Paris 14e',opening_hours:'Tu-Su 09:45-20:30'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: HISTORIC / CHATEAUX (~30)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1413,lat:47.3253,lon:0.9908, tags:{nameZh:'阿泽莱里多城堡',name:'Chateau d\'Azay-le-Rideau',historic:'castle',website:'https://www.azay-le-rideau.fr','addr:city':'Azay-le-Rideau',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:1414,lat:47.3383,lon:1.0560, tags:{nameZh:'维朗德里城堡',name:'Chateau de Villandry',historic:'castle',website:'https://www.chateauvillandry.fr','addr:city':'Villandry',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:1415,lat:47.4988,lon:0.2322, tags:{nameZh:'朗热城堡',name:'Chateau de Langeais',historic:'castle',website:'https://www.chateau-de-langeais.com','addr:city':'Langeais',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:1416,lat:47.2530,lon:0.6862, tags:{nameZh:'于塞城堡（睡美人城堡）',name:'Chateau d\'Usse',historic:'castle',website:'https://www.chateaudusse.fr','addr:city':'Rigny-Usse',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1417,lat:47.4940,lon:1.1810, tags:{nameZh:'布卢瓦皇家城堡',name:'Chateau Royal de Blois',historic:'castle',website:'https://www.chateaudeblois.fr','addr:city':'Blois',opening_hours:'Mo-Su 09:00-18:30'}},
+  { type:'node',id:1418,lat:47.2570,lon:1.1740, tags:{nameZh:'瓦朗赛城堡',name:'Chateau de Valencay',historic:'castle',website:'https://www.chateau-valencay.fr','addr:city':'Valencay',opening_hours:'Mo-Su 09:30-18:00 (seasonal)'}},
+  { type:'node',id:1419,lat:47.4310,lon:0.6900, tags:{nameZh:'克洛吕斯城堡（达芬奇故居）',name:'Chateau du Clos Luce',historic:'castle',website:'https://www.vinci-closluce.com','addr:city':'Amboise',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:1420,lat:48.4561,lon:2.6997, tags:{nameZh:'子爵城堡',name:'Chateau de Vaux-le-Vicomte',historic:'castle',website:'https://www.vaux-le-vicomte.com','addr:city':'Maincy',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1421,lat:49.2127,lon:2.4834, tags:{nameZh:'尚蒂伊城堡',name:'Chateau de Chantilly',historic:'castle',website:'https://www.domainedechantilly.com','addr:city':'Chantilly',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1422,lat:48.4009,lon:2.6992, tags:{nameZh:'枫丹白露宫',name:'Chateau de Fontainebleau',historic:'castle',website:'https://www.chateaudefontainebleau.fr','addr:city':'Fontainebleau',opening_hours:'We-Mo 09:30-18:00'}},
+  { type:'node',id:1423,lat:47.8367,lon:1.3317, tags:{nameZh:'美丽地城堡',name:'Chateau de Meung-sur-Loire',historic:'castle','addr:city':'Meung-sur-Loire',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1424,lat:47.5856,lon:1.3328, tags:{nameZh:'苏利城堡',name:'Chateau de Sully-sur-Loire',historic:'castle','addr:city':'Sully-sur-Loire',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1425,lat:42.9208,lon:2.1000, tags:{nameZh:'佩雷佩尔蒂斯城堡（卡特里城堡）',name:'Chateau de Peyrepertuse',historic:'ruins','addr:city':'Duilhac-sous-Peyrepertuse',opening_hours:'Mo-Su 09:00-19:00 (seasonal)'}},
+  { type:'node',id:1426,lat:42.8700,lon:2.2030, tags:{nameZh:'凯里比斯城堡',name:'Chateau de Queribus',historic:'ruins','addr:city':'Cucugnan',opening_hours:'Mo-Su 09:30-19:00 (seasonal)'}},
+  { type:'node',id:1427,lat:43.0556,lon:2.9481, tags:{nameZh:'阿吉拉尔城堡',name:'Chateau d\'Aguilar',historic:'ruins','addr:city':'Tuchan',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1428,lat:42.7400,lon:1.8870, tags:{nameZh:'蒙塞居尔城堡',name:'Chateau de Montsegur',historic:'ruins','addr:city':'Montsegur',opening_hours:'Mo-Su 09:30-18:00 (seasonal)'}},
+  { type:'node',id:1429,lat:48.8064,lon:-3.0200, tags:{nameZh:'坦勒城堡',name:'Chateau de Tonquedec',historic:'castle','addr:city':'Tonquedec',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1430,lat:48.3970,lon:-2.8420, tags:{nameZh:'拉罗什-雅古城堡',name:'Chateau de la Roche-Jagu',historic:'castle','addr:city':'Ploezal',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1431,lat:48.0450,lon:-4.3250, tags:{nameZh:'坎佩尔大教堂',name:'Cathedrale Saint-Corentin Quimper',historic:'monument','addr:city':'Quimper'}},
+  { type:'node',id:1432,lat:46.5800,lon:0.3400, tags:{nameZh:'普瓦捷圣母大教堂',name:'Eglise Notre-Dame la Grande Poitiers',historic:'monument','addr:city':'Poitiers'}},
+  { type:'node',id:1433,lat:45.0440,lon:1.0000, tags:{nameZh:'贝纳克城堡',name:'Chateau de Beynac',historic:'castle','addr:city':'Beynac-et-Cazenac',opening_hours:'Mo-Su 10:00-18:30 (seasonal)'}},
+  { type:'node',id:1434,lat:44.8180,lon:0.8570, tags:{nameZh:'卡斯特诺城堡',name:'Chateau de Castelnaud',historic:'castle',website:'https://www.castelnaud.com','addr:city':'Castelnaud-la-Chapelle',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:1435,lat:43.8380,lon:4.3600, tags:{nameZh:'圣吉尔杜加尔修道院',name:'Abbatiale de Saint-Gilles',historic:'monument','addr:city':'Saint-Gilles'}},
+  { type:'node',id:1436,lat:46.4530,lon:4.0800, tags:{nameZh:'帕雷勒莫尼亚尔圣心教堂',name:'Basilique du Sacre-Coeur Paray-le-Monial',historic:'monument','addr:city':'Paray-le-Monial'}},
+  { type:'node',id:1437,lat:45.9430,lon:4.7560, tags:{nameZh:'安佩尔中世纪村',name:'Village Medieval d\'Oingt',historic:'monument','addr:city':'Val d\'Oingt'}},
+  { type:'node',id:1438,lat:43.3400,lon:3.2150, tags:{nameZh:'贝济耶大教堂',name:'Cathedrale Saint-Nazaire Beziers',historic:'monument','addr:city':'Beziers'}},
+  { type:'node',id:1439,lat:46.3420,lon:2.6030, tags:{nameZh:'穆兰旧城',name:'Vieux Quartiers de Moulins',historic:'monument','addr:city':'Moulins'}},
+  { type:'node',id:1440,lat:48.5147,lon:-2.7608, tags:{nameZh:'圣布里厄大教堂',name:'Cathedrale Saint-Etienne de Saint-Brieuc',historic:'monument','addr:city':'Saint-Brieuc'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: MUSEUMS (~25)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1441,lat:49.642061,lon:-1.617309, tags:{nameZh:'瑟堡海洋之城',name:'Cite de la Mer Cherbourg',tourism:'museum',website:'https://www.citedelamer.com','addr:city':'Cherbourg-en-Cotentin',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:1442,lat:43.121822,lon:5.928355, tags:{nameZh:'土伦海事博物馆',name:'Musee de la Marine Toulon',tourism:'museum','addr:city':'Toulon',opening_hours:'We-Mo 10:00-18:00'}},
+  { type:'node',id:1443,lat:47.395261,lon:0.695059, tags:{nameZh:'图尔美术博物馆',name:'Musee des Beaux-Arts de Tours',tourism:'museum','addr:city':'Tours',opening_hours:'We-Mo 09:00-12:45, 14:00-18:00'}},
+  { type:'node',id:1444,lat:46.845864,lon:-1.481112, tags:{nameZh:'旺代战争博物馆',name:'Historial de la Vendee',tourism:'museum',website:'https://www.sitesculturels.vendee.fr','addr:city':'Les Lucs-sur-Boulogne',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1445,lat:45.449844,lon:4.384238, tags:{nameZh:'圣艾蒂安设计博物馆',name:'Cite du Design Saint-Etienne',tourism:'museum',website:'https://www.citedudesign.com','addr:city':'Saint-Etienne',opening_hours:'We-Su 10:00-18:00'}},
+  { type:'node',id:1446,lat:48.381272,lon:-4.492364, tags:{nameZh:'布雷斯特城堡博物馆',name:'Musee du Chateau de Brest',tourism:'museum','addr:city':'Brest',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1447,lat:43.205293,lon:2.363909, tags:{nameZh:'卡尔卡松中世纪博物馆',name:'Musee de l\'Ecole Carcassonne',tourism:'museum','addr:city':'Carcassonne',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1448,lat:46.579917,lon:0.348224, tags:{nameZh:'普瓦捷科技馆',name:'Espace Mendes France Poitiers',tourism:'museum',website:'https://www.emf.fr','addr:city':'Poitiers',opening_hours:'Tu-Su 09:30-18:30'}},
+  { type:'node',id:1449,lat:47.760104,lon:7.330927, tags:{nameZh:'米卢斯汽车博物馆',name:'Cite de l\'Automobile Mulhouse',tourism:'museum',website:'https://www.citedelautomobile.com','addr:city':'Mulhouse',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1450,lat:47.750003,lon:7.293868, tags:{nameZh:'米卢斯火车博物馆',name:'Cite du Train Mulhouse',tourism:'museum',website:'https://www.citedutrain.com','addr:city':'Mulhouse',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1451,lat:45.0550,lon:0.5250, tags:{nameZh:'拉斯科洞穴',name:'Lascaux IV - Centre International de l\'Art Parietal',tourism:'museum',website:'https://www.lascaux.fr','addr:city':'Montignac-Lascaux',opening_hours:'Mo-Su 09:00-19:00 (seasonal)'}},
+  { type:'node',id:1452,lat:43.602870,lon:3.917154, tags:{nameZh:'蒙彼利埃水族馆',name:'Planet Ocean Montpellier',tourism:'aquarium',website:'https://www.planetoceanworld.fr','addr:city':'Montpellier',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1453,lat:48.710938,lon:-3.998915, tags:{nameZh:'罗斯科夫海洋生物站',name:'Station Biologique de Roscoff',tourism:'museum','addr:city':'Roscoff',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1454,lat:47.084214,lon:2.393546, tags:{nameZh:'布尔日雅克·科尔宫',name:'Palais Jacques-Coeur Bourges',tourism:'museum','addr:city':'Bourges',opening_hours:'Mo-Su 09:30-12:15, 14:00-18:15'}},
+  { type:'node',id:1455,lat:43.8367,lon:4.3597, tags:{nameZh:'尼姆竞技场',name:'Arenes de Nimes',historic:'ruins',website:'https://www.arenes-nimes.com','addr:city':'Nimes',opening_hours:'Mo-Su 09:00-18:30'}},
+  { type:'node',id:1456,lat:45.793927,lon:3.116222, tags:{nameZh:'克莱蒙费朗冒险博物馆',name:'Musee d\'Art Roger-Quilliot',tourism:'museum','addr:city':'Clermont-Ferrand',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1457,lat:43.525354,lon:5.452949, tags:{nameZh:'普罗旺斯艾克斯格拉内博物馆',name:'Musee Granet Aix-en-Provence',tourism:'museum','addr:city':'Aix-en-Provence',opening_hours:'Tu-Su 10:00-19:00'}},
+  { type:'node',id:1458,lat:49.8900,lon:2.2950, tags:{nameZh:'亚眠大教堂',name:'Cathedrale Notre-Dame d\'Amiens',historic:'monument','addr:city':'Amiens'}},
+  { type:'node',id:1459,lat:49.887744,lon:2.301691, tags:{nameZh:'亚眠儒勒凡尔纳故居',name:'Maison de Jules Verne Amiens',tourism:'museum','addr:city':'Amiens',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1460,lat:44.352197,lon:2.567749, tags:{nameZh:'罗德兹苏拉日博物馆',name:'Musee Soulages Rodez',tourism:'museum',website:'https://www.musee-soulages-rodez.fr','addr:city':'Rodez',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1461,lat:42.6986,lon:2.8956, tags:{nameZh:'佩皮尼昂宫殿',name:'Palais des Rois de Majorque',historic:'castle','addr:city':'Perpignan',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:1462,lat:46.2080,lon:5.2280, tags:{nameZh:'布鲁皇家修道院',name:'Monastere Royal de Brou',historic:'monument',website:'https://www.monastere-de-brou.fr','addr:city':'Bourg-en-Bresse',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:1463,lat:44.079977,lon:3.022409, tags:{nameZh:'米约高架桥',name:'Viaduc de Millau',tourism:'attraction',website:'https://www.leviaducdemillau.com','addr:city':'Millau'}},
+  { type:'node',id:1464,lat:48.6460,lon:-3.4590, tags:{nameZh:'莫尔莱高架桥',name:'Viaduc de Morlaix',historic:'monument','addr:city':'Morlaix'}},
+  { type:'node',id:1465,lat:46.324670,lon:-0.468849, tags:{nameZh:'尼奥尔水族馆',name:'Aquarium de Niort',tourism:'aquarium','addr:city':'Niort',opening_hours:'Tu-Su 10:00-18:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: NATURE & PARKS (~25)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1466,lat:48.448148,lon:2.729041, tags:{nameZh:'枫丹白露森林',name:'Foret de Fontainebleau',leisure:'nature_reserve','addr:city':'Fontainebleau'}},
+  { type:'node',id:1467,lat:44.351903,lon:3.407478, tags:{nameZh:'塔恩峡谷',name:'Gorges du Tarn',leisure:'nature_reserve','addr:city':'Sainte-Enimie'}},
+  { type:'node',id:1468,lat:43.230634,lon:5.394451, tags:{nameZh:'卡朗格国家公园',name:'Parc National des Calanques',leisure:'nature_reserve',website:'https://www.calanques-parcnational.fr','addr:city':'Marseille'}},
+  { type:'node',id:1469,lat:42.1400,lon:9.0900, tags:{nameZh:'巴韦拉自然保护区（科西嘉）',name:'Foret de Bavella',leisure:'nature_reserve','addr:city':'Zonza - Corse'}},
+  { type:'node',id:1470,lat:42.310615,lon:9.149780, tags:{nameZh:'科西嘉自然公园',name:'Parc Naturel Regional de Corse',leisure:'nature_reserve','addr:city':'Ajaccio - Corse'}},
+  { type:'node',id:1471,lat:44.917857,lon:6.415916, tags:{nameZh:'埃克兰国家公园',name:'Parc National des Ecrins',leisure:'nature_reserve','addr:city':'Vallouise'}},
+  { type:'node',id:1472,lat:44.2200,lon:6.7500, tags:{nameZh:'韦尔科斯自然公园',name:'Parc Naturel Regional du Vercors',leisure:'nature_reserve','addr:city':'Lans-en-Vercors'}},
+  { type:'node',id:1473,lat:43.536850,lon:5.636007, tags:{nameZh:'圣维克图瓦山',name:'Montagne Sainte-Victoire',leisure:'nature_reserve','addr:city':'Aix-en-Provence'}},
+  { type:'node',id:1474,lat:44.732584,lon:-1.079760, tags:{nameZh:'阿卡雄湾鸟岛',name:'Ile aux Oiseaux Bassin d\'Arcachon',leisure:'nature_reserve','addr:city':'Arcachon'}},
+  { type:'node',id:1475,lat:47.302094,lon:-2.265315, tags:{nameZh:'布里埃尔自然公园',name:'Parc Naturel Regional de Briere',leisure:'nature_reserve','addr:city':'Saint-Lyphard'}},
+  { type:'node',id:1476,lat:46.4600,lon:-1.1800, tags:{nameZh:'旺代沼泽地',name:'Marais Poitevin',leisure:'nature_reserve','addr:city':'Coulon'}},
+  { type:'node',id:1477,lat:48.255989,lon:-4.621737, tags:{nameZh:'布列塔尼拉兹角',name:'Pointe de Pen-Hir',leisure:'nature_reserve','addr:city':'Camaret-sur-Mer'}},
+  { type:'node',id:1478,lat:44.363808,lon:4.463196, tags:{nameZh:'阿尔代什峡谷',name:'Gorges de l\'Ardeche',leisure:'nature_reserve','addr:city':'Vallon-Pont-d\'Arc'}},
+  { type:'node',id:1479,lat:45.0430,lon:1.5070, tags:{nameZh:'多尔多涅河谷',name:'Vallee de la Dordogne',leisure:'nature_reserve','addr:city':'La Roque-Gageac'}},
+  { type:'node',id:1480,lat:44.4000,lon:8.9600, tags:{nameZh:'旺特山',name:'Monte Cinto (Corse)',leisure:'nature_reserve','addr:city':'Calacuccia - Corse'}},
+  { type:'node',id:1481,lat:47.883254,lon:6.995139, tags:{nameZh:'阿尔萨斯气球山自然公园',name:'Grand Ballon des Vosges',leisure:'nature_reserve','addr:city':'Guebwiller'}},
+  { type:'node',id:1482,lat:50.5400,lon:1.5800, tags:{nameZh:'布洛涅森林海角',name:'Cap Gris-Nez',leisure:'nature_reserve','addr:city':'Audinghen'}},
+  { type:'node',id:1483,lat:48.5580,lon:-3.1480, tags:{nameZh:'玫瑰海岸',name:'Cote de Granit Rose',leisure:'nature_reserve','addr:city':'Perros-Guirec'}},
+  { type:'node',id:1484,lat:44.388109,lon:4.415691, tags:{nameZh:'阿尔代什自然桥',name:'Pont d\'Arc',leisure:'nature_reserve','addr:city':'Vallon-Pont-d\'Arc'}},
+  { type:'node',id:1485,lat:43.0300,lon:-0.3700, tags:{nameZh:'彼得马列山',name:'Pic du Midi de Bigorre',leisure:'nature_reserve',website:'https://www.picdumidi.com','addr:city':'La Mongie',opening_hours:'Mo-Su 09:00-19:00 (seasonal)'}},
+  { type:'node',id:1486,lat:46.8300,lon:6.1800, tags:{nameZh:'雷吉翁湖',name:'Lac de Chalain',leisure:'nature_reserve','addr:city':'Doucier'}},
+  { type:'node',id:1487,lat:44.2000,lon:2.0800, tags:{nameZh:'洛特河谷',name:'Vallee du Lot',leisure:'nature_reserve','addr:city':'Saint-Cirq-Lapopie'}},
+  { type:'node',id:1488,lat:46.3500,lon:2.8600, tags:{nameZh:'图雷-德拉莫火山群',name:'Puy de Dome',leisure:'nature_reserve',website:'https://www.puydedome.fr','addr:city':'Orcines',opening_hours:'Mo-Su 09:00-19:00 (seasonal)'}},
+  { type:'node',id:1489,lat:45.899235,lon:6.131333, tags:{nameZh:'安纳西老城旁帕奎尔花园',name:'Jardins de l\'Europe Annecy',leisure:'park','addr:city':'Annecy'}},
+  { type:'node',id:1490,lat:42.9700,lon:9.4000, tags:{nameZh:'科西嘉巴斯蒂亚老港',name:'Vieux Port de Bastia',tourism:'attraction','addr:city':'Bastia - Corse'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: BEACHES (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1491,lat:41.9200,lon:8.7400, tags:{nameZh:'阿雅克肖海滩（科西嘉）',name:'Plage de Capo di Feno',natural:'beach','addr:city':'Ajaccio - Corse'}},
+  { type:'node',id:1492,lat:41.6200,lon:9.2800, tags:{nameZh:'波尔图韦基奥海滩（科西嘉）',name:'Plage de Palombaggia',natural:'beach','addr:city':'Porto-Vecchio - Corse'}},
+  { type:'node',id:1493,lat:41.5900,lon:9.2400, tags:{nameZh:'圣朱利亚海滩（科西嘉）',name:'Plage de Santa Giulia',natural:'beach','addr:city':'Porto-Vecchio - Corse'}},
+  { type:'node',id:1494,lat:42.5200,lon:8.7900, tags:{nameZh:'卡尔维海滩（科西嘉）',name:'Plage de Calvi',natural:'beach','addr:city':'Calvi - Corse'}},
+  { type:'node',id:1495,lat:43.4800,lon:-1.5600, tags:{nameZh:'昂代伊海滩',name:'Plage d\'Hendaye',natural:'beach','addr:city':'Hendaye'}},
+  { type:'node',id:1496,lat:43.6600,lon:-1.4200, tags:{nameZh:'卡普布勒顿海滩',name:'Plage de Capbreton',natural:'beach','addr:city':'Capbreton'}},
+  { type:'node',id:1497,lat:43.8500,lon:-1.3600, tags:{nameZh:'朗德海滩',name:'Plage de Moliets',natural:'beach','addr:city':'Moliets-et-Maa'}},
+  { type:'node',id:1498,lat:44.3300,lon:-1.3200, tags:{nameZh:'比斯卡罗斯海滩',name:'Plage de Biscarrosse',natural:'beach','addr:city':'Biscarrosse'}},
+  { type:'node',id:1499,lat:46.6700,lon:-1.9600, tags:{nameZh:'圣让德蒙特海滩',name:'Plage de Saint-Jean-de-Monts',natural:'beach','addr:city':'Saint-Jean-de-Monts'}},
+  { type:'node',id:1500,lat:46.7300,lon:-2.0000, tags:{nameZh:'努瓦尔穆捷岛海滩',name:'Plage de Noirmoutier',natural:'beach','addr:city':'Noirmoutier-en-l\'Ile'}},
+  { type:'node',id:1501,lat:47.2700,lon:-2.2100, tags:{nameZh:'拉博勒海滩',name:'Plage de La Baule',natural:'beach','addr:city':'La Baule-Escoublac'}},
+  { type:'node',id:1502,lat:47.7200,lon:-3.3600, tags:{nameZh:'洛里昂近海格罗伊斯岛海滩',name:'Plage de Groix',natural:'beach','addr:city':'Ile de Groix'}},
+  { type:'node',id:1503,lat:48.8400,lon:-3.5200, tags:{nameZh:'莱格雷维洛克海滩',name:'Plage de Trestraou',natural:'beach','addr:city':'Perros-Guirec'}},
+  { type:'node',id:1504,lat:48.7600,lon:-3.9800, tags:{nameZh:'罗斯科夫海滩',name:'Plage de Roscoff',natural:'beach','addr:city':'Roscoff'}},
+  { type:'node',id:1505,lat:48.0400,lon:-4.3300, tags:{nameZh:'坎佩尔附近海滩',name:'Plage de Benodet',natural:'beach','addr:city':'Benodet'}},
+  { type:'node',id:1506,lat:48.6800,lon:-3.9700, tags:{nameZh:'卡兰泰克海滩',name:'Plage de Carantec',natural:'beach','addr:city':'Carantec'}},
+  { type:'node',id:1507,lat:43.4000,lon:3.6800, tags:{nameZh:'塞特海滩',name:'Plage de Sete',natural:'beach','addr:city':'Sete'}},
+  { type:'node',id:1508,lat:43.1800,lon:3.0500, tags:{nameZh:'纳博讷海滩',name:'Plage de Narbonne',natural:'beach','addr:city':'Narbonne-Plage'}},
+  { type:'node',id:1509,lat:42.6500,lon:3.0400, tags:{nameZh:'阿尔热莱海滩',name:'Plage d\'Argeles-sur-Mer',natural:'beach','addr:city':'Argeles-sur-Mer'}},
+  { type:'node',id:1510,lat:43.3800,lon:6.9300, tags:{nameZh:'圣马克西姆海滩',name:'Plage de Sainte-Maxime',natural:'beach','addr:city':'Sainte-Maxime'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: OUTDOOR PLAYGROUNDS / AIRES DE JEUX (~30)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1511,lat:48.832832,lon:2.384355, tags:{nameZh:'巴黎贝西公园儿童乐园',name:'Aire de Jeux Parc de Bercy',leisure:'playground','addr:city':'Paris 12e'}},
+  { type:'node',id:1512,lat:48.820065,lon:2.453131, tags:{nameZh:'巴黎文森森林儿童乐园',name:'Aire de Jeux Bois de Vincennes',leisure:'playground','addr:city':'Paris 12e'}},
+  { type:'node',id:1513,lat:48.856579,lon:2.251796, tags:{nameZh:'巴黎布洛涅森林儿童乐园',name:'Aire de Jeux Bois de Boulogne',leisure:'playground','addr:city':'Paris 16e'}},
+  { type:'node',id:1514,lat:48.840035,lon:2.278159, tags:{nameZh:'巴黎安德烈·雪铁龙公园儿童乐园',name:'Aire de Jeux Parc Andre Citroen',leisure:'playground','addr:city':'Paris 15e'}},
+  { type:'node',id:1515,lat:48.879140,lon:2.303677, tags:{nameZh:'巴黎蒙梭公园儿童乐园',name:'Aire de Jeux Parc Monceau',leisure:'playground','addr:city':'Paris 8e'}},
+  { type:'node',id:1516,lat:48.819835,lon:2.251519, tags:{nameZh:'巴黎汽球飞行公园儿童乐园',name:'Aire de Jeux Ile Saint-Germain',leisure:'playground','addr:city':'Issy-les-Moulineaux'}},
+  { type:'node',id:1517,lat:45.746190,lon:4.853855, tags:{nameZh:'里昂布兰歇特公园儿童乐园',name:'Aire de Jeux Parc Blandan',leisure:'playground','addr:city':'Lyon'}},
+  { type:'node',id:1518,lat:43.642451,lon:1.452990, tags:{nameZh:'图卢兹大圆花园儿童乐园',name:'Aire de Jeux Grand Rond Toulouse',leisure:'playground','addr:city':'Toulouse'}},
+  { type:'node',id:1519,lat:44.877005,lon:-0.542859, tags:{nameZh:'波尔多河岸公园儿童乐园',name:'Aire de Jeux Parc des Berges Bordeaux',leisure:'playground','addr:city':'Bordeaux'}},
+  { type:'node',id:1520,lat:43.295857,lon:5.398894, tags:{nameZh:'马赛隆尚宫花园儿童乐园',name:'Aire de Jeux Palais Longchamp Marseille',leisure:'playground','addr:city':'Marseille'}},
+  { type:'node',id:1521,lat:47.225483,lon:-1.562634, tags:{nameZh:'南特圣安娜公园儿童乐园',name:'Aire de Jeux Parc de Proce Nantes',leisure:'playground','addr:city':'Nantes'}},
+  { type:'node',id:1522,lat:48.134320,lon:-1.646350, tags:{nameZh:'雷恩莫里斯公园儿童乐园',name:'Aire de Jeux Parc des Gayeulles Rennes',leisure:'playground','addr:city':'Rennes'}},
+  { type:'node',id:1523,lat:50.636072,lon:3.050482, tags:{nameZh:'里尔花园公园儿童乐园',name:'Aire de Jeux Jardin Vauban Lille',leisure:'playground','addr:city':'Lille'}},
+  { type:'node',id:1524,lat:48.575730,lon:7.774901, tags:{nameZh:'斯特拉斯堡要塞公园儿童乐园',name:'Aire de Jeux Parc de la Citadelle Strasbourg',leisure:'playground','addr:city':'Strasbourg'}},
+  { type:'node',id:1525,lat:45.174343,lon:5.741686, tags:{nameZh:'格勒诺布尔修道院花园',name:'Aire de Jeux Jardin de Ville Grenoble',leisure:'playground','addr:city':'Grenoble'}},
+  { type:'node',id:1526,lat:47.321376,lon:5.011186, tags:{nameZh:'第戎湖公园儿童乐园',name:'Aire de Jeux Parc du Lac Kir Dijon',leisure:'playground','addr:city':'Dijon'}},
+  { type:'node',id:1527,lat:49.421673,lon:1.076859, tags:{nameZh:'鲁昂鲁维尔花园儿童乐园',name:'Aire de Jeux Jardin des Plantes Rouen',leisure:'playground','addr:city':'Rouen'}},
+  { type:'node',id:1528,lat:49.2400,lon:4.0400, tags:{nameZh:'兰斯赖斯公园儿童乐园',name:'Aire de Jeux Parc Leo Lagrange Reims',leisure:'playground','addr:city':'Reims'}},
+  { type:'node',id:1529,lat:43.629354,lon:3.873394, tags:{nameZh:'蒙彼利埃佩鲁公园儿童乐园',name:'Aire de Jeux Promenade du Peyrou Montpellier',leisure:'playground','addr:city':'Montpellier'}},
+  { type:'node',id:1530,lat:43.716508,lon:7.266743, tags:{nameZh:'尼斯城堡山公园儿童乐园',name:'Aire de Jeux Parc du Chateau Nice',leisure:'playground','addr:city':'Nice'}},
+  { type:'node',id:1531,lat:46.573435,lon:0.330070, tags:{nameZh:'普瓦捷布洛萨克公园儿童乐园',name:'Aire de Jeux Parc de Blossac Poitiers',leisure:'playground','addr:city':'Poitiers'}},
+  { type:'node',id:1532,lat:47.387325,lon:0.666504, tags:{nameZh:'图尔植物园儿童乐园',name:'Aire de Jeux Jardin Botanique de Tours',leisure:'playground','addr:city':'Tours'}},
+  { type:'node',id:1533,lat:45.772319,lon:3.088482, tags:{nameZh:'克莱蒙费朗勒库尔公园儿童乐园',name:'Aire de Jeux Jardin Lecoq Clermont-Ferrand',leisure:'playground','addr:city':'Clermont-Ferrand'}},
+  { type:'node',id:1534,lat:44.841692,lon:-0.569083, tags:{nameZh:'波尔多加龙河畔水镜广场儿童乐园',name:'Aire de Jeux Miroir d\'Eau Bordeaux',leisure:'playground','addr:city':'Bordeaux'}},
+  { type:'node',id:1535,lat:43.585938,lon:1.449126, tags:{nameZh:'图卢兹日本花园儿童乐园',name:'Aire de Jeux Jardin Japonais Toulouse',leisure:'playground','addr:city':'Toulouse'}},
+  { type:'node',id:1536,lat:47.081982,lon:2.411093, tags:{nameZh:'布尔日沼泽花园儿童乐园',name:'Aire de Jeux Marais de Bourges',leisure:'playground','addr:city':'Bourges'}},
+  { type:'node',id:1537,lat:46.3400,lon:2.6000, tags:{nameZh:'穆兰花园儿童乐园',name:'Aire de Jeux Jardin Wilson Moulins',leisure:'playground','addr:city':'Moulins'}},
+  { type:'node',id:1538,lat:45.421483,lon:4.384065, tags:{nameZh:'圣艾蒂安帕克公园儿童乐园',name:'Aire de Jeux Parc de l\'Europe Saint-Etienne',leisure:'playground','addr:city':'Saint-Etienne'}},
+  { type:'node',id:1539,lat:42.735495,lon:2.940408, tags:{nameZh:'佩皮尼昂公园儿童乐园',name:'Aire de Jeux Jardin de la Pepiniere Perpignan',leisure:'playground','addr:city':'Perpignan'}},
+  { type:'node',id:1540,lat:41.909180,lon:8.712814, tags:{nameZh:'阿雅克肖公园儿童乐园（科西嘉）',name:'Aire de Jeux Parc Berthault Ajaccio',leisure:'playground','addr:city':'Ajaccio - Corse'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: SWIMMING POOLS / CENTRES AQUATIQUES (~25)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1541,lat:49.4300,lon:1.0900, tags:{nameZh:'鲁昂水上中心',name:'Centre Aquatique Rouen',leisure:'swimming_pool','addr:city':'Rouen',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1542,lat:47.473237,lon:-0.486121, tags:{nameZh:'昂热水上乐园',name:'Centre Aquatique AquaVita Angers',leisure:'swimming_pool','addr:city':'Angers',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1543,lat:46.157493,lon:-1.101032, tags:{nameZh:'拉罗谢尔水上中心',name:'Centre Aquatique Palmilud La Rochelle',leisure:'swimming_pool','addr:city':'La Rochelle',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1544,lat:47.367570,lon:0.696901, tags:{nameZh:'图尔水上中心',name:'Centre Aquatique du Lac Tours',leisure:'swimming_pool','addr:city':'Tours',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1545,lat:47.0500,lon:2.3900, tags:{nameZh:'布尔日水上中心',name:'Centre Aquatique de Bourges',leisure:'swimming_pool','addr:city':'Bourges',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1546,lat:46.594100,lon:0.363742, tags:{nameZh:'普瓦捷水上中心',name:'Centre Aquatique de la Pepiniere Poitiers',leisure:'swimming_pool','addr:city':'Poitiers',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1547,lat:45.768866,lon:3.085118, tags:{nameZh:'克莱蒙费朗水上中心',name:'Stade Nautique Pierre de Coubertin Clermont',leisure:'swimming_pool','addr:city':'Clermont-Ferrand',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1548,lat:45.531179,lon:4.596532, tags:{nameZh:'圣艾蒂安水上中心',name:'Centre Nautique de Saint-Etienne',leisure:'swimming_pool','addr:city':'Saint-Etienne',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1549,lat:44.847074,lon:-0.539974, tags:{nameZh:'波尔多户外泳池',name:'Piscine Galin Bordeaux',leisure:'swimming_pool','addr:city':'Bordeaux',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:1550,lat:43.6100,lon:1.4700, tags:{nameZh:'图卢兹纳基索斯水上中心',name:'Centre Aquatique Nakache Toulouse',leisure:'swimming_pool','addr:city':'Toulouse',opening_hours:'Mo-Su 07:00-21:00'}},
+  { type:'node',id:1551,lat:43.707984,lon:7.281700, tags:{nameZh:'尼斯让·布安泳池',name:'Piscine Jean Bouin Nice',leisure:'swimming_pool','addr:city':'Nice',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1552,lat:49.892355,lon:2.289218, tags:{nameZh:'亚眠水上中心',name:'Piscine Coliseum Amiens',leisure:'swimming_pool','addr:city':'Amiens',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1553,lat:49.187373,lon:-0.441149, tags:{nameZh:'卡昂水上乐园',name:'Centre Aquatique de Caen',leisure:'swimming_pool','addr:city':'Caen',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1554,lat:47.855362,lon:-4.150633, tags:{nameZh:'坎佩尔水上中心',name:'Centre Aquatique de Quimper',leisure:'swimming_pool','addr:city':'Quimper',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1555,lat:47.735230,lon:7.328242, tags:{nameZh:'米卢斯水上中心',name:'Centre Nautique de Mulhouse',leisure:'swimming_pool','addr:city':'Mulhouse',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1556,lat:46.209612,lon:5.238857, tags:{nameZh:'布雷斯堡水上中心',name:'Centre Aquatique Carré d\'Eau Bourg-en-Bresse',leisure:'swimming_pool','addr:city':'Bourg-en-Bresse',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1557,lat:43.8400,lon:4.3600, tags:{nameZh:'尼姆水上中心',name:'Centre Aquatique Nemausa Nimes',leisure:'swimming_pool','addr:city':'Nimes',opening_hours:'Mo-Su 10:00-19:30'}},
+  { type:'node',id:1558,lat:42.813054,lon:3.020985, tags:{nameZh:'佩皮尼昂水上中心',name:'Centre Aquatique de Perpignan',leisure:'swimming_pool','addr:city':'Perpignan',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1559,lat:44.347504,lon:2.561174, tags:{nameZh:'罗德兹水上中心',name:'Centre Aquatique du Grand Rodez',leisure:'swimming_pool','addr:city':'Rodez',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1560,lat:43.950675,lon:4.803235, tags:{nameZh:'阿维尼翁水上中心',name:'Centre Aquatique Le Splash Avignon',leisure:'swimming_pool','addr:city':'Avignon',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1561,lat:46.331246,lon:-0.463411, tags:{nameZh:'尼奥尔水上中心',name:'Piscine Pre Leroy Niort',leisure:'swimming_pool','addr:city':'Niort',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1562,lat:48.392170,lon:-4.434602, tags:{nameZh:'布雷斯特水上中心',name:'Centre Nautique de Brest',leisure:'swimming_pool','addr:city':'Brest',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1563,lat:41.934843,lon:8.747438, tags:{nameZh:'阿雅克肖水上中心（科西嘉）',name:'Piscine des Salines Ajaccio',leisure:'swimming_pool','addr:city':'Ajaccio - Corse',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1564,lat:48.511760,lon:-2.764502, tags:{nameZh:'圣布里厄水上中心',name:'Centre Aquatique Aquabaie Saint-Brieuc',leisure:'swimming_pool','addr:city':'Saint-Brieuc',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1565,lat:47.248258,lon:-1.517474, tags:{nameZh:'南特朱尔凡尔纳泳池',name:'Piscine Jules Verne Nantes',leisure:'swimming_pool','addr:city':'Nantes',opening_hours:'Mo-Su 10:00-20:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: CHILDREN'S FARMS / FERMES PEDAGOGIQUES (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1566,lat:47.3900,lon:0.6900, tags:{nameZh:'图尔教育农场',name:'Ferme Pedagogique de Tours',tourism:'children_farm','addr:city':'Tours',opening_hours:'We-Su 14:00-18:00'}},
+  { type:'node',id:1567,lat:47.0500,lon:2.3900, tags:{nameZh:'布尔日教育农场',name:'Ferme Pedagogique de Bourges',tourism:'children_farm','addr:city':'Bourges',opening_hours:'We-Su 14:00-17:00'}},
+  { type:'node',id:1568,lat:45.7700,lon:3.0800, tags:{nameZh:'克莱蒙费朗教育农场',name:'Ferme de Sarlieves Clermont',tourism:'children_farm','addr:city':'Clermont-Ferrand',opening_hours:'We-Su 14:00-18:00'}},
+  { type:'node',id:1569,lat:43.6100,lon:3.8800, tags:{nameZh:'蒙彼利埃教育农场',name:'Ferme Pedagogique de Montpellier',tourism:'children_farm','addr:city':'Montpellier',opening_hours:'We-Su 14:00-17:00'}},
+  { type:'node',id:1570,lat:49.1800,lon:-0.3600, tags:{nameZh:'卡昂教育农场',name:'Ferme Pedagogique de Caen',tourism:'children_farm','addr:city':'Caen',opening_hours:'We-Su 14:00-17:00'}},
+  { type:'node',id:1571,lat:43.7000,lon:7.2500, tags:{nameZh:'尼斯凤凰公园农场',name:'Parc Phoenix Nice - Ferme',tourism:'children_farm',website:'https://www.parc-phoenix.org','addr:city':'Nice',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:1572,lat:45.1900,lon:5.7300, tags:{nameZh:'格勒诺布尔教育农场',name:'Ferme Pedagogique du Verderet Grenoble',tourism:'children_farm','addr:city':'Grenoble',opening_hours:'We-Su 14:00-17:00'}},
+  { type:'node',id:1573,lat:47.3200,lon:5.0400, tags:{nameZh:'第戎教育农场',name:'Ferme de la Combe a la Serpent Dijon',tourism:'children_farm','addr:city':'Dijon',opening_hours:'We-Su 14:00-17:00'}},
+  { type:'node',id:1574,lat:43.5300,lon:5.4500, tags:{nameZh:'艾克斯教育农场',name:'Ferme Pedagogique de Puyricard',tourism:'children_farm','addr:city':'Aix-en-Provence',opening_hours:'We-Su 14:00-17:00'}},
+  { type:'node',id:1575,lat:49.8900,lon:2.3000, tags:{nameZh:'亚眠教育农场',name:'Ferme Pedagogique d\'Amiens',tourism:'children_farm','addr:city':'Amiens',opening_hours:'We-Su 14:00-17:00'}},
+  { type:'node',id:1576,lat:44.8400,lon:-0.5700, tags:{nameZh:'波尔多吉尼斯特农场',name:'Ferme du Parcot Bordeaux',tourism:'children_farm','addr:city':'Bordeaux',opening_hours:'We-Su 14:00-18:00'}},
+  { type:'node',id:1577,lat:46.5800,lon:0.3500, tags:{nameZh:'普瓦捷教育农场',name:'Ferme Pedagogique de la Grange Poitiers',tourism:'children_farm','addr:city':'Poitiers',opening_hours:'We-Su 14:00-17:00'}},
+  { type:'node',id:1578,lat:42.7000,lon:2.8900, tags:{nameZh:'佩皮尼昂教育农场',name:'Ferme Pedagogique de Perpignan',tourism:'children_farm','addr:city':'Perpignan',opening_hours:'We-Su 14:00-17:00'}},
+  { type:'node',id:1579,lat:43.8400,lon:4.3600, tags:{nameZh:'尼姆教育农场',name:'Ferme Pedagogique de Nimes',tourism:'children_farm','addr:city':'Nimes',opening_hours:'We-Su 14:00-17:00'}},
+  { type:'node',id:1580,lat:47.7500,lon:7.3400, tags:{nameZh:'米卢斯教育农场',name:'Ferme Pedagogique du Sundgau Mulhouse',tourism:'children_farm','addr:city':'Mulhouse',opening_hours:'We-Su 14:00-17:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: CHINESE RESTAURANTS (~20)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1581,lat:47.2100,lon:-1.5600, tags:{nameZh:'南特亚洲花园',name:'Jardin d\'Asie Nantes',amenity:'chinese_restaurant','addr:city':'Nantes','addr:street':'Rue de Strasbourg'}},
+  { type:'node',id:1582,lat:48.1100,lon:-1.6700, tags:{nameZh:'雷恩金龙',name:'Dragon d\'Or Rennes',amenity:'chinese_restaurant','addr:city':'Rennes','addr:street':'Rue d\'Antrain'}},
+  { type:'node',id:1583,lat:45.1900,lon:5.7300, tags:{nameZh:'格勒诺布尔唐城',name:'Tang City Grenoble',amenity:'chinese_restaurant','addr:city':'Grenoble','addr:street':'Rue de la Republique'}},
+  { type:'node',id:1584,lat:43.5300,lon:5.4500, tags:{nameZh:'艾克斯普罗旺斯满福楼',name:'Restaurant Man Fu Lou Aix',amenity:'chinese_restaurant','addr:city':'Aix-en-Provence','addr:street':'Rue de la Couronne'}},
+  { type:'node',id:1585,lat:43.6100,lon:3.8800, tags:{nameZh:'蒙彼利埃新龙宫',name:'Nouveau Dragon Palace Montpellier',amenity:'chinese_restaurant','addr:city':'Montpellier','addr:street':'Avenue de la Pompignane'}},
+  { type:'node',id:1586,lat:49.4400,lon:1.0900, tags:{nameZh:'鲁昂中华楼',name:'Restaurant Zhong Hua Lou Rouen',amenity:'chinese_restaurant','addr:city':'Rouen','addr:street':'Rue Jeanne d\'Arc'}},
+  { type:'node',id:1587,lat:49.2500,lon:4.0300, tags:{nameZh:'兰斯金宝',name:'Kin Pao Reims',amenity:'chinese_restaurant','addr:city':'Reims','addr:street':'Rue de Vesle'}},
+  { type:'node',id:1588,lat:47.3200,lon:5.0400, tags:{nameZh:'第戎龙腾',name:'Dragon Volant Dijon',amenity:'chinese_restaurant','addr:city':'Dijon','addr:street':'Rue de la Liberte'}},
+  { type:'node',id:1589,lat:45.4400,lon:4.3900, tags:{nameZh:'圣艾蒂安海龙王',name:'Hai Long Wang Saint-Etienne',amenity:'chinese_restaurant','addr:city':'Saint-Etienne','addr:street':'Place Jean Jaures'}},
+  { type:'node',id:1590,lat:47.3900,lon:0.6900, tags:{nameZh:'图尔金凤楼',name:'Golden Phoenix Tours',amenity:'chinese_restaurant','addr:city':'Tours','addr:street':'Rue Nationale'}},
+  { type:'node',id:1591,lat:47.0500,lon:2.3900, tags:{nameZh:'布尔日华宫',name:'Palais de Chine Bourges',amenity:'chinese_restaurant','addr:city':'Bourges','addr:street':'Rue Moyenne'}},
+  { type:'node',id:1592,lat:46.5800,lon:0.3500, tags:{nameZh:'普瓦捷龙宫',name:'Palais du Dragon Poitiers',amenity:'chinese_restaurant','addr:city':'Poitiers','addr:street':'Rue Carnot'}},
+  { type:'node',id:1593,lat:45.7800,lon:3.0800, tags:{nameZh:'克莱蒙费朗明珠',name:'Perle d\'Orient Clermont-Ferrand',amenity:'chinese_restaurant','addr:city':'Clermont-Ferrand','addr:street':'Boulevard Trudaine'}},
+  { type:'node',id:1594,lat:49.8900,lon:2.3000, tags:{nameZh:'亚眠金筷子',name:'Baguettes d\'Or Amiens',amenity:'chinese_restaurant','addr:city':'Amiens','addr:street':'Rue des Trois Cailloux'}},
+  { type:'node',id:1595,lat:49.1800,lon:-0.3600, tags:{nameZh:'卡昂翡翠',name:'Restaurant Jade Caen',amenity:'chinese_restaurant','addr:city':'Caen','addr:street':'Rue Saint-Pierre'}},
+  { type:'node',id:1596,lat:43.8400,lon:4.3600, tags:{nameZh:'尼姆金龙',name:'Dragon d\'Or Nimes',amenity:'chinese_restaurant','addr:city':'Nimes','addr:street':'Boulevard Victor Hugo'}},
+  { type:'node',id:1597,lat:43.9500,lon:4.8100, tags:{nameZh:'阿维尼翁华苑',name:'Jardin de Chine Avignon',amenity:'chinese_restaurant','addr:city':'Avignon','addr:street':'Rue de la Republique'}},
+  { type:'node',id:1598,lat:42.7000,lon:2.8900, tags:{nameZh:'佩皮尼昂东方明珠',name:'Perle d\'Orient Perpignan',amenity:'chinese_restaurant','addr:city':'Perpignan','addr:street':'Rue Alsace-Lorraine'}},
+  { type:'node',id:1599,lat:47.7500,lon:7.3400, tags:{nameZh:'米卢斯龙宫',name:'Palais du Dragon Mulhouse',amenity:'chinese_restaurant','addr:city':'Mulhouse','addr:street':'Rue du Sauvage'}},
+  { type:'node',id:1600,lat:48.3900,lon:-4.4900, tags:{nameZh:'布雷斯特华宫',name:'Palais de Chine Brest',amenity:'chinese_restaurant','addr:city':'Brest','addr:street':'Rue de Siam'}},
+  { type:'node',id:1800,lat:49.4430,lon:1.0990, tags:{nameZh:'鲁昂好来面',name:'Ho Lamian Rouen',amenity:'chinese_restaurant','addr:city':'Rouen','addr:street':'Rue du Gros-Horloge','addr:housenumber':'35',opening_hours:'Tu-Su 12:00-14:30, 18:00-22:00'}},
+  { type:'node',id:1801,lat:49.4410,lon:1.0930, tags:{nameZh:'鲁昂一帆美食',name:'Delices de Yifan Rouen',amenity:'chinese_restaurant','addr:city':'Rouen','addr:street':'Rue Beauvoisine','addr:housenumber':'80',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:00'}},
+  { type:'node',id:1802,lat:49.1830,lon:-0.3700, tags:{nameZh:'卡昂龙宫',name:'Palais du Dragon Caen',amenity:'chinese_restaurant','addr:city':'Caen','addr:street':'Rue Saint-Pierre','addr:housenumber':'42',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:00'}},
+  { type:'node',id:1803,lat:49.4900,lon:0.1070, tags:{nameZh:'勒阿弗尔金城',name:'Jin Cheng Le Havre',amenity:'chinese_restaurant','addr:city':'Le Havre','addr:street':'Rue de Paris','addr:housenumber':'88',opening_hours:'Tu-Su 12:00-14:30, 18:00-22:00'}},
+  { type:'node',id:1804,lat:49.8940,lon:2.2960, tags:{nameZh:'亚眠金筷子',name:'Baguettes d\'Or Amiens',amenity:'chinese_restaurant','addr:city':'Amiens','addr:street':'Rue des Trois Cailloux','addr:housenumber':'60',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:00'}},
+  { type:'node',id:1805,lat:47.3220,lon:5.0410, tags:{nameZh:'第戎唐城',name:'Chinatown Dijon',amenity:'chinese_restaurant','addr:city':'Dijon','addr:street':'Rue de la Liberte','addr:housenumber':'45',opening_hours:'Tu-Su 12:00-14:30, 18:00-22:00'}},
+  { type:'node',id:1806,lat:47.2400,lon:6.0200, tags:{nameZh:'贝桑松唐人街',name:'Chinatown Besancon',amenity:'chinese_restaurant',website:'https://chinatownbesancon.com','addr:city':'Besancon','addr:street':'Quai Vauban','addr:housenumber':'13',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:30'}},
+  { type:'node',id:1807,lat:45.7830,lon:3.0830, tags:{nameZh:'克莱蒙费朗香格里拉',name:'Shangrila Clermont-Ferrand',amenity:'chinese_restaurant','addr:city':'Clermont-Ferrand','addr:street':'Avenue des Etats-Unis','addr:housenumber':'22',opening_hours:'Tu-Su 12:00-14:30, 19:00-22:30'}},
+  { type:'node',id:1808,lat:45.8340,lon:1.2610, tags:{nameZh:'利摩日亚洲天堂',name:'Paradis d\'Asie Limoges',amenity:'chinese_restaurant','addr:city':'Limoges','addr:street':'Rue du Consulat','addr:housenumber':'18',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:00'}},
+  { type:'node',id:1809,lat:46.5800,lon:0.3400, tags:{nameZh:'普瓦捷福满楼',name:'Fu Man Lou Poitiers',amenity:'chinese_restaurant','addr:city':'Poitiers','addr:street':'Rue Carnot','addr:housenumber':'30',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:00'}},
+  { type:'node',id:1810,lat:47.3940,lon:0.6880, tags:{nameZh:'图尔金龙',name:'Dragon d\'Or Tours',amenity:'chinese_restaurant','addr:city':'Tours','addr:street':'Rue Nationale','addr:housenumber':'72',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:00'}},
+  { type:'node',id:1811,lat:47.9020,lon:1.9040, tags:{nameZh:'奥尔良华宫',name:'Palais de Chine Orleans',amenity:'chinese_restaurant','addr:city':'Orleans','addr:street':'Rue de la Republique','addr:housenumber':'55',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:00'}},
+  { type:'node',id:1812,lat:49.1200,lon:6.1760, tags:{nameZh:'梅斯金禾',name:'La Jonque d\'Or Metz',amenity:'chinese_restaurant',website:'https://lajonquedor.fr','addr:city':'Metz','addr:street':'Rue du Pont des Morts','addr:housenumber':'9',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:30'}},
+  { type:'node',id:1813,lat:48.6930,lon:6.1830, tags:{nameZh:'南锡翠竹园',name:'Bambou Vert Nancy',amenity:'chinese_restaurant','addr:city':'Nancy','addr:street':'Rue Saint-Dizier','addr:housenumber':'120',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:00'}},
+  { type:'node',id:1814,lat:47.7490,lon:7.3380, tags:{nameZh:'米卢斯翡翠塔',name:'La Tour de Jade Mulhouse',amenity:'chinese_restaurant','addr:city':'Mulhouse','addr:street':'Rue de Metz','addr:housenumber':'3',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:30'}},
+  { type:'node',id:1815,lat:42.6990,lon:2.8950, tags:{nameZh:'佩皮尼昂金龙',name:'Dragon d\'Or Perpignan',amenity:'chinese_restaurant','addr:city':'Perpignan','addr:street':'Rue Alsace-Lorraine','addr:housenumber':'42',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:00'}},
+  { type:'node',id:1816,lat:43.2950,lon:-0.3700, tags:{nameZh:'波城华苑',name:'Jardin de Chine Pau',amenity:'chinese_restaurant','addr:city':'Pau','addr:street':'Rue Marechal Joffre','addr:housenumber':'15',opening_hours:'Tu-Su 12:00-14:30, 19:00-22:00'}},
+  { type:'node',id:1817,lat:47.4750,lon:-0.5560, tags:{nameZh:'昂热福禄寿',name:'Fu Lu Shou Angers',amenity:'chinese_restaurant','addr:city':'Angers','addr:street':'Rue Saint-Aubin','addr:housenumber':'28',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:00'}},
+  { type:'node',id:1818,lat:48.0060,lon:0.1990, tags:{nameZh:'勒芒金凤凰',name:'Phoenix d\'Or Le Mans',amenity:'chinese_restaurant','addr:city':'Le Mans','addr:street':'Rue de Bolton','addr:housenumber':'8',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:00'}},
+  { type:'node',id:1819,lat:43.1240,lon:5.9280, tags:{nameZh:'土伦月亮',name:'China Moon Toulon',amenity:'chinese_restaurant',website:'https://www.chinamoontoulon.fr','addr:city':'Toulon','addr:street':'Avenue de la Republique','addr:housenumber':'68',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:30'}},
+  { type:'node',id:1820,lat:43.8370,lon:4.3600, tags:{nameZh:'尼姆翡翠园',name:'Jardin de Jade Nimes',amenity:'chinese_restaurant','addr:city':'Nimes','addr:street':'Boulevard Victor Hugo','addr:housenumber':'30',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:00'}},
+  { type:'node',id:1821,lat:43.9490,lon:4.8060, tags:{nameZh:'阿维尼翁翠园',name:'Jardin de Jade Avignon',amenity:'chinese_restaurant','addr:city':'Avignon','addr:street':'Rue de la Republique','addr:housenumber':'92',opening_hours:'Tu-Su 12:00-14:30, 18:30-22:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: BUFFET / ALL-YOU-CAN-EAT (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1601,lat:47.3900,lon:0.6900, tags:{nameZh:'图尔皇家铁板烧',name:'Royal Wok Tours',amenity:'buffet_restaurant','addr:city':'Tours','addr:street':'Avenue de Grammont'}},
+  { type:'node',id:1602,lat:47.0500,lon:2.3900, tags:{nameZh:'布尔日铁板烧自助',name:'Wok Grill Bourges',amenity:'buffet_restaurant','addr:city':'Bourges','addr:street':'Route de La Charite'}},
+  { type:'node',id:1603,lat:46.5800,lon:0.3500, tags:{nameZh:'普瓦捷铁板烧自助',name:'Wok Grill Poitiers',amenity:'buffet_restaurant','addr:city':'Poitiers','addr:street':'Avenue du Futuroscope'}},
+  { type:'node',id:1604,lat:45.7800,lon:3.0800, tags:{nameZh:'克莱蒙费朗铁板烧自助',name:'Wok Grill Clermont-Ferrand',amenity:'buffet_restaurant','addr:city':'Clermont-Ferrand','addr:street':'Avenue de la Republique'}},
+  { type:'node',id:1605,lat:49.1800,lon:-0.3600, tags:{nameZh:'卡昂铁板烧自助',name:'Wok Grill Caen',amenity:'buffet_restaurant','addr:city':'Caen','addr:street':'Boulevard Marechal Leclerc'}},
+  { type:'node',id:1606,lat:49.8900,lon:2.3000, tags:{nameZh:'亚眠铁板烧自助',name:'Royal Wok Amiens',amenity:'buffet_restaurant','addr:city':'Amiens','addr:street':'Rue des Otages'}},
+  { type:'node',id:1607,lat:43.8400,lon:4.3600, tags:{nameZh:'尼姆铁板烧自助',name:'Wok Asia Nimes',amenity:'buffet_restaurant','addr:city':'Nimes','addr:street':'Avenue Feucheres'}},
+  { type:'node',id:1608,lat:43.9500,lon:4.8100, tags:{nameZh:'阿维尼翁铁板烧自助',name:'Royal Wok Avignon',amenity:'buffet_restaurant','addr:city':'Avignon','addr:street':'Avenue Pierre Semard'}},
+  { type:'node',id:1609,lat:42.7000,lon:2.8900, tags:{nameZh:'佩皮尼昂铁板烧自助',name:'Wok Grill Perpignan',amenity:'buffet_restaurant','addr:city':'Perpignan','addr:street':'Boulevard Saint-Assiscle'}},
+  { type:'node',id:1610,lat:47.7500,lon:7.3400, tags:{nameZh:'米卢斯铁板烧自助',name:'Wok Grill Mulhouse',amenity:'buffet_restaurant','addr:city':'Mulhouse','addr:street':'Rue de la Sinne'}},
+  { type:'node',id:1611,lat:48.3900,lon:-4.4900, tags:{nameZh:'布雷斯特亚洲自助',name:'Royal Wok Brest',amenity:'buffet_restaurant','addr:city':'Brest','addr:street':'Rue Jean Jaures'}},
+  { type:'node',id:1612,lat:45.4400,lon:4.3900, tags:{nameZh:'圣艾蒂安铁板烧自助',name:'Wok Grill Saint-Etienne',amenity:'buffet_restaurant','addr:city':'Saint-Etienne','addr:street':'Rue de la Republique'}},
+  { type:'node',id:1613,lat:45.1900,lon:5.7300, tags:{nameZh:'格勒诺布尔亚洲自助',name:'Royal Wok Grenoble',amenity:'buffet_restaurant','addr:city':'Grenoble','addr:street':'Cours Jean Jaures'}},
+  { type:'node',id:1614,lat:44.8400,lon:-0.5700, tags:{nameZh:'波尔多铁板烧自助',name:'Wok Grill Bordeaux Lac',amenity:'buffet_restaurant','addr:city':'Bordeaux','addr:street':'Rue du Grand Barail'}},
+  { type:'node',id:1615,lat:43.3100,lon:5.3700, tags:{nameZh:'马赛铁板烧自助',name:'Royal Wok Marseille Plan de Campagne',amenity:'buffet_restaurant','addr:city':'Cabries','addr:street':'Plan de Campagne'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: INDOOR PLAYGROUNDS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1616,lat:47.387887,lon:0.687153, tags:{nameZh:'图尔皇家儿童乐园',name:'Royal Kids Tours',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Tours',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1617,lat:47.084368,lon:2.380751, tags:{nameZh:'布尔日室内乐园',name:'Fun Park Bourges',leisure:'indoor_playground','addr:city':'Bourges',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1618,lat:45.777455,lon:3.081943, tags:{nameZh:'克莱蒙费朗皇家儿童乐园',name:'Royal Kids Clermont-Ferrand',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Clermont-Ferrand',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1619,lat:49.181340,lon:-0.363561, tags:{nameZh:'卡昂室内乐园',name:'Kidzy Caen',leisure:'indoor_playground','addr:city':'Caen',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1620,lat:49.924003,lon:2.309334, tags:{nameZh:'亚眠室内乐园',name:'Royal Kids Amiens',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Amiens',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1621,lat:43.821215,lon:4.364206, tags:{nameZh:'尼姆室内乐园',name:'Royal Kids Nimes',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Nimes',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1622,lat:43.948781,lon:4.809498, tags:{nameZh:'阿维尼翁室内乐园',name:'Fun City Avignon',leisure:'indoor_playground','addr:city':'Avignon',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1623,lat:42.642575,lon:2.878230, tags:{nameZh:'佩皮尼昂室内乐园',name:'Royal Kids Perpignan',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Perpignan',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1624,lat:48.390528,lon:-4.486009, tags:{nameZh:'布雷斯特室内乐园',name:'Kidzy Brest',leisure:'indoor_playground','addr:city':'Brest',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1625,lat:46.577938,lon:0.336785, tags:{nameZh:'普瓦捷室内乐园',name:'Royal Kids Poitiers',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Poitiers',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1626,lat:48.026329,lon:-4.092181, tags:{nameZh:'坎佩尔室内乐园',name:'Fun Park Quimper',leisure:'indoor_playground','addr:city':'Quimper',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1627,lat:44.349433,lon:2.573706, tags:{nameZh:'罗德兹室内乐园',name:'Royal Kids Rodez',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Rodez',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1628,lat:46.205119,lon:5.225032, tags:{nameZh:'布雷斯堡室内乐园',name:'Fun Park Bourg-en-Bresse',leisure:'indoor_playground','addr:city':'Bourg-en-Bresse',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1629,lat:47.771390,lon:7.378598, tags:{nameZh:'米卢斯室内乐园',name:'Royal Kids Mulhouse',leisure:'indoor_playground',website:'https://www.royalkids.fr','addr:city':'Mulhouse',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:1630,lat:46.337447,lon:-0.403288, tags:{nameZh:'尼奥尔室内乐园',name:'Fun Park Niort',leisure:'indoor_playground','addr:city':'Niort',opening_hours:'Mo-Su 10:00-19:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: ZOOS / AQUARIUMS (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1631,lat:48.365299,lon:-1.410816, tags:{nameZh:'丹南水族馆',name:'Aquarium de Dinan',tourism:'aquarium','addr:city':'Dinan',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1632,lat:45.5200,lon:2.7500, tags:{nameZh:'奥弗涅动物园',name:'Parc Animalier d\'Auvergne',tourism:'zoo',website:'https://www.parcanimalierdauvergne.fr','addr:city':'Ardes',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1633,lat:48.1800,lon:-3.0000, tags:{nameZh:'布列塔尼鹦鹉乐园',name:'Tropical Parc',tourism:'zoo','addr:city':'Saint-Jacut-les-Pins',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1634,lat:47.6200,lon:-2.7500, tags:{nameZh:'布列塔尼猛禽中心',name:'Grand Aquarium Saint-Malo',tourism:'aquarium',website:'https://www.aquarium-st-malo.com','addr:city':'Saint-Malo',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1635,lat:43.582992,lon:3.924036, tags:{nameZh:'蒙彼利埃亚马逊动物园',name:'Parc Amazonien Montpellier',tourism:'zoo','addr:city':'Montpellier',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1636,lat:47.228619,lon:6.034460, tags:{nameZh:'贝桑松水族馆',name:'Aquarium de Besancon',tourism:'aquarium','addr:city':'Besancon',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1637,lat:48.7200,lon:2.3800, tags:{nameZh:'巴黎南部动物探险',name:'Parc des Felins',tourism:'zoo',website:'https://www.parc-des-felins.com','addr:city':'Lumigny-Nesles-Ormeaux',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:1638,lat:44.557763,lon:-0.110833, tags:{nameZh:'巴扎斯动物园',name:'Zoo de Bazas',tourism:'zoo','addr:city':'Bazas',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1639,lat:44.2800,lon:0.5300, tags:{nameZh:'阿让动物园',name:'Walibi Sud-Ouest Zoo',tourism:'zoo','addr:city':'Agen',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1640,lat:46.3400,lon:2.6000, tags:{nameZh:'穆兰动物园',name:'PAL Zoo Auvergne',tourism:'zoo','addr:city':'Saint-Pourcain-sur-Besbre',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1641,lat:43.475313,lon:6.736435, tags:{nameZh:'弗雷儒斯动物园',name:'Parc Zoologique de Frejus',tourism:'zoo','addr:city':'Frejus',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1642,lat:49.639729,lon:-1.644276, tags:{nameZh:'瑟堡水族馆',name:'Aquarium de Cherbourg',tourism:'aquarium','addr:city':'Cherbourg-en-Cotentin',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1643,lat:46.6600,lon:0.3600, tags:{nameZh:'普瓦提耶爬虫馆',name:'Vallee des Singes',tourism:'zoo',website:'https://www.la-vallee-des-singes.fr','addr:city':'Romagne',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1644,lat:48.514113,lon:-2.760328, tags:{nameZh:'水族馆圣布里厄',name:'Aquashow Saint-Brieuc',tourism:'aquarium','addr:city':'Saint-Brieuc',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1645,lat:46.863835,lon:1.730769, tags:{nameZh:'沙托鲁水族馆',name:'Aquarium de Chateauroux',tourism:'aquarium','addr:city':'Chateauroux',opening_hours:'Tu-Su 10:00-18:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: THEME PARKS & ADVENTURE PARKS (~10)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1646,lat:44.609506,lon:-1.130513, tags:{nameZh:'阿卡雄探险乐园',name:'Parc de Loisirs d\'Arcachon',tourism:'theme_park','addr:city':'La Teste-de-Buch',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:1647,lat:47.338356,lon:0.715147, tags:{nameZh:'图尔树冠探险',name:'Foret Adrenaline Tours',tourism:'theme_park','addr:city':'Tours',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:1648,lat:44.186726,lon:0.573698, tags:{nameZh:'阿让水上乐园',name:'Walibi Sud-Ouest',tourism:'theme_park',website:'https://www.walibi.com/sud-ouest','addr:city':'Roquefort',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1649,lat:48.0400,lon:0.1600, tags:{nameZh:'阿朗松探险乐园',name:'Parc de Loisirs des Soupirs',tourism:'theme_park','addr:city':'Alencon',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1650,lat:43.140633,lon:5.985895, tags:{nameZh:'土伦树冠探险',name:'Aoubre Parc Aventure',tourism:'theme_park','addr:city':'La Valette-du-Var',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1651,lat:45.0500,lon:1.5000, tags:{nameZh:'多尔多涅水上乐园',name:'Aqua Viva Park',tourism:'theme_park','addr:city':'Carlux',opening_hours:'Mo-Su 10:00-19:00 (seasonal)'}},
+  { type:'node',id:1652,lat:42.896921,lon:9.436746, tags:{nameZh:'科西嘉冒险乐园',name:'Corsica Forest Bastia',tourism:'theme_park','addr:city':'Bastia - Corse',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1653,lat:46.205119,lon:5.225032, tags:{nameZh:'布雷斯探险乐园',name:'Parc Aventure Bourg-en-Bresse',tourism:'theme_park','addr:city':'Bourg-en-Bresse',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1654,lat:48.653677,lon:6.142635, tags:{nameZh:'南锡冒险森林',name:'Foret Aventure Nancy',tourism:'theme_park','addr:city':'Nancy',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1655,lat:49.134152,lon:3.921896, tags:{nameZh:'兰斯冒险乐园',name:'Foret Adrenaline Reims',tourism:'theme_park','addr:city':'Reims',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: BOURGOGNE-FRANCHE-COMTE (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1656,lat:46.938004,lon:5.876641, tags:{nameZh:'朱拉山盐矿博物馆',name:'Grande Saline de Salins-les-Bains',tourism:'museum',website:'https://www.salinesdesalins.com','addr:city':'Salins-les-Bains',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:1657,lat:47.033983,lon:5.777332, tags:{nameZh:'阿尔克-塞南皇家盐场',name:'Saline Royale d\'Arc-et-Senans',tourism:'museum',website:'https://www.salineroyale.com','addr:city':'Arc-et-Senans',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:1658,lat:46.9300,lon:4.0500, tags:{nameZh:'奥顿罗马剧场',name:'Theatre Romain d\'Autun',historic:'ruins','addr:city':'Autun'}},
+  { type:'node',id:1659,lat:47.0600,lon:3.9900, tags:{nameZh:'博讷济贫院',name:'Hospices de Beaune',historic:'monument',website:'https://www.hospices-de-beaune.com','addr:city':'Beaune',opening_hours:'Mo-Su 09:00-18:30'}},
+  { type:'node',id:1660,lat:46.7200,lon:6.4100, tags:{nameZh:'莱科湖',name:'Lac de Vouglans',leisure:'nature_reserve','addr:city':'Moirans-en-Montagne'}},
+  { type:'node',id:1661,lat:46.614833,lon:5.845906, tags:{nameZh:'朱拉高原瀑布',name:'Cascades du Herisson',leisure:'nature_reserve','addr:city':'Menétrux-en-Joux'}},
+  { type:'node',id:1662,lat:47.322758,lon:5.041877, tags:{nameZh:'第戎猫头鹰散步道',name:'Parcours de la Chouette Dijon',tourism:'attraction','addr:city':'Dijon'}},
+  { type:'node',id:1663,lat:46.9400,lon:5.3400, tags:{nameZh:'蒂诺索恐龙乐园',name:'Dino-Zoo',tourism:'theme_park',website:'https://www.dino-zoo.com','addr:city':'Charbonnières-les-Sapins',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1664,lat:47.235845,lon:6.026914, tags:{nameZh:'贝桑松城堡博物馆',name:'Musee du Temps Besancon',tourism:'museum','addr:city':'Besancon',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1665,lat:46.7800,lon:4.4300, tags:{nameZh:'克吕尼修道院',name:'Abbaye de Cluny',historic:'monument','addr:city':'Cluny',opening_hours:'Mo-Su 09:30-18:00'}},
+  { type:'node',id:1666,lat:47.8000,lon:6.8300, tags:{nameZh:'贝尔福狮子雕像',name:'Lion de Belfort',historic:'monument','addr:city':'Belfort'}},
+  { type:'node',id:1667,lat:46.317636,lon:4.798224, tags:{nameZh:'马孔葡萄酒之路',name:'Route des Vins de Macon',tourism:'attraction','addr:city':'Macon'}},
+  { type:'node',id:1668,lat:47.105044,lon:6.147763, tags:{nameZh:'奥尔南库尔贝博物馆',name:'Musee Courbet Ornans',tourism:'museum','addr:city':'Ornans',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1669,lat:47.321852,lon:5.028942, tags:{nameZh:'第戎自然历史博物馆',name:'Museum d\'Histoire Naturelle de Dijon',tourism:'museum','addr:city':'Dijon',opening_hours:'We-Mo 09:00-12:30, 14:00-18:00'}},
+  { type:'node',id:1670,lat:46.7000,lon:4.8500, tags:{nameZh:'图尔尼斯索恩河畔公园',name:'Touroparc Zoo',tourism:'zoo',website:'https://www.touroparc.com','addr:city':'Romaneche-Thorins',opening_hours:'Mo-Su 09:30-18:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: CENTRE-VAL DE LOIRE (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1671,lat:47.0500,lon:2.3900, tags:{nameZh:'布尔日大教堂',name:'Cathedrale Saint-Etienne de Bourges',historic:'monument','addr:city':'Bourges'}},
+  { type:'node',id:1672,lat:47.5900,lon:1.3300, tags:{nameZh:'苏利城堡与卢瓦尔河',name:'Chateau de Sully Loire Panorama',tourism:'attraction','addr:city':'Sully-sur-Loire'}},
+  { type:'node',id:1673,lat:47.8000,lon:1.9400, tags:{nameZh:'奥尔良大教堂',name:'Cathedrale Sainte-Croix Orleans',historic:'monument','addr:city':'Orleans'}},
+  { type:'node',id:1674,lat:47.908233,lon:1.907895, tags:{nameZh:'奥尔良自然科学博物馆',name:'Museum d\'Orleans pour la Biodiversite',tourism:'museum','addr:city':'Orleans',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1675,lat:47.4300,lon:1.5100, tags:{nameZh:'卢瓦尔河自然保护区',name:'Reserve Naturelle de Saint-Mesmin',leisure:'nature_reserve','addr:city':'Saint-Pryve-Saint-Mesmin'}},
+  { type:'node',id:1676,lat:48.0100,lon:1.4200, tags:{nameZh:'沙特尔大教堂',name:'Cathedrale Notre-Dame de Chartres',historic:'monument','addr:city':'Chartres'}},
+  { type:'node',id:1677,lat:47.3400,lon:1.2000, tags:{nameZh:'谢尔河畔索洛涅自然公园',name:'Maison de la Sologne',leisure:'nature_reserve','addr:city':'Romorantin-Lanthenay'}},
+  { type:'node',id:1678,lat:47.391665,lon:1.006784, tags:{nameZh:'昂布瓦兹王室庄园',name:'Domaine Royal d\'Amboise',tourism:'attraction','addr:city':'Amboise'}},
+  { type:'node',id:1679,lat:47.3200,lon:1.5200, tags:{nameZh:'谢韦尼狩猎博物馆',name:'Musee de la Chasse et de la Nature Cheverny',tourism:'museum','addr:city':'Cheverny',opening_hours:'Mo-Su 09:15-18:00'}},
+  { type:'node',id:1680,lat:47.089455,lon:2.411707, tags:{nameZh:'布尔日沼泽漫步',name:'Marais de Bourges Promenade',leisure:'nature_reserve','addr:city':'Bourges'}},
+  { type:'node',id:1681,lat:47.849725,lon:1.938779, tags:{nameZh:'奥尔良市内电车游览',name:'Parc Floral de la Source Orleans',leisure:'park','addr:city':'Orleans',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1682,lat:47.3800,lon:0.7000, tags:{nameZh:'图尔城堡',name:'Chateau de Tours',historic:'castle','addr:city':'Tours',opening_hours:'Tu-Su 14:00-18:00'}},
+  { type:'node',id:1683,lat:47.5800,lon:1.7300, tags:{nameZh:'卢瓦尔河城堡巡游',name:'Loire a Velo - Cycling Route',tourism:'attraction','addr:city':'Loire Valley'}},
+  { type:'node',id:1684,lat:47.0600,lon:1.3500, tags:{nameZh:'博瓦尔动物园附近自然乐园',name:'Parc de la Fosse aux Ours',tourism:'zoo','addr:city':'Saint-Aignan',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1685,lat:47.9400,lon:1.5100, tags:{nameZh:'梅恩维尔城堡',name:'Chateau de Maintenon',historic:'castle','addr:city':'Maintenon',opening_hours:'Mo-Su 10:00-18:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: CORSICA / CORSE (~10)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1686,lat:42.1500,lon:9.1100, tags:{nameZh:'科西嘉龟保护中心',name:'A Cupulatta - Centre d\'Elevage de Tortues',tourism:'zoo',website:'https://www.acupulatta.com','addr:city':'Vero - Corse',opening_hours:'Mo-Su 09:00-19:00 (seasonal)'}},
+  { type:'node',id:1687,lat:41.917937,lon:8.738636, tags:{nameZh:'阿雅克肖拿破仑故居',name:'Maison Bonaparte Ajaccio',tourism:'museum','addr:city':'Ajaccio - Corse',opening_hours:'Tu-Su 10:00-12:30, 13:15-17:30'}},
+  { type:'node',id:1688,lat:42.2200,lon:9.1100, tags:{nameZh:'科西嘉缩影村',name:'Village Miniature de Corse',tourism:'museum','addr:city':'Porto-Vecchio - Corse',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1689,lat:42.5600,lon:8.9000, tags:{nameZh:'卡尔维城堡',name:'Citadelle de Calvi',historic:'fort','addr:city':'Calvi - Corse'}},
+  { type:'node',id:1690,lat:42.696222,lon:9.450004, tags:{nameZh:'巴斯蒂亚老港',name:'Vieux Port de Bastia',tourism:'attraction','addr:city':'Bastia - Corse'}},
+  { type:'node',id:1691,lat:42.3800,lon:9.1600, tags:{nameZh:'科西嘉海洋公园',name:'Parc Marin de Corse',leisure:'nature_reserve','addr:city':'Porto-Vecchio - Corse'}},
+  { type:'node',id:1692,lat:42.1100,lon:8.8800, tags:{nameZh:'博尼法乔城堡',name:'Citadelle de Bonifacio',historic:'fort','addr:city':'Bonifacio - Corse'}},
+  { type:'node',id:1693,lat:42.0100,lon:9.0100, tags:{nameZh:'拉瓦齐纳自然保护区',name:'Reserve Naturelle de Lavezzi',leisure:'nature_reserve','addr:city':'Bonifacio - Corse'}},
+  { type:'node',id:1694,lat:42.3000,lon:9.1700, tags:{nameZh:'巴韦拉松针森林',name:'Foret d\'Aiguilles de Bavella',leisure:'nature_reserve','addr:city':'Zonza - Corse'}},
+  { type:'node',id:1695,lat:42.2700,lon:8.9000, tags:{nameZh:'波尔图湾自然保护区',name:'Golfe de Porto - Calanques de Piana',leisure:'nature_reserve','addr:city':'Porto - Corse'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: OCCITANIE / NOUVELLE-AQUITAINE RURAL (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1696,lat:43.3900,lon:1.8800, tags:{nameZh:'图卢兹附近铁路博物馆',name:'Chemin de Fer Touristique du Tarn',tourism:'museum','addr:city':'Saint-Lieux-les-Lavaur',opening_hours:'We-Su 14:00-18:00 (seasonal)'}},
+  { type:'node',id:1697,lat:43.320116,lon:3.467632, tags:{nameZh:'贝济耶运河',name:'Canal du Midi Beziers',tourism:'attraction','addr:city':'Beziers'}},
+  { type:'node',id:1698,lat:44.4500,lon:1.4400, tags:{nameZh:'卡奥尔瓦朗特桥',name:'Pont Valentre Cahors',historic:'monument','addr:city':'Cahors'}},
+  { type:'node',id:1699,lat:44.2200,lon:0.6200, tags:{nameZh:'阿让教堂',name:'Cathedrale Saint-Caprais Agen',historic:'monument','addr:city':'Agen'}},
+  { type:'node',id:1700,lat:43.9200,lon:2.1500, tags:{nameZh:'阿尔比大教堂',name:'Cathedrale Sainte-Cecile Albi',historic:'monument','addr:city':'Albi'}},
+  { type:'node',id:1701,lat:43.929336,lon:2.142869, tags:{nameZh:'阿尔比图卢兹-洛特雷克博物馆',name:'Musee Toulouse-Lautrec Albi',tourism:'museum','addr:city':'Albi',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:1702,lat:44.893496,lon:-0.155475, tags:{nameZh:'利布尔讷葡萄酒之路',name:'Route des Vins de Saint-Emilion',tourism:'attraction','addr:city':'Libourne'}},
+  { type:'node',id:1703,lat:45.1600,lon:0.7200, tags:{nameZh:'佩里格大教堂',name:'Cathedrale Saint-Front Perigueux',historic:'monument','addr:city':'Perigueux'}},
+  { type:'node',id:1704,lat:44.551665,lon:6.064678, tags:{nameZh:'加普附近山谷',name:'Vallee de la Durance',leisure:'nature_reserve','addr:city':'Gap'}},
+  { type:'node',id:1705,lat:43.7900,lon:2.4100, tags:{nameZh:'卡斯特尔中世纪村',name:'Village Medieval de Castres',historic:'monument','addr:city':'Castres'}},
+  { type:'node',id:1706,lat:44.016693,lon:1.351859, tags:{nameZh:'蒙托邦安格尔博物馆',name:'Musee Ingres Bourdelle Montauban',tourism:'museum','addr:city':'Montauban',opening_hours:'Tu-Su 10:00-18:00'}},
+  { type:'node',id:1707,lat:43.095593,lon:-0.051172, tags:{nameZh:'卢尔德蜡像馆',name:'Musee de Cire Lourdes',tourism:'museum','addr:city':'Lourdes',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:1708,lat:43.237557,lon:0.076121, tags:{nameZh:'塔布花园',name:'Jardin Massey Tarbes',leisure:'park','addr:city':'Tarbes'}},
+  { type:'node',id:1709,lat:44.640054,lon:-1.068776, tags:{nameZh:'阿尔卡雄牡蛎港',name:'Port Ostreicole Gujan-Mestras',tourism:'attraction','addr:city':'Gujan-Mestras'}},
+  { type:'node',id:1710,lat:45.6500,lon:0.1600, tags:{nameZh:'科涅克白兰地博物馆',name:'Musee des Arts du Cognac',tourism:'museum','addr:city':'Cognac',opening_hours:'Tu-Su 10:00-18:00'}},
+
+  // ══════════════════════════════════════════════════════════════
+  // EXPANSION: HAUTS-DE-FRANCE / GRAND EST / NORMANDIE (~15)
+  // ══════════════════════════════════════════════════════════════
+  { type:'node',id:1711,lat:49.892600,lon:2.332187, tags:{nameZh:'亚眠浮动花园',name:'Hortillonnages d\'Amiens',leisure:'nature_reserve','addr:city':'Amiens'}},
+  { type:'node',id:1712,lat:50.641169,lon:3.063205, tags:{nameZh:'里尔美术馆',name:'Musee de l\'Hospice Comtesse Lille',tourism:'museum','addr:city':'Lille',opening_hours:'We-Mo 10:00-18:00'}},
+  { type:'node',id:1713,lat:50.430517,lon:2.806300, tags:{nameZh:'卢浮宫分馆朗斯',name:'Louvre-Lens',tourism:'museum',website:'https://www.louvrelens.fr','addr:city':'Lens',opening_hours:'We-Mo 10:00-18:00'}},
+  { type:'node',id:1714,lat:48.6900,lon:6.1800, tags:{nameZh:'南锡斯坦尼斯拉斯广场',name:'Place Stanislas Nancy',historic:'monument','addr:city':'Nancy'}},
+  { type:'node',id:1715,lat:48.693659,lon:6.181900, tags:{nameZh:'南锡美术馆',name:'Musee des Beaux-Arts de Nancy',tourism:'museum','addr:city':'Nancy',opening_hours:'We-Mo 10:00-18:00'}},
+  { type:'node',id:1716,lat:49.2200,lon:3.5300, tags:{nameZh:'拉昂大教堂',name:'Cathedrale Notre-Dame de Laon',historic:'monument','addr:city':'Laon'}},
+  { type:'node',id:1717,lat:49.193635,lon:2.480108, tags:{nameZh:'尚蒂伊马场博物馆',name:'Musee Vivant du Cheval Chantilly',tourism:'museum','addr:city':'Chantilly',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:1718,lat:49.198551,lon:-0.382791, tags:{nameZh:'卡昂和平纪念馆',name:'Memorial de Caen',tourism:'museum',website:'https://www.memorial-caen.fr','addr:city':'Caen',opening_hours:'Mo-Su 09:00-19:00'}},
+  { type:'node',id:1719,lat:48.660448,lon:6.155896, tags:{nameZh:'南锡植物园',name:'Jardin Botanique du Montet Nancy',leisure:'park','addr:city':'Villers-les-Nancy',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:1720,lat:49.4500,lon:1.0700, tags:{nameZh:'鲁昂大教堂',name:'Cathedrale Notre-Dame de Rouen',historic:'monument','addr:city':'Rouen'}},
+  { type:'node',id:1721,lat:49.4500,lon:1.0800, tags:{nameZh:'鲁昂大钟楼',name:'Gros-Horloge Rouen',historic:'monument','addr:city':'Rouen'}},
+  { type:'node',id:1722,lat:50.725659,lon:1.617735, tags:{nameZh:'布洛涅城堡博物馆',name:'Chateau-Musee de Boulogne-sur-Mer',tourism:'museum','addr:city':'Boulogne-sur-Mer',opening_hours:'We-Mo 10:00-18:00'}},
+  { type:'node',id:1723,lat:49.4400,lon:2.8300, tags:{nameZh:'贡比涅城堡',name:'Chateau de Compiegne',historic:'castle',website:'https://www.chateaudecompiegne.fr','addr:city':'Compiegne',opening_hours:'We-Mo 10:00-18:00'}},
+  { type:'node',id:1724,lat:49.8700,lon:2.2800, tags:{nameZh:'亚眠儒勒凡尔纳马戏团',name:'Cirque Municipal d\'Amiens',amenity:'arts_centre','addr:city':'Amiens'}},
+  { type:'node',id:1725,lat:48.580650,lon:7.739277, tags:{nameZh:'斯特拉斯堡小法兰西',name:'Petite France Strasbourg',tourism:'attraction','addr:city':'Strasbourg'}},
+  { type:'node',id:1822,lat:48.798179,lon:1.977158, tags:{nameZh:'巴黎蹦床公园Neuilly',name:'Trampoline Park Bounce Paris',leisure:'indoor_playground',website:'https://www.bounceeurope.com','addr:city':'Paris',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1823,lat:43.609489,lon:1.452216, tags:{nameZh:'图卢兹蹦床公园',name:'Let\'s Jump Toulouse',leisure:'indoor_playground','addr:city':'Toulouse',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1824,lat:45.581584,lon:4.743572, tags:{nameZh:'里昂蹦床公园',name:'Trampoline Park Lyon',leisure:'indoor_playground','addr:city':'Lyon',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1825,lat:43.298042,lon:5.365938, tags:{nameZh:'马赛蹦床公园',name:'Let\'s Jump Marseille',leisure:'indoor_playground','addr:city':'Marseille',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1826,lat:47.231092,lon:-1.637921, tags:{nameZh:'南特蹦床公园',name:'Trampoline Park Nantes',leisure:'indoor_playground','addr:city':'Nantes',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1827,lat:48.8700,lon:2.3500, tags:{nameZh:'巴黎卡丁车',name:'Kart Indoor Paris',leisure:'sports_centre',website:'https://www.kartindoor.com','addr:city':'Paris',opening_hours:'Mo-Su 12:00-23:00'}},
+  { type:'node',id:1828,lat:45.7500,lon:4.8500, tags:{nameZh:'里昂卡丁车',name:'Lyon Karting',leisure:'sports_centre','addr:city':'Lyon',opening_hours:'Mo-Su 12:00-22:00'}},
+  { type:'node',id:1829,lat:43.6200,lon:1.4500, tags:{nameZh:'图卢兹卡丁车',name:'Karting Toulouse',leisure:'sports_centre','addr:city':'Toulouse',opening_hours:'Mo-Su 12:00-22:00'}},
+  { type:'node',id:1830,lat:44.8400,lon:-0.5800, tags:{nameZh:'波尔多卡丁车',name:'Karting Bordeaux',leisure:'sports_centre','addr:city':'Bordeaux',opening_hours:'Mo-Su 14:00-22:00'}},
+  { type:'node',id:1831,lat:48.870126,lon:2.335355, tags:{nameZh:'巴黎密室逃脱',name:'Escape Hunt Paris',tourism:'attraction',website:'https://www.escapehunt.com/france/paris','addr:city':'Paris',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:1832,lat:45.768134,lon:4.828604, tags:{nameZh:'里昂密室逃脱',name:'Escape Game Lyon',tourism:'attraction','addr:city':'Lyon',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:1833,lat:43.293918,lon:5.376706, tags:{nameZh:'马赛密室逃脱',name:'Escape Game Marseille',tourism:'attraction','addr:city':'Marseille',opening_hours:'Mo-Su 10:00-22:00'}},
+  { type:'node',id:1834,lat:48.891251,lon:2.313692, tags:{nameZh:'巴黎迷你高尔夫',name:'Minigolf Parc Paris',leisure:'miniature_golf','addr:city':'Paris',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:1835,lat:43.529842,lon:5.447474, tags:{nameZh:'普罗旺斯艾克斯迷你高尔夫',name:'Golf Aventure Aix-en-Provence',leisure:'miniature_golf','addr:city':'Aix-en-Provence',opening_hours:'Mo-Su 10:00-20:00 (seasonal)'}},
+  { type:'node',id:1836,lat:44.909973,lon:-0.566495, tags:{nameZh:'波尔多迷你高尔夫',name:'Mini Golf Bordeaux Lac',leisure:'miniature_golf','addr:city':'Bordeaux',opening_hours:'Mo-Su 10:00-20:00 (seasonal)'}},
+  { type:'node',id:1837,lat:43.704442,lon:7.252096, tags:{nameZh:'尼斯树冠冒险',name:'Parc Aventure Nice',tourism:'theme_park','addr:city':'Nice',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1838,lat:44.828385,lon:-0.683616, tags:{nameZh:'波尔多树冠冒险',name:'Parc Aventure Bordeaux',tourism:'theme_park','addr:city':'Bordeaux',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1839,lat:47.218637,lon:-1.554136, tags:{nameZh:'南特树冠冒险',name:'Accrobranche Nantes',tourism:'theme_park','addr:city':'Nantes',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1840,lat:48.135654,lon:-1.646365, tags:{nameZh:'雷恩攀爬森林',name:'Foret Adrenaline Rennes',tourism:'theme_park',website:'https://www.foret-adrenaline.com','addr:city':'Rennes',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:1841,lat:48.8500,lon:2.3000, tags:{nameZh:'巴黎攀岩馆',name:'Arkose Climbing Paris',leisure:'sports_centre',website:'https://www.arkose.com','addr:city':'Paris',opening_hours:'Mo-Fr 07:00-23:00; Sa-Su 09:00-21:00'}},
+];
+
+// ===== Category config =====
+const CATS = {
+  theme_park:  {emoji:'🎢', en:'Theme parks',   fr:"Parcs d'attractions",     zh:'主题乐园'},
+  zoo:         {emoji:'🦒', en:'Zoos',          fr:'Zoos',   zh:'动物园'},
+  aquarium:    {emoji:'🐠', en:'Aquariums',     fr:'Aquariums',        zh:'水族馆'},
+  museum:      {emoji:'🏛️', en:'Museums',       fr:'Musées',          zh:'博物馆'},
+  nature:      {emoji:'🌳', en:'Nature',        fr:'Nature',         zh:'自然'},
+  beach:       {emoji:'🏖️', en:'Beaches',       fr:'Plages',       zh:'海滩'},
+  playground:  {emoji:'🎪', en:'Playgrounds',   fr:'Aires de jeux',    zh:'游乐场'},
+  indoor_play: {emoji:'🏠', en:'Indoor play',   fr:'Jeux intérieurs',zh:'室内游乐'},
+  trampoline:  {emoji:'🤸', en:'Trampoline',    fr:'Trampoline',     zh:'蹦床'},
+  swim:        {emoji:'🏊', en:'Swimming',      fr:'Piscine',        zh:'游泳'},
+  climbing:    {emoji:'🧗', en:'Climbing',      fr:'Escalade',       zh:'攀爬'},
+  karting:     {emoji:'🏎️', en:'Karting',       fr:'Karting',           zh:'卡丁车'},
+  farm:         {emoji:'🐑', en:'Farms',         fr:'Ferme',zh:'农场'},
+  attraction:  {emoji:'⭐', en:'Attractions',   fr:'Attractions',     zh:'景点'},
+  theatre:     {emoji:'🎭', en:'Theatre',       fr:'Théâtre',        zh:'剧院'},
+  cinema:      {emoji:'🎬', en:'Cinema',        fr:'Cinéma',       zh:'电影院'},
+  ice_rink:    {emoji:'⛸️', en:'Ice rink',      fr:'Patinoire',        zh:'滑冰'},
+  minigolf:    {emoji:'⛳', en:'Minigolf',      fr:'Mini-golf',     zh:'迷你高尔夫'},
+  castle:      {emoji:'🏰', en:'Castles',       fr:'Châteaux',       zh:'城堡'},
+  windmill:    {emoji:'🌬️', en:'Windmills',     fr:'Moulins',         zh:'风车'},
+  escape:      {emoji:'🔓', en:'Escape rooms',  fr:'Escape rooms',   zh:'密室逃脱'},
+  sports:      {emoji:'🏆', en:'Sports centre', fr:'Centre sportif',   zh:'运动中心'},
+  restaurant:  {emoji:'🍽️', en:'Family dining', fr:'Restaurants',           zh:'亲子餐厅'},
+  monument:    {emoji:'🗿', en:'Monuments',     fr:'Monuments',     zh:'古迹'},
+  ship:        {emoji:'⛵', en:'Historic ships',fr:'Navires historiques',zh:'历史船只'},
+  ruins:       {emoji:'🏺', en:'Ruins',         fr:'Ruines',         zh:'遗址'},
+  other:       {emoji:'📍', en:'Other',         fr:'Autre',         zh:'其他'}
+};
+
+// Richer emoji mapping using venue name keywords
+function emojiFor(name, cat){
+  const n = (name||'').toLowerCase();
+  // Zoo subtype refinements
+  if(cat==='zoo'){
+    if(/safari|wild|beekse/.test(n)) return '🦁';
+    if(/dolf|sea|seal|marine/.test(n)) return '🐬';
+    if(/bird|vogel|avifauna/.test(n)) return '🦜';
+    if(/ape|monkey|apen/.test(n)) return '🐒';
+    if(/butterfly|vlinder/.test(n)) return '🦋';
+    if(/reptile|snake|slang/.test(n)) return '🐍';
+    return '🦒';
+  }
+  // Museum subtype
+  if(cat==='museum'){
+    if(/science|nemo|natur/.test(n)) return '🔬';
+    if(/art|van gogh|rijks|kunstmuseum|stedelijk|gemeente/.test(n)) return '🖼️';
+    if(/maritime|ship|scheepvaart|maritiem/.test(n)) return '⚓';
+    if(/railway|spoorweg|train|tram/.test(n)) return '🚂';
+    if(/aviation|air|luchtvaart/.test(n)) return '✈️';
+    if(/corpus|body|anatomie/.test(n)) return '🫀';
+    if(/music|muziek|instrument/.test(n)) return '🎼';
+    if(/toy|speelgoed/.test(n)) return '🧸';
+    if(/history|histori|oorlog|war|museum van de geest/.test(n)) return '📜';
+    return '🏛️';
+  }
+  // Theme park subtype
+  if(cat==='theme_park'){
+    if(/water|waterpark|splash|aqua/.test(n)) return '💦';
+    if(/snow|ski|slope/.test(n)) return '❄️';
+    if(/mini|madurodam|miniatuur/.test(n)) return '🏘️';
+    if(/fairy|sprookje|efteling/.test(n)) return '🏰';
+    return '🎢';
+  }
+  // Nature subtype
+  if(cat==='nature'){
+    if(/forest|bos|wald/.test(n)) return '🌲';
+    if(/heath|heide/.test(n)) return '🌾';
+    if(/dune|duin/.test(n)) return '🏝️';
+    if(/lake|meer|lak/.test(n)) return '🏞️';
+    if(/tulip|tulp|keukenhof/.test(n)) return '🌷';
+    return '🌳';
+  }
+  // Playground subtype
+  if(cat==='playground'){
+    if(/water|splash/.test(n)) return '💦';
+    if(/adventure|avontur/.test(n)) return '🧗';
+    return '🛝';
+  }
+  // Indoor play
+  if(cat==='indoor_play'){
+    if(/monkey/.test(n)) return '🐒';
+    if(/ballorig|ball/.test(n)) return '🎈';
+    if(/jimmy|jimmi/.test(n)) return '🤹';
+    return '🏠';
+  }
+  // Restaurant subtype
+  if(cat==='restaurant'){
+    if(/pannenkoek|pancake/.test(n)) return '🥞';
+    if(/chinese|chinees|china|asia|asian|sushi|wok/.test(n)) return '🥢';
+    if(/pizza|pizzer/.test(n)) return '🍕';
+    if(/ice cream|ijssalon|gelato/.test(n)) return '🍦';
+    if(/buffet/.test(n)) return '🍱';
+    if(/burger|mcdonalds/.test(n)) return '🍔';
+    return '🍽️';
+  }
+  // Theme parks extras
+  if(cat==='theme_park' && /petting|boerderij/.test(n)) return '🐄';
+  // Castle/fort
+  if(cat==='castle'){
+    if(/fort|bourtange/.test(n)) return '⚔️';
+    return '🏰';
+  }
+  // Windmill
+  if(cat==='windmill') return '🌬️';
+  // Sports
+  if(cat==='sports'){
+    if(/klim|climb/.test(n)) return '🧗';
+    if(/bow|boog/.test(n)) return '🏹';
+    return '🏆';
+  }
+  // Farm animals
+  if(cat==='farm'){
+    if(/geiten|goat/.test(n)) return '🐐';
+    if(/paarden|horse/.test(n)) return '🐴';
+    return '🐑';
+  }
+  return CATS[cat]?.emoji || '📍';
+}
+
+function classify(t){
+  if(t.tourism==='theme_park') return 'theme_park';
+  if(t.tourism==='zoo') return 'zoo';
+  if(t.tourism==='children_farm') return 'farm';
+  if(t.tourism==='aquarium') return 'aquarium';
+  if(t.tourism==='museum') return 'museum';
+  if(t.tourism==='attraction' || t.tourism==='visitor_centre') return 'attraction';
+  if(t.leisure==='nature_reserve' || t.leisure==='park') return 'nature';
+  if(t.leisure==='playground') return 'playground';
+  if(t.leisure==='indoor_playground') return 'indoor_play';
+  if(t.leisure==='trampoline_park') return 'trampoline';
+  if(t.leisure==='swimming_pool') return 'swim';
+  if(t.leisure==='climbing_park') return 'climbing';
+  if(t.leisure==='go_kart') return 'karting';
+  if(t.leisure==='miniature_golf') return 'minigolf';
+  if(t.leisure==='ice_rink') return 'ice_rink';
+  if(t.leisure==='sports_centre') return 'sports';
+  if(t.leisure==='escape_room') return 'escape';
+  if(t.amenity==='theatre') return 'theatre';
+  if(t.amenity==='cinema') return 'cinema';
+  if(t.amenity && t.amenity.indexOf('restaurant')>=0) return 'restaurant';
+  if(t.historic==='castle') return 'castle';
+  if(t.historic==='fort') return 'castle';
+  if(t.historic==='windmill' || t.man_made==='windmill') return 'windmill';
+  if(t.historic==='monument' || t.historic==='archaeological_site') return 'monument';
+  if(t.historic==='ship') return 'ship';
+  if(t.historic==='ruins') return 'ruins';
+  if(t.natural==='beach') return 'beach';
+  return 'other';
+}
+
+// ===== Transform data =====
+const VENUES = STATIC_FR_VENUES.map(v=>{
+  const t = v.tags || {};
+  const cat = classify(t);
+  return {
+    id: v.id, lat: v.lat, lon: v.lon,
+    name: t.name || 'Unnamed',
+    zh: t.nameZh || '',
+    cat: cat,
+    emoji: emojiFor(t.name, cat),
+    city: t['addr:city'] || '',
+    street: t['addr:street'] || '',
+    house: t['addr:housenumber'] || '',
+    postcode: t['addr:postcode'] || '',
+    website: t.website || '',
+    hours: t.opening_hours || '',
+    rating: parseFloat(t.rating || '0') || null,
+    reviews: parseInt(t.reviews || '0') || 0,
+  };
+});
+
+// ===== State =====
+const FAV_KEY = 'ke_favs_fr';
+const LANG_KEY = 'ke_lang_fr';
+const LANGS = ['en','fr','zh'];  // cycle: en → nl → zh → en
+const state = {
+  activeCats: new Set(),  // empty = all
+  search: '',
+  sortBy: 'rating',
+  filtered: [],
+  selectedId: null,
+  markers: new Map(),
+  favs: new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')),
+  favsOnly: false,
+  lang: localStorage.getItem(LANG_KEY) || (navigator.language.startsWith('fr') ? 'fr' : navigator.language.startsWith('zh') ? 'zh' : 'en'),
+};
+
+// ===== i18n =====
+const I18N = {
+  en: {
+    in_view: 'in view', favs: '♡ Favs', filters: '🏷 Category', sort: '↕ Sort',
+    category: 'Category', clear: 'Clear', show_results: 'Show results',
+    near_me: 'Near me', map: '🗺 Map', list: '☰ List',
+    directions: '🗺 Directions', website: '🌐 Website',
+    rating: 'Rating', address: 'Address', city: 'City', hours: 'Hours', reviews: 'reviews',
+    empty: 'No venues in this area. Try moving the map or clearing filters.',
+    search_ph: 'Search places or cities…',
+    lang_next: 'FR',
+  },
+  fr: {
+    in_view:'en vue', favs:'♡ Favoris', filters:'🏷 Catégorie', sort:'↕ Trier',
+    category:'Catégorie', clear:'Effacer', show_results:'Voir les résultats',
+    near_me:'Près de moi', map:'🗺 Carte', list:'☰ Liste',
+    directions:'🗺 Itinéraire', website:'🌐 Site web',
+    rating:'Note', address:'Adresse', city:'Ville', hours:'Horaires', reviews:'avis',
+    empty:'Aucun lieu dans cette zone.',
+    search_ph:'Rechercher un lieu ou une ville…',
+    lang_next:'中',
+  },
+  zh: {
+    in_view: '可见', favs: '♡ 收藏', filters: '🏷 品类', sort: '↕ 排序',
+    category: '品类', clear: '清空', show_results: '显示结果',
+    near_me: '我附近', map: '🗺 地图', list: '☰ 列表',
+    directions: '🗺 导航', website: '🌐 官网',
+    rating: '评分', address: '地址', city: '城市', hours: '开放时间', reviews: '评价',
+    empty: '当前视口内没有场所。拖动地图或清空筛选。',
+    search_ph: '搜索场所或城市…',
+    lang_next: 'EN',
+  }
+};
+function t(k){return I18N[state.lang][k] || k;}
+
+function toggleLang(){
+  const idx = LANGS.indexOf(state.lang);
+  state.lang = LANGS[(idx+1) % LANGS.length];
+  localStorage.setItem(LANG_KEY, state.lang);
+  applyLang();
+  renderList();
+  buildCatGrid();
+}
+function applyLang(){
+  // Header button shows NEXT language
+  document.getElementById('lang-btn').textContent = t('lang_next');
+  // Update chips
+  document.getElementById('favs-chip').innerHTML = t('favs');
+  document.querySelector('.actions .chip:nth-child(2)').innerHTML = t('filters');
+  document.querySelector('.actions .chip:nth-child(3)').innerHTML = t('sort');
+  // Filter drawer title + section
+  document.querySelector('.filter-hdr h3').textContent = t('category');
+  document.querySelector('.filter-section h4').textContent = t('category');
+  document.querySelector('.btn-clear').textContent = t('clear');
+  document.querySelector('.btn-apply').textContent = t('show_results');
+  // Near me button
+  document.querySelector('.fab.near').innerHTML = `<span>📍</span><span>${t('near_me')}</span>`;
+  // Map/List toggle
+  document.getElementById('tog-map').textContent = t('map');
+  document.getElementById('tog-list').textContent = t('list');
+  // Search placeholder
+  document.getElementById('search').placeholder = t('search_ph');
+  // Count label
+  document.getElementById('count-label').textContent = t('in_view');
+}
+function saveFavs(){localStorage.setItem(FAV_KEY, JSON.stringify([...state.favs]));}
+function toggleFav(){
+  if(state.selectedId == null) return;
+  if(state.favs.has(state.selectedId)) state.favs.delete(state.selectedId);
+  else state.favs.add(state.selectedId);
+  saveFavs();
+  updateFavBtn();
+  renderList();
+}
+function updateFavBtn(){
+  const btn = document.getElementById('ov-fav');
+  if(!btn) return;
+  const on = state.favs.has(state.selectedId);
+  btn.classList.toggle('on', on);
+  btn.textContent = on ? '♥' : '♡';
+}
+function toggleFavsOnly(){
+  state.favsOnly = !state.favsOnly;
+  document.getElementById('favs-chip').classList.toggle('on', state.favsOnly);
+  document.getElementById('favs-chip').style.background = state.favsOnly ? '#fff5f0' : '';
+  document.getElementById('favs-chip').style.color = state.favsOnly ? 'var(--brand)' : '';
+  document.getElementById('favs-chip').style.borderColor = state.favsOnly ? 'var(--brand)' : '';
+  renderList();
+}
+function cardFavClick(ev, id){
+  ev.stopPropagation();
+  if(state.favs.has(id)) state.favs.delete(id); else state.favs.add(id);
+  saveFavs();
+  if(state.selectedId===id) updateFavBtn();
+  renderList();
+}
+
+// ===== Map =====
+const map = L.map('map', {zoomControl:false, attributionControl:false}).setView([46.6,2.35],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+L.control.attribution({prefix:false}).addTo(map);
+
+const clusterGroup = L.markerClusterGroup({
+  maxClusterRadius: 50,
+  showCoverageOnHover: false,
+});
+map.addLayer(clusterGroup);
+
+function makeIcon(v, selected=false){
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim();
+  return L.divIcon({
+    className: selected ? 'selected' : '',
+    html: `<div class="venue-marker" style="border-color:${color}">${v.emoji}</div>`,
+    iconSize:[36,36], iconAnchor:[18,18]
+  });
+}
+
+VENUES.forEach(v=>{
+  const m = L.marker([v.lat, v.lon], {icon: makeIcon(v)});
+  m.on('click', ()=>openDetail(v));
+  clusterGroup.addLayer(m);
+  state.markers.set(v.id, m);
+});
+
+// ===== Filter + render =====
+function computeFiltered(){
+  const q = state.search.trim().toLowerCase();
+  const bounds = map.getBounds();
+  let list = VENUES.filter(v=>{
+    if(state.favsOnly && !state.favs.has(v.id)) return false;
+    if(state.activeCats.size && !state.activeCats.has(v.cat)) return false;
+    if(q && !(v.name.toLowerCase().includes(q) || v.zh.includes(q) || v.city.toLowerCase().includes(q))) return false;
+    if(!state.favsOnly && !bounds.contains([v.lat, v.lon])) return false;
+    return true;
+  });
+  if(state.sortBy==='rating'){
+    list.sort((a,b)=>(b.rating||0)-(a.rating||0));
+  } else if(state.sortBy==='name'){
+    list.sort((a,b)=>a.name.localeCompare(b.name));
+  }
+  state.filtered = list;
+  return list;
+}
+
+function renderList(){
+  const list = computeFiltered();
+  const el = document.getElementById('list');
+  document.getElementById('count').textContent = list.length;
+  if(!list.length){
+    el.innerHTML = `<div class="empty">No venues in this area. Try moving the map or clearing filters.</div>`;
+    return;
+  }
+  el.innerHTML = list.slice(0,200).map(v=>{
+    const isFav = state.favs.has(v.id);
+    // NL venues: original name is already Dutch → use for en & nl; zh uses nameZh
+    const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+    const secondary = state.lang==='zh' ? v.name : (v.zh || '');
+    const catLabel = CATS[v.cat]?.[state.lang] || v.cat;
+    return `
+    <div class="venue-card" data-id="${v.id}" onclick="openDetail(VENUES.find(x=>x.id===${v.id}))">
+      <div class="venue-thumb cat-${v.cat}">${v.emoji}<button class="card-fav ${isFav?'on':''}" onclick="cardFavClick(event,${v.id})" title="Favorite">${isFav?'♥':'♡'}</button></div>
+      <div class="venue-info">
+        <div class="venue-name">${primary}</div>
+        ${secondary?`<div class="venue-zh">${secondary}</div>`:''}
+        <div class="venue-meta">
+          ${v.rating?`<span class="rating">★ ${v.rating.toFixed(1)}</span><span class="dot">·</span>`:''}
+          <span>${catLabel}</span>
+          ${v.city?`<span class="dot">·</span><span>${v.city}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== Detail overlay =====
+function openDetail(v){
+  if(!v) return;
+  state.selectedId = v.id;
+  const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+  const secondary = state.lang==='zh' && v.zh ? v.name : v.zh;
+  document.getElementById('ov-name').textContent = primary;
+  document.getElementById('ov-zh').textContent = secondary;
+  const rows = [];
+  if(v.rating) rows.push([t('rating'), `★ ${v.rating.toFixed(1)} · ${v.reviews.toLocaleString()} ${t('reviews')}`]);
+  if(v.street) rows.push([t('address'), `${v.street} ${v.house}, ${v.postcode} ${v.city}`.trim()]);
+  else if(v.city) rows.push([t('city'), v.city]);
+  rows.push([t('category'), `${v.emoji} ${CATS[v.cat]?.[state.lang] || v.cat}`]);
+  if(v.hours) rows.push([t('hours'), v.hours]);
+  document.getElementById('ov-body').innerHTML = rows.map(([k,val])=>
+    `<div class="detail-row"><div class="lbl">${k}</div><div>${val}</div></div>`
+  ).join('');
+  document.getElementById('ov-directions').href = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}&destination_place_id=${encodeURIComponent(v.name)}`;
+  document.getElementById('ov-directions').textContent = t('directions');
+  document.getElementById('ov-website').textContent = t('website');
+  const wsBtn = document.getElementById('ov-website');
+  if(v.website){
+    wsBtn.href = v.website; wsBtn.style.display='flex';
+  } else {
+    wsBtn.style.display='none';
+  }
+  updateFavBtn();
+  document.getElementById('overlay').classList.add('open');
+  // pan to marker
+  map.flyTo([v.lat, v.lon], Math.max(map.getZoom(), 13), {duration:.6});
+}
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('open');
+  state.selectedId = null;
+}
+
+// ===== Filter drawer =====
+function buildCatGrid(){
+  const counts = {};
+  VENUES.forEach(v=>counts[v.cat]=(counts[v.cat]||0)+1);
+  const el = document.getElementById('cat-grid');
+  el.innerHTML = Object.entries(CATS)
+    .filter(([k])=>counts[k])
+    .sort(([a],[b])=>(counts[b]||0)-(counts[a]||0))
+    .map(([k,c])=>`<button class="cat-btn ${state.activeCats.has(k)?'active':''}" data-cat="${k}" onclick="toggleCat('${k}')">
+      <span class="emoji">${c.emoji}</span>${c[state.lang]}<span class="count">${counts[k]}</span>
+    </button>`).join('');
+}
+function toggleCat(k){
+  if(state.activeCats.has(k)) state.activeCats.delete(k); else state.activeCats.add(k);
+  buildCatGrid();
+  renderList();
+}
+function clearFilter(){
+  state.activeCats.clear();
+  buildCatGrid();
+  renderList();
+}
+function openFilter(){document.getElementById('filter').classList.add('open');}
+function closeFilter(){document.getElementById('filter').classList.remove('open');}
+
+// ===== Drawer interactions =====
+function toggleDrawer(){
+  const d = document.getElementById('drawer');
+  const s = d.dataset.state;
+  d.dataset.state = s==='peek'?'half':(s==='half'?'full':'peek');
+}
+
+// ===== Near me (geolocation) =====
+function locateMe(){
+  if(!navigator.geolocation) return alert('Geolocation not supported');
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      const {latitude, longitude} = pos.coords;
+      map.flyTo([latitude, longitude], 12, {duration:.8});
+      L.circleMarker([latitude, longitude], {radius:10, color:'#c96442', fillColor:'#c96442', fillOpacity:.3, weight:3}).addTo(map);
+    },
+    (err)=>alert('Could not get location: '+err.message)
+  );
+}
+
+// ===== Zoom =====
+function zoomIn(){map.zoomIn();}
+function zoomOut(){map.zoomOut();}
+
+// ===== Search =====
+document.getElementById('search').addEventListener('input', e=>{
+  state.search = e.target.value;
+  renderList();
+});
+
+// ===== Country picker (placeholder — links to /) =====
+function openCountryPicker(){
+  window.location.href = '/';
+}
+
+// ===== Map/List view toggle (mobile) =====
+function setView(v){
+  document.body.dataset.view = v;
+  document.getElementById('tog-map').classList.toggle('active', v==='map');
+  document.getElementById('tog-list').classList.toggle('active', v==='list');
+  if(v==='map'){
+    setTimeout(()=>map.invalidateSize(), 50);
+  }
+}
+document.body.dataset.view = 'map';
+
+// ===== Sort toggle =====
+function toggleSort(){
+  state.sortBy = state.sortBy==='rating'?'name':'rating';
+  renderList();
+}
+
+// ===== Sync list when map moves =====
+let moveTimer;
+map.on('moveend', ()=>{
+  clearTimeout(moveTimer);
+  moveTimer = setTimeout(renderList, 150);
+});
+
+// ===== Initial render =====
+applyLang();
+buildCatGrid();
+renderList();
+
+// ===== Click outside to close overlays =====
+map.on('click', ()=>{
+  closeOverlay();
+});
+</script>
+</body>
+</html>
