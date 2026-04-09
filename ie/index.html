@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ireland Kids Explorer &middot; 爱尔兰亲子探索</title>
+  <meta name="description" content="Family-friendly venues across Ireland. Interactive bilingual map for families with kids. 爱尔兰亲子友好场地互动地图。">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧒</text></svg>">
+  <link rel="canonical" href="https://xinaliu2134.github.io/ireland-kids-explorer/">
+  <meta property="og:title" content="Ireland Kids Explorer &middot; 爱尔兰亲子探索">
+  <meta property="og:description" content="Family-friendly venues across Ireland. Interactive bilingual map for families with kids. 爱尔兰亲子友好场地互动地图。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://xinaliu2134.github.io/ireland-kids-explorer/">
+  <meta property="og:site_name" content="Ireland Kids Explorer">
+  <meta name="twitter:card" content="summary">
+  <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" as="script">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&family=Noto+Sans+SC:wght@500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <style>
+    :root {
+      --bg:           #F2F4F8;
+      --surface:      #FFFFFF;
+      --primary:      #E05A1E;
+      --primary-light:#FFF0E9;
+      --primary-dark: #B84515;
+      --navy:         #1A2B4A;
+      --teal:         #0EA5A0;
+      --text:         #1A2B4A;
+      --text-secondary: #5A6A84;
+      --text-muted:   #9AA5B8;
+      --border:       #CBD5E1;
+      --border-light: #E2E8F0;
+      --shadow-sm:    0 1px 3px rgba(26,43,74,.12), 0 0 0 1px rgba(26,43,74,.04);
+      --shadow-md:    0 4px 12px rgba(26,43,74,.16), 0 0 0 1px rgba(26,43,74,.06);
+      --shadow-lg:    0 8px 24px rgba(26,43,74,.20), 0 0 0 1px rgba(26,43,74,.08);
+      --radius-sm:    6px;
+      --radius-md:    12px;
+      --radius-lg:    18px;
+      --radius-xl:    24px;
+      font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+    .cross-nav { background: #111827; padding: 6px 20px; display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 12px; font-weight: 600; flex-shrink: 0; z-index: 101; flex-wrap: wrap; }
+    .cross-nav a { color: rgba(255,255,255,.6); text-decoration: none; transition: color .15s; }
+    .cross-nav a:hover { color: #fff; }
+    .cross-nav .active-site { color: #fff; border-bottom: 2px solid var(--primary); padding-bottom: 1px; }
+    header { background: var(--navy); padding: 0 20px; height: 60px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; z-index: 100; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 36px; height: 36px; background: var(--primary); border-radius: 10px; display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
+    .logo-text { display: flex; flex-direction: column; line-height: 1.1; }
+    .logo-text-en { font-size: 13px; font-weight: 700; color: #FFFFFF; letter-spacing: .5px; }
+    .logo-text-zh { font-size: 11px; font-weight: 400; color: rgba(255,255,255,.55); }
+    .header-search { flex: 1; max-width: 480px; position: relative; }
+    .header-search input { width: 100%; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.2); border-radius: var(--radius-md); padding: 8px 40px 8px 36px; font-size: 14px; color: #fff; outline: none; transition: background .2s, border-color .2s; }
+    .header-search input::placeholder { color: rgba(255,255,255,.5); }
+    .header-search input:focus { background: rgba(255,255,255,.18); border-color: var(--primary); box-shadow: 0 0 0 3px rgba(224,90,30,.25); }
+    .header-search .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,.45); font-size: 15px; pointer-events: none; }
+    .header-search .clear-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: rgba(255,255,255,.4); font-size: 16px; padding: 2px 4px; display: none; transition: color .15s; }
+    .header-search .clear-btn:hover { color: rgba(255,255,255,.8); }
+    .header-search input:not(:placeholder-shown) ~ .clear-btn { display: block; }
+    .autocomplete { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); max-height: 240px; overflow-y: auto; z-index: 200; display: none; }
+    .autocomplete.open { display: block; }
+    .autocomplete-item { padding: 10px 14px; cursor: pointer; font-size: 13px; color: var(--text); display: flex; align-items: center; gap: 8px; transition: background .12s; }
+    .autocomplete-item:hover, .autocomplete-item.focused { background: var(--primary-light); }
+    .autocomplete-item .region-type { margin-left: auto; font-size: 11px; color: var(--text-muted); }
+    .header-spacer { flex: 1; }
+    .lang-toggle { display: flex; background: rgba(255,255,255,.1); border-radius: 8px; padding: 3px; gap: 2px; }
+    .lang-btn { background: none; border: none; cursor: pointer; color: rgba(255,255,255,.5); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; transition: background .15s, color .15s; }
+    .lang-btn.active { background: var(--primary); color: #fff; }
+    .filter-bar { background: var(--surface); border-bottom: 2px solid var(--border); padding: 0 20px; height: 48px; display: flex; align-items: center; gap: 8px; overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .filter-label { font-size: 12px; font-weight: 600; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+    .filter-chip { display: flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; flex-shrink: 0; transition: all .15s; user-select: none; }
+    .filter-chip:hover { border-color: var(--primary); color: var(--primary); }
+    .filter-chip.active { color: #fff; border-color: transparent; }
+    .filter-chip.no-data { opacity: 0.45; cursor: default; pointer-events: none; }
+    .main { flex: 1; display: grid; grid-template-columns: 380px 1fr; overflow: hidden; }
+    .sidebar { background: var(--bg); display: flex; flex-direction: column; overflow: hidden; border-right: 2px solid var(--border); }
+    .sidebar-header { padding: 16px 20px 12px; background: var(--surface); border-bottom: 2px solid var(--border-light); flex-shrink: 0; }
+    .result-count { font-size: 13px; color: var(--text-secondary); }
+    .result-count strong { color: var(--text); }
+    .venue-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; contain: layout style; will-change: scroll-position; }
+    .venue-list::-webkit-scrollbar { width: 4px; }
+    .venue-list::-webkit-scrollbar-track { background: transparent; }
+    .venue-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .venue-card { background: var(--surface); border-radius: var(--radius-md); padding: 14px; border: none; cursor: pointer; transition: box-shadow .15s, transform .12s; box-shadow: var(--shadow-sm); contain: content; position: relative; }
+    .venue-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+    .venue-card.active { box-shadow: 0 0 0 2px var(--primary), var(--shadow-md); }
+    .venue-card-top { display: flex; align-items: flex-start; gap: 11px; }
+    .venue-icon { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; flex-shrink: 0; }
+    .venue-info { flex: 1; min-width: 0; }
+    .venue-name { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .venue-name-zh { font-size: 12px; color: var(--text-secondary); margin-top: 2px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+    .venue-meta { margin-top: 8px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .venue-tag { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; display: inline-block; }
+    .venue-address { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .venue-address svg { flex-shrink: 0; }
+    .venue-actions { margin-top: 10px; display: flex; gap: 6px; }
+    .btn-website { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--primary); background: var(--primary-light); border: none; border-radius: 6px; padding: 5px 10px; cursor: pointer; text-decoration: none; transition: background .15s; }
+    .btn-website:hover { background: #fde0cd; }
+    .btn-map { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--text-secondary); background: var(--bg); border: 2px solid var(--border); border-radius: 6px; padding: 5px 10px; cursor: pointer; transition: background .15s, border-color .15s; }
+    .btn-map:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-nav { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: #fff; background: #4285F4; border: none; border-radius: 6px; padding: 5px 10px; cursor: pointer; text-decoration: none; transition: background .15s; }
+    .btn-nav:hover { background: #3367D6; }
+    .load-more-btn { margin: 8px 0 16px; width: 100%; padding: 10px; background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius-md); font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all .15s; }
+    .load-more-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .skeleton { background: linear-gradient(90deg, var(--bg) 25%, #f0f2f5 50%, var(--bg) 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 6px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .skeleton-card { padding: 14px; }
+    .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; gap: 12px; }
+    .empty-state-icon { font-size: 48px; }
+    .empty-state h3 { font-size: 16px; font-weight: 600; color: var(--text); }
+    .empty-state p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .empty-suggestions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px; }
+    .empty-suggestion { background: var(--primary-light); color: var(--primary); border: none; border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 500; cursor: pointer; transition: background .15s; }
+    .empty-suggestion:hover { background: #fde0cd; }
+    #map { width: 100%; height: 100%; z-index: 1; }
+    .leaflet-popup-content-wrapper { border-radius: var(--radius-md) !important; box-shadow: var(--shadow-lg) !important; border: 2px solid var(--border); padding: 0 !important; overflow: hidden; }
+    .leaflet-popup-content { margin: 0 !important; width: 260px !important; }
+    .leaflet-popup-tip-container { margin-top: -1px; }
+    .popup-content { padding: 14px; }
+    .popup-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .popup-icon { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
+    .popup-name { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .popup-name-zh { font-size: 12px; color: var(--text-secondary); }
+    .popup-address { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4; }
+    .popup-website { display: block; text-align: center; background: var(--primary); color: white; border-radius: 8px; padding: 7px; font-size: 12px; font-weight: 600; text-decoration: none; transition: background .15s; }
+    .popup-website:hover { background: var(--primary-dark); }
+    .map-marker { width: 34px; height: 34px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 2.5px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35), 0 0 0 1px rgba(0,0,0,.1); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform .2s; }
+    .map-marker:hover { transform: rotate(-45deg) scale(1.3); z-index: 1000 !important; }
+    .map-marker-inner { transform: rotate(45deg); font-size: 14px; line-height: 1; }
+    .map-overlay { position: absolute; inset: 0; background: rgba(242,244,248,.85); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 500; gap: 12px; transition: opacity .3s; }
+    .map-overlay.hidden { opacity: 0; pointer-events: none; }
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .map-overlay p { font-size: 14px; color: var(--text-secondary); }
+    .map-wrapper { position: relative; }
+    .toast { position: fixed; top: 76px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--navy); color: #fff; padding: 10px 20px; border-radius: var(--radius-md); font-size: 13px; font-weight: 500; box-shadow: var(--shadow-lg); z-index: 9999; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+    .scroll-top-btn { position: absolute; bottom: 18px; right: 18px; width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #fff; border: none; box-shadow: var(--shadow-md); cursor: pointer; font-size: 18px; display: none; align-items: center; justify-content: center; z-index: 50; transition: background .15s, transform .15s; }
+    .scroll-top-btn:hover { background: var(--primary-dark); transform: scale(1.1); }
+    .scroll-top-btn.visible { display: flex; }
+    .venue-detail-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); margin-top: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .venue-detail-row a { color: var(--primary); text-decoration: none; }
+    .venue-detail-row a:hover { text-decoration: underline; }
+    .category-summary { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .category-summary-chip { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 10px; }
+    .filter-chip-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 9px; font-size: 10px; font-weight: 700; padding: 0 5px; line-height: 1; }
+    .filter-chip:not(.active) .filter-chip-count { background: var(--bg); color: var(--text-secondary); }
+    .filter-chip.active .filter-chip-count { background: rgba(255,255,255,.25); color: #fff; }
+    .venue-fav-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 20px; cursor: pointer; opacity: 0.5; transition: opacity .15s, transform .15s; line-height: 1; padding: 2px; z-index: 2; }
+    .venue-fav-btn:hover { opacity: 0.8; }
+    .venue-fav-btn.favorited { opacity: 1; }
+    .venue-fav-btn.bounce { animation: favBounce .35s ease; }
+    @keyframes favBounce { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+    .venue-distance { font-size: 11px; color: var(--teal); font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
+    .venue-rating { font-size: 11px; color: #B8860B; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; margin-left: 2px; }
+    .venue-rating .rating-stars { color: #DAA520; letter-spacing: -1px; }
+    .venue-rating .rating-num { color: #B8860B; }
+    .venue-rating .rating-count { color: var(--text-muted); font-weight: 400; }
+    .detail-rating { display: flex; align-items: center; gap: 8px; margin: 8px 0 12px; padding: 8px 12px; background: #FFFBF0; border: 1px solid #F0E6CC; border-radius: var(--radius-sm); }
+    .detail-rating-stars { font-size: 18px; color: #DAA520; letter-spacing: -1px; }
+    .detail-rating-num { font-size: 16px; font-weight: 700; color: #B8860B; }
+    .detail-rating-count { font-size: 12px; color: var(--text-muted); }
+    .detail-rating-sep { color: var(--text-muted); font-size: 14px; }
+    .sort-control { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; flex-shrink: 0; }
+    .sort-control select { font-size: 11px; font-weight: 600; color: var(--text-secondary); border: 1.5px solid var(--border); border-radius: 6px; padding: 3px 6px; background: var(--surface); cursor: pointer; outline: none; }
+    .sort-control select:focus { border-color: var(--primary); }
+    .sort-control label { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+    .nearme-btn { background: none; border: none; color: rgba(255,255,255,.5); font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: color .15s, background .15s; flex-shrink: 0; }
+    .nearme-btn:hover { color: #fff; background: rgba(255,255,255,.1); }
+    .nearme-btn.active { color: #4FC3F7; }
+    .autocomplete-item .venue-result-detail { font-size: 11px; color: var(--text-muted); margin-left: 4px; }
+    .autocomplete-item .venue-emoji { font-size: 16px; flex-shrink: 0; }
+    .autocomplete-section-label { padding: 6px 14px 2px; font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+    @media (max-width: 768px) { .header-search { max-width: 100%; } .logo-text { display: none; } }
+    .chat-fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #F39C12); color: #fff; border: none; box-shadow: 0 4px 16px rgba(224,90,30,.4); cursor: pointer; font-size: 24px; display: flex; align-items: center; justify-content: center; z-index: 9000; transition: transform .2s, box-shadow .2s; }
+    .chat-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(224,90,30,.5); }
+    .chat-fab.hidden { display: none; }
+    .chat-panel { position: fixed; bottom: 24px; right: 24px; width: 380px; max-height: 520px; background: var(--surface); border-radius: var(--radius-lg); box-shadow: 0 12px 48px rgba(26,43,74,.25); z-index: 9001; display: none; flex-direction: column; overflow: hidden; }
+    .chat-panel.open { display: flex; }
+    .chat-header { background: var(--navy); padding: 14px 16px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .chat-header-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--primary), #F39C12); border-radius: 50%; display: grid; place-items: center; font-size: 16px; }
+    .chat-header-text { flex: 1; color: #fff; font-size: 14px; font-weight: 700; }
+    .chat-header-sub { color: rgba(255,255,255,.5); font-size: 11px; font-weight: 400; }
+    .chat-close { background: none; border: none; color: rgba(255,255,255,.5); font-size: 20px; cursor: pointer; padding: 4px; transition: color .15s; }
+    .chat-close:hover { color: #fff; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 200px; max-height: 340px; }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .chat-msg { max-width: 88%; padding: 10px 14px; border-radius: 16px; font-size: 13px; line-height: 1.5; word-break: break-word; }
+    .chat-msg.bot { background: var(--bg); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; }
+    .chat-msg.user { background: var(--primary); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .chat-msg.bot a { color: var(--primary); text-decoration: none; font-weight: 600; }
+    .chat-msg.bot a:hover { text-decoration: underline; }
+    .chat-venue-chip { display: inline-flex; align-items: center; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; margin: 3px 2px; font-size: 12px; cursor: pointer; transition: border-color .15s, background .15s; }
+    .chat-venue-chip:hover { border-color: var(--primary); background: var(--primary-light); }
+    .chat-typing { align-self: flex-start; padding: 10px 14px; background: var(--bg); border-radius: 16px; border-bottom-left-radius: 4px; display: flex; gap: 4px; }
+    .chat-typing span { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; animation: typingBounce .8s ease-in-out infinite; }
+    .chat-typing span:nth-child(2) { animation-delay: .15s; }
+    .chat-typing span:nth-child(3) { animation-delay: .3s; }
+    @keyframes typingBounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+    .chat-quick-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 8px; }
+    .chat-quick-btn { background: var(--primary-light); color: var(--primary); border: none; border-radius: 16px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .15s; }
+    .chat-quick-btn:hover { background: #fde0cd; }
+    .chat-input-area { padding: 12px 16px; border-top: 2px solid var(--border-light); display: flex; gap: 8px; flex-shrink: 0; }
+    .chat-input { flex: 1; border: 2px solid var(--border); border-radius: 20px; padding: 8px 14px; font-size: 13px; color: var(--text); outline: none; font-family: inherit; transition: border-color .2s; }
+    .chat-input:focus { border-color: var(--primary); }
+    .chat-input::placeholder { color: var(--text-muted); }
+    .chat-send { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #fff; border: none; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .15s; }
+    .chat-send:hover { background: var(--primary-dark); }
+    @media (max-width: 768px) { .chat-panel { width: calc(100vw - 24px); right: 12px; bottom: 12px; max-height: 70vh; } .chat-fab { bottom: 16px; right: 16px; width: 50px; height: 50px; font-size: 22px; } }
+    @media (max-width: 768px) {
+      .main { grid-template-columns: 1fr; grid-template-rows: 1fr; position: relative; }
+      .map-wrapper { order: -1; grid-row: 1; grid-column: 1; }
+      .sidebar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 800; border-radius: 16px 16px 0 0; border-right: none; border-top: none; box-shadow: 0 -4px 24px rgba(26,43,74,.18); transition: transform 0.3s cubic-bezier(.4,0,.2,1); max-height: 90dvh; will-change: transform; }
+      .bottom-sheet-handle { display: flex; justify-content: center; padding: 10px 0 4px; cursor: grab; flex-shrink: 0; }
+      .bottom-sheet-handle::after { content: ''; width: 36px; height: 4px; background: var(--border); border-radius: 2px; }
+      .bottom-sheet-handle:active { cursor: grabbing; }
+    }
+    @media (min-width: 769px) { .bottom-sheet-handle { display: none; } }
+    .venue-detail-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 400px; background: var(--surface); box-shadow: -4px 0 24px rgba(26,43,74,.18); z-index: 900; transform: translateX(100%); transition: transform 0.3s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; overflow: hidden; }
+    .venue-detail-panel.open { transform: translateX(0); }
+    .detail-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 2px solid var(--border-light); flex-shrink: 0; }
+    .detail-panel-close { background: none; border: none; cursor: pointer; font-size: 22px; color: var(--text-secondary); padding: 4px 8px; border-radius: 8px; transition: background .15s; }
+    .detail-panel-close:hover { background: var(--bg); }
+    .detail-panel-body { flex: 1; overflow-y: auto; padding: 20px; }
+    .detail-venue-icon { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 28px; margin-bottom: 16px; }
+    .detail-venue-name { font-size: 20px; font-weight: 700; color: var(--text); line-height: 1.3; margin-bottom: 4px; }
+    .detail-venue-name-zh { font-size: 15px; color: var(--text-secondary); margin-bottom: 12px; }
+    .detail-category-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; margin-bottom: 16px; }
+    .detail-info-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 14px; color: var(--text); }
+    .detail-info-row .detail-icon { font-size: 16px; flex-shrink: 0; width: 20px; text-align: center; padding-top: 1px; }
+    .detail-info-row a { color: var(--primary); text-decoration: none; }
+    .detail-info-row a:hover { text-decoration: underline; }
+    .detail-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+    .detail-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; cursor: pointer; border: none; text-decoration: none; transition: background .15s, transform .1s; }
+    .detail-btn:hover { transform: translateY(-1px); }
+    .detail-btn:active { transform: translateY(0); }
+    .detail-btn-website { background: var(--primary); color: #fff; }
+    .detail-btn-website:hover { background: var(--primary-dark); }
+    .detail-btn-navigate { background: #4285F4; color: #fff; }
+    .detail-btn-navigate:hover { background: #3367D6; }
+    .detail-btn-favorite { background: var(--bg); color: var(--text); border: 2px solid var(--border); }
+    .detail-btn-favorite:hover { border-color: var(--primary); color: var(--primary); }
+    .detail-btn-favorite.favorited { background: #FEE2E2; color: #DC2626; border-color: #FECACA; }
+    @media (max-width: 768px) { .venue-detail-panel { width: 100%; top: auto; bottom: 0; max-height: 90dvh; border-radius: 16px 16px 0 0; transform: translateY(100%); } .venue-detail-panel.open { transform: translateY(0); } }
+    .age-filter-group { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: 4px; padding-left: 8px; border-left: 2px solid var(--border-light); }
+    .age-pill { display: flex; align-items: center; gap: 3px; padding: 4px 10px; border-radius: 20px; border: 2px solid var(--border); background: var(--surface); cursor: pointer; font-size: 11px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; flex-shrink: 0; transition: all .15s; user-select: none; }
+    .age-pill:hover { border-color: var(--primary); color: var(--primary); }
+    .age-pill.active { background: #7C3AED; color: #fff; border-color: #7C3AED; }
+    .weather-badge { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.8); background: rgba(255,255,255,.1); border-radius: 8px; padding: 4px 10px; flex-shrink: 0; white-space: nowrap; }
+    .weather-banner { background: linear-gradient(135deg, #1e3a5f, #2d5a8e); color: #fff; padding: 8px 20px; display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 500; flex-shrink: 0; z-index: 99; }
+    .weather-banner-text { flex: 1; }
+    .weather-banner-btn { background: rgba(255,255,255,.2); color: #fff; border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .15s; white-space: nowrap; }
+    .weather-banner-btn:hover { background: rgba(255,255,255,.3); }
+    .weather-banner-close { background: none; border: none; color: rgba(255,255,255,.6); font-size: 18px; cursor: pointer; padding: 2px 6px; transition: color .15s; }
+    .weather-banner-close:hover { color: #fff; }
+  </style>
+</head>
+<body>
+
+<div class="cross-nav">
+  <a href="https://xinaliu2134.github.io/nana-hub/holland-kids-explorer.html">Holland 🇳🇱</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/belgium-kids-explorer/">Belgium 🇧🇪</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/germany-kids-explorer/">Germany 🇩🇪</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/france-kids-explorer/">France 🇫🇷</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/portugal-kids-explorer/">Portugal 🇵🇹</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/spain-kids-explorer/">Spain 🇪🇸</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/italy-kids-explorer/">Italy 🇮🇹</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/uk-kids-explorer/">UK 🇬🇧</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/switzerland-kids-explorer/">Switzerland 🇨🇭</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/austria-kids-explorer/">Austria 🇦🇹</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <span class="active-site">Ireland 🇮🇪</span>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/greece-kids-explorer/">Greece 🇬🇷</a>
+</div>
+
+<header>
+  <a class="logo" href="#" onclick="event.preventDefault(); resetHome();">
+    <div class="logo-icon">🧒</div>
+    <div class="logo-text">
+      <span class="logo-text-en">Ireland Kids Explorer</span>
+      <span class="logo-text-zh">爱尔兰亲子探索</span>
+    </div>
+  </a>
+  <div class="header-search">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Search venue or region... e.g. Dublin, Galway" autocomplete="off">
+    <button class="clear-btn" id="clearBtn" onclick="clearSearch()">&#10005;</button>
+    <div class="autocomplete" id="autocomplete"></div>
+  </div>
+  <button class="nearme-btn" id="nearmeBtn" onclick="activateNearMe()" title="Near Me 我附近">📍</button>
+  <div class="weather-badge" id="weatherBadge" style="display:none;"></div>
+  <div class="header-spacer"></div>
+  <div class="lang-toggle">
+    <button class="lang-btn active" data-lang="en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" data-lang="zh" onclick="setLang('zh')">中文</button>
+  </div>
+</header>
+
+<div class="weather-banner" id="weatherBanner" style="display:none;">
+  <span class="weather-banner-text" id="weatherBannerText"></span>
+  <button class="weather-banner-btn" id="weatherBannerBtn" onclick="filterIndoorWeather()"></button>
+  <button class="weather-banner-close" onclick="dismissWeatherBanner()">&times;</button>
+</div>
+
+<div class="filter-bar" id="filterBar">
+  <span class="filter-label" id="filterLabel">Filter:</span>
+</div>
+
+<div class="main">
+  <div class="toast" id="toast"></div>
+  <aside class="sidebar" id="sidebarSheet" style="position:relative;">
+    <div class="bottom-sheet-handle" id="bottomSheetHandle"></div>
+    <div class="sidebar-header">
+      <div class="result-count" id="resultCount" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span id="resultCountText">Search a region to discover kids venues</span>
+        <div class="sort-control" id="sortControl" style="display:none;">
+          <label for="sortSelect">Sort:</label>
+          <select id="sortSelect" onchange="applySortOrder(this.value)">
+            <option value="default">Default</option>
+            <option value="rating">Top rated</option>
+            <option value="name">A-Z</option>
+          </select>
+        </div>
+      </div>
+      <div class="category-summary" id="categorySummary"></div>
+    </div>
+    <div class="empty-state" id="emptyState">
+      <div class="empty-state-icon">🗺️</div>
+      <h3 id="emptyTitle">Explore Ireland</h3>
+      <p id="emptyDesc">Search a region or city above to find museums, playgrounds, zoos, theme parks and more for kids.</p>
+      <div class="empty-suggestions">
+        <button class="empty-suggestion" onclick="searchRegion('Dublin')">Dublin</button>
+        <button class="empty-suggestion" onclick="searchRegion('Cork')">Cork</button>
+        <button class="empty-suggestion" onclick="searchRegion('Galway')">Galway</button>
+        <button class="empty-suggestion" onclick="searchRegion('Killarney')">Killarney</button>
+        <button class="empty-suggestion" onclick="searchRegion('Limerick')">Limerick</button>
+        <button class="empty-suggestion" onclick="searchRegion('Kilkenny')">Kilkenny</button>
+      </div>
+    </div>
+    <div class="venue-list" id="venueList" style="display:none"></div>
+    <button class="scroll-top-btn" id="scrollTopBtn" title="Scroll to top">&#8593;</button>
+  </aside>
+  <div class="map-wrapper">
+    <div id="map"></div>
+    <div class="map-overlay hidden" id="mapOverlay">
+      <div class="spinner"></div>
+      <p id="loadingText">Loading venues...</p>
+      <p id="loadingHint" style="font-size:12px;color:var(--text-muted);margin-top:4px;"></p>
+    </div>
+  </div>
+</div>
+
+<div class="venue-detail-panel" id="venueDetailPanel">
+  <div class="detail-panel-header">
+    <span style="font-weight:700;font-size:15px;" id="detailPanelTitle">Venue Details</span>
+    <button class="detail-panel-close" onclick="closeDetailPanel()">&times;</button>
+  </div>
+  <div class="detail-panel-body" id="detailPanelBody"></div>
+</div>
+
+<button class="chat-fab" id="chatFab" onclick="toggleChat(true)" title="AI Assistant">🧸</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header">
+    <div class="chat-header-icon">🧸</div>
+    <div>
+      <div class="chat-header-text">Kids Explorer AI</div>
+      <div class="chat-header-sub" id="chatSubtitle">智能亲子出行助手</div>
+    </div>
+    <button class="chat-close" onclick="toggleChat(false)">&#10005;</button>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-quick-actions" id="chatQuickActions"></div>
+  <div class="chat-input-area">
+    <input class="chat-input" id="chatInput" placeholder="Describe what you need... e.g. indoor play near Dublin, kids age 3" autocomplete="off">
+    <button class="chat-send" id="chatSend" onclick="handleChatSend()">&#10148;</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" integrity="sha384-pmjIAcz2bAn0xukfxADbZIb3t8oRT9Sv0rvO+BR5Csr6Dhqq+nZs59P0pPKQJkEV" crossorigin="anonymous">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" integrity="sha384-wgw+aLYNQ7dlhK47ZPK7FRACiq7ROZwgFNg0m04avm4CaXS+Z9Y7nMu8yNjBKYC+" crossorigin="anonymous">
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
+<style>
+  .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background: rgba(224,90,30,.15) !important; }
+  .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div { background: var(--primary) !important; color: #fff !important; font-weight: 700 !important; font-family: 'Inter', system-ui, sans-serif !important; }
+</style>
+<script>
+const LANG = { current: 'en' };
+
+const T = {
+  en: {
+    filterLabel: 'Category:', allLabel: 'All',
+    searching: 'Searching... (may take 10-40s)', loadingVenues: 'Loading venues...', loadingHint: 'Querying OpenStreetMap, usually 10-40s',
+    found: (n, region) => `<strong>${n}</strong> venues in <strong>${region}</strong>`,
+    notFound: 'No venues found. Try a different region.',
+    emptyTitle: 'Explore Ireland', emptyDesc: 'Search a region or city above to find museums, playgrounds, zoos, theme parks and more for kids.',
+    noWebsite: 'No website', website: '🔗 Official Website', navigate: '🧭 Navigate', flyTo: '📍 Show on map', loadMore: 'Load more',
+    regionNotFound: 'Region not found. Try an Irish city or region name.',
+    searchPlaceholder: 'Search venue or region... e.g. Dublin, Galway',
+    resultLabel: 'Search a region to discover kids venues', favoritesLabel: 'Favorites',
+    nearMe: 'Near Me', nearMeSearching: 'Getting your location...', nearMePermDenied: 'Location access denied. Enable it in browser settings to use Near Me.', nearMeError: 'Could not get your location. Please try again.',
+    weatherBannerText: 'Rainy? Try indoor activities!', weatherBannerBtn: 'Show indoor venues',
+    searchRegionFirst: 'Search a region first', searchRegionFirstDesc: (catName) => `Type a city or region in the search bar above, then filter by "${catName}"`,
+    browseCategory: (catName) => `Search a region to browse ${catName}`, browseCategoryDesc: 'Type a city or region above - results will be filtered to this category.',
+    noInRegion: (catName, region) => `No ${catName} in ${region}`, tryOtherCategory: 'Try a different category or search another region.',
+    venuesSection: 'Venues', regionsSection: 'Regions', nearMeLocationType: 'Location',
+    featuredRegion: 'Featured Ireland Venues', allCountry: 'All Ireland', allCountryCat: (catName) => `${catName} - All Ireland`,
+    yourLocation: 'Your location', sortedByDistance: 'Sorted by distance', showingIndoor: 'Showing indoor venues',
+    venueDetails: 'Venue Details', visitWebsite: 'Visit Website', navigateTo: 'Navigate', favorited: 'Favourited', addFavorite: 'Add to Favourites',
+  },
+  zh: {
+    filterLabel: '种类：', allLabel: '全部',
+    searching: '搜索中... (通常需要10-40秒)', loadingVenues: '正在加载场地...', loadingHint: '正在查询 OpenStreetMap，通常需要 10-40 秒',
+    found: (n, region) => `<strong>${region}</strong> 共找到 <strong>${n}</strong> 个亲子场地`,
+    notFound: '未找到相关场地，请尝试其他地区。',
+    emptyTitle: '探索爱尔兰亲子场地', emptyDesc: '在上方搜索地区或城市，找到博物馆、游乐场、动物园、主题公园等亲子活动场所。',
+    noWebsite: '暂无官网', website: '🔗 官方网站', navigate: '🧭 导航', flyTo: '📍 在地图上显示', loadMore: '加载更多',
+    regionNotFound: '未找到该地区，请输入爱尔兰城市或地区名称。',
+    searchPlaceholder: '搜索场地或地区... 如 都柏林, Dublin',
+    resultLabel: '搜索地区以发现亲子场地', favoritesLabel: '收藏',
+    nearMe: '我附近', nearMeSearching: '正在获取位置...', nearMePermDenied: '位置访问被拒绝，请在浏览器设置中允许以使用"我附近"功能。', nearMeError: '无法获取位置，请重试。',
+    weatherBannerText: '下雨天？试试室内活动！', weatherBannerBtn: '查看室内场地',
+    searchRegionFirst: '请先搜索地区', searchRegionFirstDesc: (catName) => `在上方搜索框输入城市或地区，再按「${catName}」筛选`,
+    browseCategory: (catName) => `搜索地区，查看全部${catName}`, browseCategoryDesc: '在上方搜索框输入城市或地区，立即筛选该种类',
+    noInRegion: (catName, region) => `${region} 暂无${catName}`, tryOtherCategory: '试试其他分类，或搜索其他地区。',
+    venuesSection: '场地', regionsSection: '地区', nearMeLocationType: '定位',
+    featuredRegion: '爱尔兰精选场地', allCountry: '爱尔兰全境', allCountryCat: (catName) => `${catName} - 爱尔兰全境`,
+    yourLocation: '你的位置', sortedByDistance: '已按距离排序', showingIndoor: '已筛选室内活动场地',
+    venueDetails: '场地详情', visitWebsite: '访问官方网站', navigateTo: '导航前往', favorited: '已收藏', addFavorite: '收藏',
+  },
+};
+
+const CATEGORIES = [
+  { id: 'museum', emoji: '🏛️', color: '#4ECDC4', bg: '#E8FAF8', en: 'Museum', zh: '博物馆', tags: { tourism: ['museum', 'gallery'] } },
+  { id: 'aquarium', emoji: '🐠', color: '#0077B6', bg: '#E0F4FF', en: 'Aquarium', zh: '水族馆', tags: { tourism: ['aquarium'] } },
+  { id: 'zoo', emoji: '🦁', color: '#82B74B', bg: '#EEF7E6', en: 'Zoo', zh: '动物园', tags: { tourism: ['zoo'] } },
+  { id: 'children_farm', emoji: '🐑', color: '#A0C878', bg: '#F0F7E6', en: "Children's Farm", zh: '儿童农场', tags: { tourism: ['children_farm'] } },
+  { id: 'theme_park', emoji: '🎡', color: '#E05A1E', bg: '#FFF0E9', en: 'Theme Park', zh: '主题公园', tags: { tourism: ['theme_park'], leisure: ['water_park', 'amusement_arcade'] } },
+  { id: 'indoor_playground', emoji: '🏠', color: '#FF6B35', bg: '#FFF0E9', en: 'Indoor Play', zh: '室内游乐场', tags: { leisure: ['indoor_playground'] } },
+  { id: 'playground', emoji: '🛝', color: '#F7DC6F', bg: '#FEFCE8', en: 'Playground', zh: '游乐场', tags: { leisure: ['playground'] } },
+  { id: 'beach', emoji: '🏖️', color: '#0EA5A0', bg: '#E0F7F6', en: 'Beach', zh: '海滩', tags: { natural: ['beach'] } },
+  { id: 'nature', emoji: '🌳', color: '#27AE60', bg: '#E8F8EE', en: 'Nature & Park', zh: '自然公园', tags: { leisure: ['nature_reserve', 'park', 'miniature_golf', 'marina'] } },
+  { id: 'historic', emoji: '🏰', color: '#8B6914', bg: '#F5EDD5', en: 'Historic', zh: '历史古迹', tags: { historic: ['castle', 'monument', 'fort', 'ruins', 'windmill', 'ship'] } },
+  { id: 'sports', emoji: '⛸️', color: '#6C5CE7', bg: '#F0EEFF', en: 'Sports', zh: '运动场', tags: { leisure: ['ice_rink', 'swimming_pool', 'sports_centre'] } },
+  { id: 'theatre', emoji: '🎭', color: '#E84393', bg: '#FEE9F4', en: 'Theatre & Cinema', zh: '剧院影院', tags: { amenity: ['theatre', 'cinema', 'arts_centre'] } },
+  { id: 'visitor', emoji: '🔭', color: '#0369A1', bg: '#E0F2FE', en: 'Visitor Centre', zh: '游客中心', tags: { tourism: ['visitor_centre'] } },
+  { id: 'attraction', emoji: '⭐', color: '#F39C12', bg: '#FEF5E7', en: 'Attraction', zh: '景点', tags: { tourism: ['attraction'] } },
+  { id: 'chinese_restaurant', emoji: '🥡', color: '#E74C3C', bg: '#FADBD8', en: 'Chinese Restaurant', zh: '中餐厅', tags: { amenity: ['chinese_restaurant'] } },
+  { id: 'buffet', emoji: '🍱', color: '#8E44AD', bg: '#F4ECF7', en: 'Buffet / All-You-Can-Eat', zh: '自助餐', tags: { amenity: ['buffet_restaurant'] } },
+];
+
+const IE_REGIONS = [
+  { name: 'Leinster', type: 'province' },
+  { name: 'Munster', type: 'province' },
+  { name: 'Connacht', type: 'province' },
+  { name: 'Ulster', type: 'province' },
+  { name: 'Dublin', nameZh: '都柏林', type: 'city' },
+  { name: 'Cork', nameZh: '科克', type: 'city' },
+  { name: 'Galway', nameZh: '戈尔韦', type: 'city' },
+  { name: 'Limerick', nameZh: '利默里克', type: 'city' },
+  { name: 'Killarney', nameZh: '基拉尼', type: 'city' },
+  { name: 'Kilkenny', nameZh: '基尔肯尼', type: 'city' },
+  { name: 'Waterford', nameZh: '沃特福德', type: 'city' },
+  { name: 'Dingle', nameZh: '丁格尔', type: 'city' },
+  { name: 'Cliffs of Moher', nameZh: '莫赫悬崖', type: 'city' },
+  { name: 'Ring of Kerry', nameZh: '凯里之环', type: 'city' },
+  { name: 'Wicklow', nameZh: '威克洛', type: 'city' },
+  { name: 'Bray', nameZh: '布雷', type: 'city' },
+  { name: 'Kinsale', nameZh: '金塞尔', type: 'city' },
+  { name: 'Wexford', nameZh: '韦克斯福德', type: 'city' },
+  { name: 'Sligo', nameZh: '斯莱戈', type: 'city' },
+  { name: 'Donegal', nameZh: '多尼戈尔', type: 'city' },
+  { name: 'Connemara', nameZh: '康尼马拉', type: 'city' },
+  { name: 'Tralee', nameZh: '特拉利', type: 'city' },
+  { name: 'Westport', nameZh: '韦斯特波特', type: 'city' },
+  { name: 'Athlone', nameZh: '阿斯隆', type: 'city' },
+  { name: 'Drogheda', nameZh: '德罗赫达', type: 'city' },
+  { name: 'Belfast', nameZh: '贝尔法斯特', type: 'city' },
+  { name: 'Derry', nameZh: '德里', type: 'city' },
+  { name: 'Ennis', nameZh: '恩尼斯', type: 'city' },
+  { name: 'Cobh', nameZh: '科夫', type: 'city' },
+  { name: 'Kenmare', nameZh: '凯恩马尔', type: 'city' },
+];
+
+const STATIC_IE_VENUES = [
+  // THEME PARKS (~10)
+  { type:'node',id:3001,lat:53.545900,lon:-6.459491, tags:{nameZh:'泰托公园',name:'Tayto Park (Emerald Park)',tourism:'theme_park',website:'https://www.emeraldpark.ie','addr:city':'Ashbourne',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.2',reviews:'12847'}},
+  { type:'node',id:3002,lat:51.900332,lon:-8.292168, tags:{nameZh:'福塔岛探险公园',name:'Fota Island Adventure',tourism:'theme_park',website:'https://www.fotaisland.ie','addr:city':'Cork',opening_hours:'Mo-Su 10:00-17:30 (seasonal)'}},
+  { type:'node',id:3003,lat:53.6280,lon:-9.8950, tags:{nameZh:'德尔菲探险度假村',name:'Delphi Adventure Resort',tourism:'theme_park',website:'https://www.delphiadventureresort.com','addr:city':'Leenane',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:3004,lat:53.279167,lon:-6.186547, tags:{nameZh:'布雷海滨游乐场',name:'Bray Amusements',tourism:'theme_park','addr:city':'Bray',opening_hours:'Mo-Su 11:00-18:00 (seasonal)'}},
+  { type:'node',id:3005,lat:52.0600,lon:-9.5100, tags:{nameZh:'邦拉蒂城堡主题公园',name:'Bunratty Castle & Folk Park',tourism:'theme_park',website:'https://www.bunrattycastle.ie','addr:city':'Bunratty',opening_hours:'Mo-Su 09:00-17:30',rating:'4.4',reviews:'8247'}},
+  { type:'node',id:3006,lat:53.346483,lon:-6.258912, tags:{nameZh:'都柏林蜡像馆',name:'National Wax Museum Plus',tourism:'theme_park',website:'https://www.waxmuseumplus.ie','addr:city':'Dublin',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:3007,lat:52.812786,lon:-7.204387, tags:{nameZh:'卡斯尔科默探索公园',name:'Castlecomer Discovery Park',tourism:'theme_park',website:'https://www.discoverypark.ie','addr:city':'Castlecomer',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:3008,lat:53.338983,lon:-6.257356, tags:{nameZh:'都柏林维京飞溅之旅',name:'Viking Splash Tours',tourism:'theme_park',website:'https://www.vikingsplash.com','addr:city':'Dublin',opening_hours:'Mo-Su 10:00-17:00'}},
+  // ZOOS & AQUARIUMS (~8)
+  { type:'node',id:3020,lat:53.358888,lon:-6.308530, tags:{nameZh:'都柏林动物园',name:'Dublin Zoo',tourism:'zoo',website:'https://www.dublinzoo.ie','addr:city':'Dublin',opening_hours:'Mo-Su 09:30-17:00',rating:'4.4',reviews:'28431'}},
+  { type:'node',id:3021,lat:51.892525,lon:-8.313240, tags:{nameZh:'福塔野生动物公园',name:'Fota Wildlife Park',tourism:'zoo',website:'https://www.fotawildlife.ie','addr:city':'Cork',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'18247'}},
+  { type:'node',id:3022,lat:52.139890,lon:-10.278370, tags:{nameZh:'丁格尔水族馆',name:'Dingle Oceanworld Aquarium',tourism:'aquarium',website:'https://www.dingle-oceanworld.ie','addr:city':'Dingle',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:3023,lat:53.396373,lon:-6.370213, tags:{nameZh:'国家水上运动中心',name:'National Aquatic Centre',leisure:'swimming_pool',website:'https://www.nationalaquaticcentre.ie','addr:city':'Dublin',opening_hours:'Mo-Su 09:00-21:00'}},
+  { type:'node',id:3024,lat:53.2850,lon:-6.1270, tags:{nameZh:'国家海洋生活中心',name:'National SEA LIFE Bray',tourism:'aquarium',website:'https://www.visitsealife.com/bray','addr:city':'Bray',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:3025,lat:53.260056,lon:-9.074073, tags:{nameZh:'戈尔韦水族馆',name:'Galway Atlantaquaria',tourism:'aquarium',website:'https://www.nationalaquarium.ie','addr:city':'Galway',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:3026,lat:52.0580,lon:-9.5080, tags:{nameZh:'邦拉蒂动物角',name:'Bunratty Animal Corner',tourism:'zoo','addr:city':'Bunratty',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:3027,lat:53.3780,lon:-6.5900, tags:{nameZh:'都柏林动物农场',name:'Newbridge House & Farm',tourism:'children_farm',website:'https://www.newbridgehouseandfarm.com','addr:city':'Donabate',opening_hours:'We-Su 10:00-17:00'}},
+  // MUSEUMS (~20)
+  { type:'node',id:3040,lat:53.3402,lon:-6.2545, tags:{nameZh:'爱尔兰国家博物馆',name:'National Museum of Ireland - Archaeology',tourism:'museum',website:'https://www.museum.ie','addr:city':'Dublin',opening_hours:'Tu-Sa 10:00-17:00, Su 13:00-17:00',rating:'4.6',reviews:'18247'}},
+  { type:'node',id:3041,lat:53.348265,lon:-6.247979, tags:{nameZh:'EPIC爱尔兰移民博物馆',name:'EPIC The Irish Emigration Museum',tourism:'museum',website:'https://www.epicchq.com','addr:city':'Dublin',opening_hours:'Mo-Su 10:00-18:45',rating:'4.5',reviews:'12847'}},
+  { type:'node',id:3042,lat:53.277397,lon:-6.216827, tags:{nameZh:'都柏林儿童博物馆',name:'Imaginosity Dublin',tourism:'museum',website:'https://www.imaginosity.ie','addr:city':'Dublin',opening_hours:'Tu-Su 09:30-17:30'}},
+  { type:'node',id:3043,lat:54.6000,lon:-5.9300, tags:{nameZh:'泰坦尼克贝尔法斯特',name:'Titanic Belfast',tourism:'museum',website:'https://www.titanicbelfast.com','addr:city':'Belfast',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'42318'}},
+  { type:'node',id:3044,lat:53.3440,lon:-6.2670, tags:{nameZh:'都柏林城堡',name:'Dublin Castle',historic:'castle',website:'https://www.dublincastle.ie','addr:city':'Dublin',opening_hours:'Mo-Su 09:45-17:15',rating:'4.3',reviews:'8247'}},
+  { type:'node',id:3045,lat:53.341691,lon:-6.309565, tags:{nameZh:'基尔梅纳姆监狱',name:'Kilmainham Gaol',tourism:'museum',website:'https://www.kilmainhamgaolmuseum.ie','addr:city':'Dublin',opening_hours:'Mo-Su 09:00-17:45',rating:'4.7',reviews:'24218'}},
+  { type:'node',id:3046,lat:53.341121,lon:-6.252667, tags:{nameZh:'爱尔兰国家美术馆',name:'National Gallery of Ireland',tourism:'museum',website:'https://www.nationalgallery.ie','addr:city':'Dublin',opening_hours:'Mo-Sa 09:15-17:30, Su 11:00-17:30'}},
+  { type:'node',id:3047,lat:53.340000,lon:-6.255639, tags:{nameZh:'都柏林自然历史博物馆',name:'Natural History Museum Dublin',tourism:'museum',website:'https://www.museum.ie','addr:city':'Dublin',opening_hours:'Tu-Sa 10:00-17:00, Su 13:00-17:00'}},
+  { type:'node',id:3048,lat:52.666349,lon:-8.624417, tags:{nameZh:'利默里克亨特博物馆',name:'The Hunt Museum',tourism:'museum',website:'https://www.huntmuseum.com','addr:city':'Limerick',opening_hours:'Tu-Sa 10:00-17:00, Su 14:00-17:00'}},
+  { type:'node',id:3049,lat:51.902751,lon:-8.476808, tags:{nameZh:'科克黄油博物馆',name:'Cork Butter Museum',tourism:'museum',website:'https://www.corkbutter.museum','addr:city':'Cork',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:3050,lat:53.339539,lon:-6.258395, tags:{nameZh:'小都柏林博物馆',name:'The Little Museum of Dublin',tourism:'museum',website:'https://www.littlemuseum.ie','addr:city':'Dublin',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:3051,lat:53.342917,lon:-6.299465, tags:{nameZh:'爱尔兰现代艺术博物馆',name:'IMMA Irish Museum of Modern Art',tourism:'museum',website:'https://www.imma.ie','addr:city':'Dublin',opening_hours:'Tu-Fr 11:30-17:30, Sa 10:00-17:30, Su 12:00-17:30'}},
+  { type:'node',id:3052,lat:52.6540,lon:-7.2530, tags:{nameZh:'基尔肯尼城堡',name:'Kilkenny Castle',historic:'castle',website:'https://www.kilkennycastle.ie','addr:city':'Kilkenny',opening_hours:'Mo-Su 09:00-17:30',rating:'4.5',reviews:'12847'}},
+  { type:'node',id:3053,lat:51.899480,lon:-8.498993, tags:{nameZh:'科克城监狱',name:'Cork City Gaol',tourism:'museum',website:'https://www.corkcitygaol.com','addr:city':'Cork',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:3054,lat:52.5168,lon:-6.9692, tags:{nameZh:'中世纪体验馆沃特福德',name:'Medieval Museum Waterford',tourism:'museum',website:'https://www.waterfordtreasures.com','addr:city':'Waterford',opening_hours:'Mo-Su 09:15-17:00'}},
+  { type:'node',id:3055,lat:53.694468,lon:-6.442896, tags:{nameZh:'纽格兰奇古墓',name:'Newgrange',tourism:'museum',website:'https://www.newgrange.com','addr:city':'Donore',opening_hours:'Mo-Su 09:00-17:00',rating:'4.6',reviews:'8247'}},
+  { type:'node',id:3056,lat:51.9290,lon:-8.6170, tags:{nameZh:'布拉尼城堡',name:'Blarney Castle',historic:'castle',website:'https://www.blarneycastle.ie','addr:city':'Blarney',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'21438'}},
+  { type:'node',id:3057,lat:52.5210,lon:-7.8900, tags:{nameZh:'卡舍尔岩石',name:'Rock of Cashel',historic:'monument',website:'https://www.heritageireland.ie','addr:city':'Cashel',opening_hours:'Mo-Su 09:00-17:30',rating:'4.5',reviews:'12847'}},
+  { type:'node',id:3058,lat:53.349536,lon:-6.260550, tags:{nameZh:'都柏林邮政总局',name:'GPO Witness History',tourism:'museum',website:'https://www.gpowitnesshistory.ie','addr:city':'Dublin',opening_hours:'Mo-Su 10:00-17:30'}},
+  { type:'node',id:3059,lat:53.3445,lon:-6.2673, tags:{nameZh:'圣帕特里克大教堂',name:'St Patrick\'s Cathedral',historic:'monument',website:'https://www.stpatrickscathedral.ie','addr:city':'Dublin',opening_hours:'Mo-Sa 09:30-17:00, Su 09:00-10:30'}},
+  // CHINESE RESTAURANTS (~20)
+  { type:'node',id:3100,lat:53.3530,lon:-6.2620, tags:{nameZh:'都柏林好运来',name:'Good Luck Chinese Dublin',amenity:'chinese_restaurant','addr:city':'Dublin','addr:street':'Parnell Street'}},
+  { type:'node',id:3101,lat:53.3535,lon:-6.2610, tags:{nameZh:'都柏林新华饭店',name:'New China Restaurant Dublin',amenity:'chinese_restaurant','addr:city':'Dublin','addr:street':'Parnell Street'}},
+  { type:'node',id:3102,lat:53.3525,lon:-6.2630, tags:{nameZh:'都柏林川味居',name:'Sichuan House Dublin',amenity:'chinese_restaurant','addr:city':'Dublin','addr:street':'Parnell Street'}},
+  { type:'node',id:3103,lat:53.3540,lon:-6.2605, tags:{nameZh:'都柏林龙宫',name:'Dragon Palace Dublin',amenity:'chinese_restaurant','addr:city':'Dublin','addr:street':'Parnell Street'}},
+  { type:'node',id:3104,lat:53.3520,lon:-6.2640, tags:{nameZh:'都柏林满福楼',name:'M&L Chinese Dublin',amenity:'chinese_restaurant','addr:city':'Dublin','addr:street':'Cathedral Street'}},
+  { type:'node',id:3105,lat:53.3515,lon:-6.2650, tags:{nameZh:'都柏林兰州拉面',name:'Lanzhou Noodle Dublin',amenity:'chinese_restaurant','addr:city':'Dublin','addr:street':'Capel Street'}},
+  { type:'node',id:3106,lat:53.3510,lon:-6.2660, tags:{nameZh:'都柏林海底捞',name:'Haidilao Dublin',amenity:'chinese_restaurant',website:'https://www.haidilao.com','addr:city':'Dublin','addr:street':'Jervis Street'}},
+  { type:'node',id:3107,lat:53.3545,lon:-6.2590, tags:{nameZh:'都柏林金龙',name:'Golden Dragon Dublin',amenity:'chinese_restaurant','addr:city':'Dublin','addr:street':'O\'Connell Street'}},
+  { type:'node',id:3108,lat:53.3505,lon:-6.2670, tags:{nameZh:'都柏林翡翠酒楼',name:'Jade Garden Dublin',amenity:'chinese_restaurant','addr:city':'Dublin','addr:street':'George\'s Street'}},
+  { type:'node',id:3109,lat:53.3500,lon:-6.2680, tags:{nameZh:'都柏林红辣椒',name:'Red Chilli Dublin',amenity:'chinese_restaurant','addr:city':'Dublin','addr:street':'Dame Street'}},
+  { type:'node',id:3110,lat:51.8980,lon:-8.4730, tags:{nameZh:'科克金满楼',name:'Golden Chopsticks Cork',amenity:'chinese_restaurant','addr:city':'Cork','addr:street':'Patrick Street'}},
+  { type:'node',id:3111,lat:51.8975,lon:-8.4740, tags:{nameZh:'科克龙门',name:'Dragon Inn Cork',amenity:'chinese_restaurant','addr:city':'Cork','addr:street':'MacCurtain Street'}},
+  { type:'node',id:3112,lat:53.2740,lon:-9.0510, tags:{nameZh:'戈尔韦华人饭店',name:'China Gold Galway',amenity:'chinese_restaurant','addr:city':'Galway','addr:street':'Eyre Square'}},
+  { type:'node',id:3113,lat:53.2735,lon:-9.0520, tags:{nameZh:'戈尔韦东方明珠',name:'Oriental Pearl Galway',amenity:'chinese_restaurant','addr:city':'Galway','addr:street':'Shop Street'}},
+  { type:'node',id:3114,lat:52.6640,lon:-8.6280, tags:{nameZh:'利默里克华苑',name:'China Garden Limerick',amenity:'chinese_restaurant','addr:city':'Limerick','addr:street':'O\'Connell Street'}},
+  { type:'node',id:3115,lat:52.6635,lon:-8.6290, tags:{nameZh:'利默里克龙凤',name:'Dragon Phoenix Limerick',amenity:'chinese_restaurant','addr:city':'Limerick','addr:street':'Thomas Street'}},
+  { type:'node',id:3116,lat:52.6530,lon:-7.2530, tags:{nameZh:'基尔肯尼华人饭店',name:'Golden Palace Kilkenny',amenity:'chinese_restaurant','addr:city':'Kilkenny','addr:street':'High Street'}},
+  { type:'node',id:3117,lat:52.5160,lon:-6.9700, tags:{nameZh:'沃特福德龙宫',name:'Dragon Palace Waterford',amenity:'chinese_restaurant','addr:city':'Waterford','addr:street':'The Quay'}},
+  { type:'node',id:3118,lat:54.5973,lon:-5.9301, tags:{nameZh:'贝尔法斯特新华饭店',name:'Welcome Chinese Belfast',amenity:'chinese_restaurant','addr:city':'Belfast','addr:street':'Botanic Avenue'}},
+  { type:'node',id:3119,lat:54.5968,lon:-5.9310, tags:{nameZh:'贝尔法斯特金龙',name:'Golden Dragon Belfast',amenity:'chinese_restaurant','addr:city':'Belfast','addr:street':'Great Victoria Street'}},
+  // NATURE (~25)
+  { type:'node',id:3140,lat:52.938993,lon:-9.390302, tags:{nameZh:'莫赫悬崖',name:'Cliffs of Moher',tourism:'attraction',website:'https://www.cliffsofmoher.ie','addr:city':'Liscannor',opening_hours:'Mo-Su 08:00-21:00 (seasonal)',rating:'4.7',reviews:'42318'}},
+  { type:'node',id:3141,lat:51.9900,lon:-9.9000, tags:{nameZh:'凯里之环',name:'Ring of Kerry',leisure:'nature_reserve','addr:city':'Killarney'}},
+  { type:'node',id:3142,lat:55.2408,lon:-6.5116, tags:{nameZh:'巨人堤道',name:"Giant's Causeway",tourism:'attraction',website:'https://www.nationaltrust.org.uk/giants-causeway','addr:city':'Bushmills',opening_hours:'Mo-Su 09:00-18:00',rating:'4.6',reviews:'28431'}},
+  { type:'node',id:3143,lat:53.104032,lon:-6.459964, tags:{nameZh:'威克洛山脉',name:'Wicklow Mountains National Park',leisure:'nature_reserve',website:'https://www.wicklowmountainsnationalpark.ie','addr:city':'Wicklow'}},
+  { type:'node',id:3144,lat:52.990156,lon:-9.216576, tags:{nameZh:'巴伦地区',name:'The Burren',leisure:'nature_reserve','addr:city':'Kilfenora'}},
+  { type:'node',id:3145,lat:51.993333,lon:-9.557222, tags:{nameZh:'基拉尼国家公园',name:'Killarney National Park',leisure:'nature_reserve',website:'https://www.killarneynationalpark.ie','addr:city':'Killarney',rating:'4.7',reviews:'18247'}},
+  { type:'node',id:3146,lat:53.550590,lon:-9.945259, tags:{nameZh:'康尼马拉国家公园',name:'Connemara National Park',leisure:'nature_reserve',website:'https://www.connemaranationalpark.ie','addr:city':'Letterfrack',opening_hours:'Mo-Su 10:00-17:30'}},
+  { type:'node',id:3147,lat:53.0700,lon:-6.3300, tags:{nameZh:'格兰达洛',name:'Glendalough',historic:'ruins','addr:city':'Wicklow',rating:'4.6',reviews:'12847'}},
+  { type:'node',id:3148,lat:53.978029,lon:-9.982503, tags:{nameZh:'阿基尔岛',name:'Achill Island',leisure:'nature_reserve','addr:city':'Achill'}},
+  { type:'node',id:3149,lat:52.206792,lon:-10.036374, tags:{nameZh:'丁格尔半岛',name:'Dingle Peninsula',leisure:'nature_reserve','addr:city':'Dingle'}},
+  { type:'node',id:3150,lat:54.7500,lon:-8.2700, tags:{nameZh:'格莱维冈国家公园',name:'Glenveagh National Park',leisure:'nature_reserve',website:'https://www.glenveaghnationalpark.ie','addr:city':'Church Hill'}},
+  { type:'node',id:3151,lat:51.651094,lon:-9.910126, tags:{nameZh:'贝拉半岛',name:'Beara Peninsula',leisure:'nature_reserve','addr:city':'Castletownbere'}},
+  { type:'node',id:3152,lat:53.5400,lon:-7.3700, tags:{nameZh:'爱尔兰中部湖区',name:'Lough Ree',leisure:'nature_reserve','addr:city':'Athlone'}},
+  { type:'node',id:3153,lat:52.7200,lon:-9.4000, tags:{nameZh:'卢普海峡',name:'Loop Head Peninsula',leisure:'nature_reserve','addr:city':'Kilkee'}},
+  { type:'node',id:3154,lat:51.885577,lon:-10.366609, tags:{nameZh:'斯凯利格岩岛',name:'Skellig Michael',tourism:'attraction',website:'https://www.heritageireland.ie','addr:city':'Portmagee'}},
+  { type:'node',id:3155,lat:53.193971,lon:-6.084683, tags:{nameZh:'格雷斯通海滨步道',name:'Bray to Greystones Cliff Walk',leisure:'nature_reserve','addr:city':'Greystones'}},
+  { type:'node',id:3156,lat:54.061083,lon:-6.203178, tags:{nameZh:'卡林福德湾',name:'Carlingford Lough Greenway',leisure:'nature_reserve','addr:city':'Carlingford'}},
+  { type:'node',id:3157,lat:51.563268,lon:-9.550872, tags:{nameZh:'米岑角',name:'Mizen Head',tourism:'attraction',website:'https://www.mizenhead.ie','addr:city':'Goleen',opening_hours:'Mo-Su 10:30-17:00 (seasonal)'}},
+  { type:'node',id:3158,lat:53.358938,lon:-6.330711, tags:{nameZh:'凤凰公园',name:'Phoenix Park',leisure:'nature_reserve','addr:city':'Dublin'}},
+  { type:'node',id:3159,lat:53.1500,lon:-7.5000, tags:{nameZh:'克隆马克诺伊斯',name:'Clonmacnoise',historic:'ruins',website:'https://www.heritageireland.ie','addr:city':'Shannonbridge',opening_hours:'Mo-Su 10:00-17:30'}},
+  // HISTORIC (~20)
+  { type:'node',id:3170,lat:53.3440,lon:-6.2670, tags:{nameZh:'都柏林城堡',name:'Dublin Castle',historic:'castle',website:'https://www.dublincastle.ie','addr:city':'Dublin',opening_hours:'Mo-Su 09:45-17:15'}},
+  { type:'node',id:3171,lat:52.6540,lon:-7.2530, tags:{nameZh:'基尔肯尼城堡',name:'Kilkenny Castle',historic:'castle',website:'https://www.kilkennycastle.ie','addr:city':'Kilkenny',opening_hours:'Mo-Su 09:00-17:30'}},
+  { type:'node',id:3172,lat:51.9291,lon:-8.6170, tags:{nameZh:'布拉尼城堡',name:'Blarney Castle & Gardens',historic:'castle',website:'https://www.blarneycastle.ie','addr:city':'Blarney',opening_hours:'Mo-Su 09:00-18:00'}},
+  { type:'node',id:3173,lat:52.5210,lon:-7.8900, tags:{nameZh:'卡舍尔岩石',name:'Rock of Cashel',historic:'monument',website:'https://www.heritageireland.ie','addr:city':'Cashel',opening_hours:'Mo-Su 09:00-17:30'}},
+  { type:'node',id:3174,lat:52.0580,lon:-9.5100, tags:{nameZh:'邦拉蒂城堡',name:'Bunratty Castle',historic:'castle',website:'https://www.bunrattycastle.ie','addr:city':'Bunratty',opening_hours:'Mo-Su 09:00-17:30'}},
+  { type:'node',id:3175,lat:53.6939,lon:-6.4756, tags:{nameZh:'纽格兰奇古墓',name:'Newgrange Passage Tomb',historic:'monument',website:'https://www.newgrange.com','addr:city':'Donore'}},
+  { type:'node',id:3176,lat:53.2800,lon:-6.2050, tags:{nameZh:'鲍尔斯考特庄园',name:'Powerscourt Estate',historic:'castle',website:'https://www.powerscourt.com','addr:city':'Enniskerry',opening_hours:'Mo-Su 09:30-17:30'}},
+  { type:'node',id:3177,lat:51.848883,lon:-8.299067, tags:{nameZh:'科夫遗产中心',name:'Cobh Heritage Centre',tourism:'museum',website:'https://www.cobhheritage.com','addr:city':'Cobh',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:3178,lat:53.3430,lon:-6.2715, tags:{nameZh:'基督教堂大教堂',name:'Christ Church Cathedral',historic:'monument',website:'https://www.christchurchcathedral.ie','addr:city':'Dublin',opening_hours:'Mo-Sa 09:30-17:00'}},
+  { type:'node',id:3179,lat:52.8300,lon:-6.9200, tags:{nameZh:'杰宝矿洞',name:'Dunmore Cave',historic:'monument',website:'https://www.heritageireland.ie','addr:city':'Kilkenny',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:3180,lat:51.7014,lon:-8.5300, tags:{nameZh:'金塞尔查尔斯堡',name:'Charles Fort Kinsale',historic:'fort',website:'https://www.heritageireland.ie','addr:city':'Kinsale',opening_hours:'Mo-Su 10:00-17:00'}},
+  { type:'node',id:3181,lat:53.343903,lon:-6.256487, tags:{nameZh:'圣三一学院图书馆',name:'Trinity College Library & Book of Kells',tourism:'museum',website:'https://www.tcd.ie/visitors','addr:city':'Dublin',opening_hours:'Mo-Sa 09:30-17:00, Su 12:00-16:30',rating:'4.5',reviews:'28431'}},
+  { type:'node',id:3182,lat:52.9550,lon:-9.3600, tags:{nameZh:'多林石冢',name:'Poulnabrone Dolmen',historic:'monument','addr:city':'The Burren'}},
+  { type:'node',id:3183,lat:53.5200,lon:-6.4490, tags:{nameZh:'马拉海德城堡',name:'Malahide Castle & Gardens',historic:'castle',website:'https://www.malahidecastleandgardens.ie','addr:city':'Malahide',opening_hours:'Mo-Su 09:30-17:30'}},
+  { type:'node',id:3184,lat:52.1600,lon:-10.2600, tags:{nameZh:'盖勒斯礼拜堂',name:'Gallarus Oratory',historic:'monument','addr:city':'Dingle'}},
+  { type:'node',id:3185,lat:54.0200,lon:-6.5600, tags:{nameZh:'纽格兰奇布鲁纳博因',name:'Bru na Boinne Visitor Centre',tourism:'visitor_centre',website:'https://www.heritageireland.ie','addr:city':'Donore',opening_hours:'Mo-Su 09:00-17:00'}},
+  // BEACHES (~15)
+  { type:'node',id:3200,lat:52.8550,lon:-9.3500, tags:{nameZh:'拉欣奇海滩',name:'Lahinch Beach',natural:'beach','addr:city':'Lahinch'}},
+  { type:'node',id:3201,lat:51.6200,lon:-8.8600, tags:{nameZh:'英奇多尼海滩',name:'Inchydoney Beach',natural:'beach','addr:city':'Clonakilty'}},
+  { type:'node',id:3202,lat:52.3470,lon:-6.5700, tags:{nameZh:'卡拉克洛海滩',name:'Curracloe Beach',natural:'beach','addr:city':'Curracloe'}},
+  { type:'node',id:3203,lat:54.2700,lon:-8.5900, tags:{nameZh:'斯特兰德希尔海滩',name:'Strandhill Beach',natural:'beach','addr:city':'Strandhill'}},
+  { type:'node',id:3204,lat:52.1370,lon:-10.2700, tags:{nameZh:'丁格尔因奇海滩',name:'Inch Beach Dingle',natural:'beach','addr:city':'Dingle'}},
+  { type:'node',id:3205,lat:53.1700,lon:-9.7600, tags:{nameZh:'多林海滩',name:'Dog\'s Bay Beach',natural:'beach','addr:city':'Roundstone'}},
+  { type:'node',id:3206,lat:51.6300,lon:-9.2700, tags:{nameZh:'巴里莫尔海滩',name:'Barleycove Beach',natural:'beach','addr:city':'Goleen'}},
+  { type:'node',id:3207,lat:53.2260,lon:-6.1200, tags:{nameZh:'布雷海滩',name:'Bray Beach',natural:'beach','addr:city':'Bray'}},
+  { type:'node',id:3208,lat:55.2800,lon:-7.0800, tags:{nameZh:'唐尼加尔海滩',name:'Portsalon Beach',natural:'beach','addr:city':'Portsalon'}},
+  { type:'node',id:3209,lat:52.2600,lon:-9.9600, tags:{nameZh:'巴利邦尼恩海滩',name:'Ballybunion Beach',natural:'beach','addr:city':'Ballybunion'}},
+  { type:'node',id:3210,lat:53.4700,lon:-10.0800, tags:{nameZh:'银沙海滩',name:'Silver Strand Galway',natural:'beach','addr:city':'Galway'}},
+  { type:'node',id:3211,lat:51.6100,lon:-8.9300, tags:{nameZh:'广岛湾海滩',name:'Owenahincha Beach',natural:'beach','addr:city':'Rosscarbery'}},
+  { type:'node',id:3212,lat:54.3900,lon:-8.6500, tags:{nameZh:'罗西斯角海滩',name:'Rosses Point Beach',natural:'beach','addr:city':'Rosses Point'}},
+  { type:'node',id:3213,lat:52.0800,lon:-10.2300, tags:{nameZh:'迪利什海滩',name:'Derrynane Beach',natural:'beach','addr:city':'Caherdaniel'}},
+  { type:'node',id:3214,lat:51.7700,lon:-9.6100, tags:{nameZh:'巴利多诺万海滩',name:'Barley Cove Beach',natural:'beach','addr:city':'Crookhaven'}},
+  // INDOOR PLAY (~20)
+  { type:'node',id:3230,lat:53.406413,lon:-6.234276, tags:{nameZh:'都柏林室内游乐场',name:'Jump Zone Dublin',leisure:'indoor_playground','addr:city':'Dublin',opening_hours:'Mo-Su 10:00-19:00'}},
+  { type:'node',id:3231,lat:53.309689,lon:-6.284433, tags:{nameZh:'都柏林蹦床公园',name:'Airfield Estate Play',leisure:'indoor_playground','addr:city':'Dublin',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:3232,lat:51.900567,lon:-8.475942, tags:{nameZh:'科克室内游乐场',name:'Funky Monkeys Cork',leisure:'indoor_playground','addr:city':'Cork',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:3233,lat:53.258920,lon:-9.081977, tags:{nameZh:'戈尔韦室内游乐场',name:'Leisureland Play Galway',leisure:'indoor_playground','addr:city':'Galway',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:3234,lat:52.661252,lon:-8.630124, tags:{nameZh:'利默里克室内游乐场',name:'Jumpfastic Limerick',leisure:'indoor_playground','addr:city':'Limerick',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:3235,lat:52.647954,lon:-7.252963, tags:{nameZh:'基尔肯尼室内游乐场',name:'Kidzone Kilkenny',leisure:'indoor_playground','addr:city':'Kilkenny',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:3236,lat:52.260251,lon:-7.109904, tags:{nameZh:'沃特福德室内游乐场',name:'Fun Factory Waterford',leisure:'indoor_playground','addr:city':'Waterford',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:3237,lat:52.0500,lon:-9.5200, tags:{nameZh:'恩尼斯室内游乐场',name:'Kidz Kingdom Ennis',leisure:'indoor_playground','addr:city':'Ennis',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:3238,lat:53.7100,lon:-6.3500, tags:{nameZh:'德罗赫达室内游乐场',name:'Jump \'n\' Jive Drogheda',leisure:'indoor_playground','addr:city':'Drogheda',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:3239,lat:54.2700,lon:-8.4800, tags:{nameZh:'斯莱戈室内游乐场',name:'Planet Play Sligo',leisure:'indoor_playground','addr:city':'Sligo',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:3240,lat:53.5300,lon:-7.3500, tags:{nameZh:'阿斯隆室内游乐场',name:'Glendeer Farm & Fun Athlone',leisure:'indoor_playground','addr:city':'Athlone',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:3241,lat:52.268849,lon:-9.694667, tags:{nameZh:'特拉利室内游乐场',name:'Fun World Tralee',leisure:'indoor_playground','addr:city':'Tralee',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:3242,lat:53.801520,lon:-9.538247, tags:{nameZh:'韦斯特波特室内游乐场',name:'Pirates Adventure Westport',leisure:'indoor_playground',website:'https://www.piratesadventurepark.ie','addr:city':'Westport',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:3243,lat:52.338865,lon:-6.459871, tags:{nameZh:'韦克斯福德室内游乐场',name:'Fun World Wexford',leisure:'indoor_playground','addr:city':'Wexford',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:3244,lat:54.6000,lon:-5.9200, tags:{nameZh:'贝尔法斯特蹦床公园',name:'We Are Vertigo Belfast',leisure:'indoor_playground',website:'https://www.wearevertigo.com','addr:city':'Belfast',opening_hours:'Mo-Su 10:00-21:00'}},
+  { type:'node',id:3245,lat:53.401634,lon:-6.316152, tags:{nameZh:'都柏林攀岩中心',name:'Awesome Walls Dublin',leisure:'indoor_playground','addr:city':'Dublin',opening_hours:'Mo-Fr 12:00-22:00, Sa-Su 10:00-20:00'}},
+  { type:'node',id:3246,lat:51.9000,lon:-8.5200, tags:{nameZh:'科克蹦床中心',name:'Gravity Trampoline Cork',leisure:'indoor_playground','addr:city':'Cork',opening_hours:'Mo-Su 10:00-20:00'}},
+  { type:'node',id:3247,lat:53.343156,lon:-6.276456, tags:{nameZh:'都柏林蹦床天地',name:'Bounce Dublin',leisure:'indoor_playground','addr:city':'Dublin',opening_hours:'Mo-Su 10:00-20:00'}},
+  // CHILDREN'S FARMS (~10)
+  { type:'node',id:3260,lat:53.3780,lon:-6.5900, tags:{nameZh:'纽布里奇农场',name:'Newbridge House Farm',tourism:'children_farm',website:'https://www.newbridgehouseandfarm.com','addr:city':'Donabate',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:3261,lat:53.3000,lon:-6.2200, tags:{nameZh:'都柏林飞行场庄园',name:'Airfield Estate Dublin',tourism:'children_farm',website:'https://www.airfield.ie','addr:city':'Dublin',opening_hours:'Tu-Su 09:30-17:00'}},
+  { type:'node',id:3262,lat:53.5200,lon:-6.5000, tags:{nameZh:'格林希尔斯农场',name:'Greenhills Farm Dublin',tourism:'children_farm','addr:city':'Dublin',opening_hours:'Sa-Su 10:00-16:00'}},
+  { type:'node',id:3263,lat:52.0400,lon:-9.5400, tags:{nameZh:'基拉尼农场体验',name:'Kennedy\'s Pet Farm Killarney',tourism:'children_farm',website:'https://www.kennedyspetfarm.com','addr:city':'Killarney',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:3264,lat:51.8800,lon:-8.4200, tags:{nameZh:'科克莱希农场',name:'Leahy\'s Open Farm Cork',tourism:'children_farm',website:'https://www.leahysopenfarm.ie','addr:city':'Midleton',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:3265,lat:53.5100,lon:-6.4400, tags:{nameZh:'拉斯德里之家农场',name:'Ardgillan Castle Farm',tourism:'children_farm','addr:city':'Balbriggan',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:3266,lat:52.8500,lon:-6.9500, tags:{nameZh:'南斯鲁农场',name:'Nore Valley Park',tourism:'children_farm',website:'https://www.norevalleypark.com','addr:city':'Kilkenny',opening_hours:'We-Su 10:00-17:00'}},
+  { type:'node',id:3267,lat:53.8200,lon:-9.5400, tags:{nameZh:'韦斯特波特农场',name:'Westport House Farm',tourism:'children_farm','addr:city':'Westport',opening_hours:'Mo-Su 10:00-17:00 (seasonal)'}},
+  { type:'node',id:3268,lat:52.3400,lon:-6.5100, tags:{nameZh:'韦克斯福德农场体验',name:'Kia Ora Mini Farm Wexford',tourism:'children_farm',website:'https://www.kiaorafarm.ie','addr:city':'Gorey',opening_hours:'Mo-Su 10:00-18:00'}},
+  { type:'node',id:3269,lat:54.2300,lon:-8.4700, tags:{nameZh:'斯莱戈鹰冒险',name:'Eagles Flying Sligo',tourism:'children_farm',website:'https://www.eaglesflying.com','addr:city':'Ballymote',opening_hours:'Mo-Su 10:30-17:00 (seasonal)'}},
+  // PLAYGROUNDS (~15)
+  { type:'node',id:3280,lat:53.358938,lon:-6.330711, tags:{nameZh:'凤凰公园游乐场',name:'Phoenix Park Playground',leisure:'playground','addr:city':'Dublin'}},
+  { type:'node',id:3281,lat:53.337721,lon:-6.258406, tags:{nameZh:'圣斯蒂芬绿地游乐场',name:'St Stephen\'s Green Playground',leisure:'playground','addr:city':'Dublin'}},
+  { type:'node',id:3282,lat:51.895982,lon:-8.495847, tags:{nameZh:'菲茨杰拉德公园游乐场',name:'Fitzgerald Park Playground Cork',leisure:'playground','addr:city':'Cork'}},
+  { type:'node',id:3283,lat:53.274733,lon:-9.049041, tags:{nameZh:'南方公园游乐场',name:'South Park Playground Galway',leisure:'playground','addr:city':'Galway'}},
+  { type:'node',id:3284,lat:52.658189,lon:-8.627774, tags:{nameZh:'人民公园游乐场',name:'People\'s Park Playground Limerick',leisure:'playground','addr:city':'Limerick'}},
+  { type:'node',id:3285,lat:52.650147,lon:-7.246601, tags:{nameZh:'基尔肯尼城堡花园游乐场',name:'Kilkenny Castle Park Playground',leisure:'playground','addr:city':'Kilkenny'}},
+  { type:'node',id:3286,lat:52.5180,lon:-6.9650, tags:{nameZh:'人民公园游乐场沃特福德',name:'People\'s Park Waterford Playground',leisure:'playground','addr:city':'Waterford'}},
+  { type:'node',id:3287,lat:53.198984,lon:-6.095342, tags:{nameZh:'布雷海滨游乐场',name:'Bray Seafront Playground',leisure:'playground','addr:city':'Bray'}},
+  { type:'node',id:3288,lat:54.269062,lon:-8.456705, tags:{nameZh:'多尔利公园游乐场',name:'Doorly Park Playground Sligo',leisure:'playground','addr:city':'Sligo'}},
+  { type:'node',id:3289,lat:52.060989,lon:-9.520977, tags:{nameZh:'基拉尼镇游乐场',name:'Killarney Town Playground',leisure:'playground','addr:city':'Killarney'}},
+  { type:'node',id:3290,lat:53.340559,lon:-6.250399, tags:{nameZh:'梅里恩广场游乐场',name:'Merrion Square Playground',leisure:'playground','addr:city':'Dublin'}},
+  { type:'node',id:3291,lat:53.370641,lon:-6.262496, tags:{nameZh:'格里菲斯公园游乐场',name:'Griffith Park Playground',leisure:'playground','addr:city':'Dublin'}},
+  { type:'node',id:3292,lat:51.891936,lon:-8.607598, tags:{nameZh:'巴利纳科利游乐场',name:'Ballincollig Regional Park Playground',leisure:'playground','addr:city':'Cork'}},
+  { type:'node',id:3293,lat:53.727109,lon:-6.385631, tags:{nameZh:'德罗赫达公园游乐场',name:'St Dominic\'s Park Playground Drogheda',leisure:'playground','addr:city':'Drogheda'}},
+  { type:'node',id:3294,lat:53.799889,lon:-9.526352, tags:{nameZh:'韦斯特波特游乐场',name:'Westport Town Playground',leisure:'playground','addr:city':'Westport'}},
+  // SWIMMING POOLS (~8)
+  { type:'node',id:3310,lat:53.396373,lon:-6.370213, tags:{nameZh:'国家水上运动中心',name:'National Aquatic Centre Dublin',leisure:'swimming_pool',website:'https://www.nationalaquaticcentre.ie','addr:city':'Dublin',opening_hours:'Mo-Su 09:00-21:00'}},
+  { type:'node',id:3311,lat:51.886414,lon:-8.537676, tags:{nameZh:'科克休闲中心',name:'Leisureworld Cork',leisure:'swimming_pool','addr:city':'Cork',opening_hours:'Mo-Su 07:00-22:00'}},
+  { type:'node',id:3312,lat:53.258872,lon:-9.082540, tags:{nameZh:'戈尔韦休闲中心',name:'Leisureland Galway',leisure:'swimming_pool',website:'https://www.leisureland.ie','addr:city':'Galway',opening_hours:'Mo-Su 07:00-22:00'}},
+  { type:'node',id:3313,lat:52.664749,lon:-8.628474, tags:{nameZh:'利默里克休闲中心',name:'UL Arena Limerick',leisure:'swimming_pool','addr:city':'Limerick',opening_hours:'Mo-Fr 06:30-22:00, Sa-Su 08:00-20:00'}},
+  { type:'node',id:3314,lat:53.346102,lon:-6.254177, tags:{nameZh:'都柏林马克维格游泳池',name:'Markievicz Pool Dublin',leisure:'swimming_pool','addr:city':'Dublin',opening_hours:'Mo-Fr 07:00-21:00, Sa-Su 09:00-17:00'}},
+  { type:'node',id:3315,lat:54.6000,lon:-5.9400, tags:{nameZh:'贝尔法斯特休闲中心',name:'Falls Leisure Centre Belfast',leisure:'swimming_pool','addr:city':'Belfast',opening_hours:'Mo-Fr 07:00-21:00, Sa-Su 09:00-17:00'}},
+  // THEATRES (~5)
+  { type:'node',id:3330,lat:53.3412,lon:-6.2586, tags:{nameZh:'都柏林盖蒂剧院',name:'Gaiety Theatre Dublin',amenity:'theatre',website:'https://www.gaietytheatre.ie','addr:city':'Dublin'}},
+  { type:'node',id:3331,lat:53.3485,lon:-6.2600, tags:{nameZh:'阿比剧院',name:'Abbey Theatre Dublin',amenity:'theatre',website:'https://www.abbeytheatre.ie','addr:city':'Dublin'}},
+  { type:'node',id:3332,lat:51.8980,lon:-8.4740, tags:{nameZh:'科克歌剧院',name:'Cork Opera House',amenity:'theatre',website:'https://www.corkoperahouse.ie','addr:city':'Cork'}},
+  { type:'node',id:3333,lat:53.2740,lon:-9.0500, tags:{nameZh:'戈尔韦城镇剧院',name:'Town Hall Theatre Galway',amenity:'theatre',website:'https://www.tht.ie','addr:city':'Galway'}},
+  { type:'node',id:3334,lat:54.5970,lon:-5.9340, tags:{nameZh:'贝尔法斯特大歌剧院',name:'Grand Opera House Belfast',amenity:'theatre',website:'https://www.goh.co.uk','addr:city':'Belfast'}},
+  // BUFFET (~5)
+  { type:'node',id:3340,lat:53.3490,lon:-6.2570, tags:{nameZh:'都柏林亚洲自助',name:'Wagamama Dublin',amenity:'buffet_restaurant','addr:city':'Dublin','addr:street':'South King Street'}},
+  { type:'node',id:3341,lat:53.3480,lon:-6.2580, tags:{nameZh:'都柏林火锅自助',name:'Hot Pot Dublin',amenity:'buffet_restaurant','addr:city':'Dublin','addr:street':'Capel Street'}},
+  { type:'node',id:3342,lat:51.8970,lon:-8.4750, tags:{nameZh:'科克亚洲自助',name:'Izz Cafe Cork',amenity:'buffet_restaurant','addr:city':'Cork','addr:street':'Oliver Plunkett Street'}},
+  { type:'node',id:3343,lat:53.2730,lon:-9.0530, tags:{nameZh:'戈尔韦亚洲自助',name:'Asian Fusion Galway',amenity:'buffet_restaurant','addr:city':'Galway','addr:street':'Quay Street'}},
+  { type:'node',id:3344,lat:54.5975,lon:-5.9320, tags:{nameZh:'贝尔法斯特亚洲自助',name:'Zen Belfast',amenity:'buffet_restaurant','addr:city':'Belfast','addr:street':'Adelaide Street'}},
+  // ATTRACTIONS (~10)
+  { type:'node',id:3360,lat:53.345567,lon:-6.261976, tags:{nameZh:'都柏林圣殿酒吧区',name:'Temple Bar District',tourism:'attraction','addr:city':'Dublin'}},
+  { type:'node',id:3361,lat:53.348923,lon:-6.253162, tags:{nameZh:'都柏林海关大厦',name:'Custom House Dublin',tourism:'attraction','addr:city':'Dublin'}},
+  { type:'node',id:3362,lat:53.341933,lon:-6.286730, tags:{nameZh:'都柏林健力士仓库',name:'Guinness Storehouse',tourism:'museum',website:'https://www.guinness-storehouse.com','addr:city':'Dublin',opening_hours:'Mo-Su 09:30-19:00',rating:'4.4',reviews:'42318'}},
+  { type:'node',id:3363,lat:53.3390,lon:-6.2680, tags:{nameZh:'都柏林都柏林尼亚',name:'Dublinia Viking Experience',tourism:'museum',website:'https://www.dublinia.ie','addr:city':'Dublin',opening_hours:'Mo-Su 10:00-17:30'}},
+  { type:'node',id:3364,lat:52.243093,lon:-7.150893, tags:{nameZh:'沃特福德水晶工厂',name:'Waterford Crystal Visitor Centre',tourism:'museum',website:'https://www.waterfordvisitorcentre.com','addr:city':'Waterford',opening_hours:'Mo-Su 09:00-17:00'}},
+  { type:'node',id:3365,lat:51.849962,lon:-8.294808, tags:{nameZh:'科夫泰坦尼克体验',name:'Titanic Experience Cobh',tourism:'museum',website:'https://www.titanicexperiencecobh.ie','addr:city':'Cobh',opening_hours:'Mo-Su 09:30-17:00'}},
+  { type:'node',id:3366,lat:53.800688,lon:-9.535521, tags:{nameZh:'韦斯特波特庄园',name:'Westport House & Gardens',tourism:'attraction',website:'https://www.westporthouse.ie','addr:city':'Westport',opening_hours:'Mo-Su 10:00-18:00 (seasonal)'}},
+  { type:'node',id:3367,lat:53.275216,lon:-9.057579, tags:{nameZh:'戈尔韦大教堂',name:'Galway Cathedral',tourism:'attraction','addr:city':'Galway'}},
+  { type:'node',id:3368,lat:53.352756,lon:-6.261673, tags:{nameZh:'莫莉马龙雕像',name:'Molly Malone Statue',tourism:'attraction','addr:city':'Dublin'}},
+  { type:'node',id:3369,lat:53.359497,lon:-6.332591, tags:{nameZh:'凤凰公园鹿群',name:'Phoenix Park Deer Herd',tourism:'attraction','addr:city':'Dublin'}},
+];
+
+// -- TRANSLATE HOURS --
+function translateHours(str) {
+  if (!str) return str;
+  if (LANG.current === 'zh') {
+    return str.replace(/\bMo\b/g,'周一').replace(/\bTu\b/g,'周二').replace(/\bWe\b/g,'周三').replace(/\bTh\b/g,'周四').replace(/\bFr\b/g,'周五').replace(/\bSa\b/g,'周六').replace(/\bSu\b/g,'周日').replace(/\(seasonal\)/g,'(季节性开放)').replace(/Check schedule/gi,'请查看官网');
+  }
+  return str;
+}
+
+function getCategoryForVenue(tags) {
+  for (const cat of CATEGORIES) { for (const [key, vals] of Object.entries(cat.tags)) { const val = tags[key]; if (val && vals.includes(val)) return cat; } }
+  if (tags.man_made === 'windmill') return CATEGORIES.find(c => c.id === 'historic');
+  if (tags.historic) return CATEGORIES.find(c => c.id === 'historic');
+  if (tags.natural === 'beach') return CATEGORIES.find(c => c.id === 'beach');
+  if (tags.tourism === 'visitor_centre') return CATEGORIES.find(c => c.id === 'visitor');
+  if (tags.amenity === 'arts_centre') return CATEGORIES.find(c => c.id === 'theatre');
+  return CATEGORIES[CATEGORIES.length - 1];
+}
+function getCategoryById(id) { return CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1]; }
+
+let state = { allVenues: [], filtered: [], displayed: 0, activeCategory: null, activeCardId: null, currentRegion: '', markers: new Map(), favorites: JSON.parse(localStorage.getItem('ie-kids-explorer-favorites') || '[]'), showFavoritesOnly: false, userLocation: null, userLocationMarker: null };
+const PAGE_SIZE = 30;
+
+const map = L.map('map', { zoomControl: true }).setView([53.4, -7.7], 7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19 }).addTo(map);
+const markersLayer = L.markerClusterGroup({ maxClusterRadius: 45, spiderfyOnMaxZoom: true, showCoverageOnHover: false, zoomToBoundsOnClick: true, disableClusteringAtZoom: 14, chunkedLoading: true, chunkInterval: 100, chunkDelay: 10 }).addTo(map);
+
+function buildFilterBar() {
+  const bar = document.getElementById('filterBar'); const label = document.getElementById('filterLabel'); bar.innerHTML = ''; bar.appendChild(label); label.textContent = T[LANG.current].filterLabel;
+  const catCounts = {}; state.allVenues.forEach(v => { catCounts[v.category.id] = (catCounts[v.category.id] || 0) + 1; }); const totalCount = state.allVenues.length;
+  const favCount = state.favorites.length; const favChip = document.createElement('button'); favChip.className = 'filter-chip' + (state.showFavoritesOnly ? ' active' : ''); if (state.showFavoritesOnly) { favChip.style.background = '#E05A1E'; favChip.style.borderColor = '#E05A1E'; }
+  favChip.innerHTML = `❤️ ${T[LANG.current].favoritesLabel}${favCount > 0 ? ` <span class="filter-chip-count">${favCount}</span>` : ''}`; favChip.onclick = () => toggleFavoritesFilter(); bar.appendChild(favChip);
+  const allChip = document.createElement('button'); allChip.className = 'filter-chip' + (!state.showFavoritesOnly && state.activeCategory === null ? ' active' : ''); allChip.style.background = !state.showFavoritesOnly && state.activeCategory === null ? '#1A2B4A' : ''; allChip.style.borderColor = !state.showFavoritesOnly && state.activeCategory === null ? '#1A2B4A' : '';
+  allChip.innerHTML = totalCount > 0 ? `${T[LANG.current].allLabel} <span class="filter-chip-count">${totalCount}</span>` : T[LANG.current].allLabel; allChip.onclick = () => setFilter(null); bar.appendChild(allChip);
+  CATEGORIES.forEach(cat => { const count = catCounts[cat.id] || 0; const chip = document.createElement('button'); const isActive = !state.showFavoritesOnly && state.activeCategory === cat.id; chip.className = 'filter-chip' + (isActive ? ' active' : '') + (totalCount > 0 && count === 0 ? ' no-data' : ''); if (isActive) { chip.style.background = cat.color; chip.style.borderColor = cat.color; } const countBadge = totalCount > 0 ? ` <span class="filter-chip-count">${count}</span>` : ''; chip.innerHTML = `${cat.emoji} ${cat[LANG.current] || cat.en}${countBadge}`; chip.onclick = () => setFilter(cat.id); bar.appendChild(chip); });
+  if (typeof buildAgeFilterPills === 'function') buildAgeFilterPills();
+}
+
+function setFilter(catId) { state.activeCategory = catId; state.showFavoritesOnly = false; state.displayed = 0; if (state.allVenues.length === 0) { buildFilterBar(); const cat = catId ? CATEGORIES.find(c => c.id === catId) : null; const catName = cat ? (cat[LANG.current] || cat.en) : ''; if (catId && cat) { document.getElementById('emptyTitle').textContent = T[LANG.current].browseCategory(catName); document.getElementById('emptyDesc').textContent = T[LANG.current].browseCategoryDesc; } else { updateEmptyStateText(); } searchInput.focus(); return; } applyFilter(); buildFilterBar(); }
+
+function applyFilter() {
+  let list = state.activeCategory ? state.allVenues.filter(v => v.category.id === state.activeCategory) : [...state.allVenues];
+  if (state.showFavoritesOnly) { list = list.filter(v => state.favorites.includes(v.id)); }
+  if (typeof activeAgeFilter !== 'undefined' && activeAgeFilter !== 'all') { const ageRange = typeof AGE_FILTER_RANGES !== 'undefined' ? AGE_FILTER_RANGES.find(a => a.id === activeAgeFilter) : null; if (ageRange && ageRange.categories) { list = list.filter(v => ageRange.categories.includes(v.category.id)); } }
+  if (state.userLocation) { list.forEach(v => { v._userDist = haversine(state.userLocation[0], state.userLocation[1], v.lat, v.lon); }); list.sort((a, b) => a._userDist - b._userDist); }
+  state.filtered = list; renderList(); renderMarkers();
+}
+
+const searchInput = document.getElementById('searchInput'); const autocompleteEl = document.getElementById('autocomplete'); let focusedIdx = -1;
+searchInput.addEventListener('input', () => { const q = searchInput.value.trim().toLowerCase(); if (!q) { autocompleteEl.classList.remove('open'); return; } const regionMatches = IE_REGIONS.filter(r => r.name.toLowerCase().includes(q) || (r.nameZh && r.nameZh.includes(q))).slice(0, 5); const venueSource = state.allVenues.length > 0 ? state.allVenues : []; const staticVenueMatches = STATIC_IE_VENUES.filter(v => v.tags.name && (v.tags.name.toLowerCase().includes(q) || (v.tags.nameZh && v.tags.nameZh.includes(q)))).map(v => ({ name: v.tags.name, nameZh: v.tags.nameZh || '', type: 'venue', lat: v.lat, lon: v.lon, emoji: getCategoryForVenue(v.tags).emoji, catLabel: getCategoryForVenue(v.tags)[LANG.current] || getCategoryForVenue(v.tags).en, city: v.tags['addr:city'] || '', id: `${v.type}/${v.id}` })); const loadedVenueMatches = venueSource.filter(v => (v.name.toLowerCase().includes(q) || (v.nameZh && v.nameZh.includes(q))) && !staticVenueMatches.find(s => s.name === v.name)).map(v => ({ name: v.name, nameZh: v.nameZh || '', type: 'venue', lat: v.lat, lon: v.lon, emoji: v.category.emoji, catLabel: v.category[LANG.current] || v.category.en, city: v.address ? v.address.split(',').pop().trim() : '', id: v.id })); const allVenueMatches = [...staticVenueMatches, ...loadedVenueMatches].slice(0, 5); renderAutocomplete(regionMatches, q, allVenueMatches); });
+searchInput.addEventListener('keydown', e => { const items = autocompleteEl.querySelectorAll('.autocomplete-item'); if (e.key === 'ArrowDown') { e.preventDefault(); focusedIdx = Math.min(focusedIdx + 1, items.length - 1); items.forEach((el, i) => el.classList.toggle('focused', i === focusedIdx)); } else if (e.key === 'ArrowUp') { e.preventDefault(); focusedIdx = Math.max(focusedIdx - 1, 0); items.forEach((el, i) => el.classList.toggle('focused', i === focusedIdx)); } else if (e.key === 'Enter') { e.preventDefault(); if (focusedIdx >= 0 && items[focusedIdx]) { items[focusedIdx].click(); } else if (searchInput.value.trim()) { searchRegion(searchInput.value.trim()); } } else if (e.key === 'Escape') { autocompleteEl.classList.remove('open'); } });
+document.addEventListener('click', e => { if (!e.target.closest('.header-search')) autocompleteEl.classList.remove('open'); });
+
+function renderAutocomplete(regionMatches, q, venueMatches) { focusedIdx = -1; venueMatches = venueMatches || []; if (!regionMatches.length && !venueMatches.length) { autocompleteEl.classList.remove('open'); return; } const safeQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); let html = ''; if ('near me'.includes(q) || '我附近'.includes(q)) { html += `<div class="autocomplete-item" onclick="activateNearMe()"><span class="venue-emoji">📍</span><span>${T[LANG.current].nearMe}</span><span class="region-type">${T[LANG.current].nearMeLocationType}</span></div>`; } if (venueMatches.length > 0) { html += `<div class="autocomplete-section-label">${T[LANG.current].venuesSection}</div>`; html += venueMatches.map(v => { const safeName = escapeHtml(v.name); const highlighted = safeName.replace(new RegExp(`(${safeQ})`, 'gi'), '<strong style="color:var(--primary)">$1</strong>'); return `<div class="autocomplete-item" onclick="searchVenueFromAutocomplete(${v.lat},${v.lon},'${v.id.replace(/'/g,"\\'")}','${v.name.replace(/'/g,"\\'")}')"><span class="venue-emoji">${v.emoji}</span><span>${highlighted}<span class="venue-result-detail"> &middot; ${v.city}</span></span><span class="region-type">${v.catLabel}</span></div>`; }).join(''); } if (regionMatches.length > 0) { html += `<div class="autocomplete-section-label">${T[LANG.current].regionsSection}</div>`; html += regionMatches.map(r => { const safeName = escapeHtml(r.name); const highlighted = safeName.replace(new RegExp(`(${safeQ})`, 'gi'), '<strong style="color:var(--primary)">$1</strong>'); const zhLabel = r.nameZh ? ` ${r.nameZh}` : ''; const escapedName = r.name.replace(/'/g, "\\'").replace(/[<>"]/g, ''); return `<div class="autocomplete-item" onclick="searchRegion('${escapedName}')"><span>${highlighted}${zhLabel}</span><span class="region-type">${r.type === 'province' ? 'Province 省' : 'City 城市'}</span></div>`; }).join(''); } autocompleteEl.innerHTML = html; autocompleteEl.classList.add('open'); }
+
+function clearSearch() { searchInput.value = ''; autocompleteEl.classList.remove('open'); searchInput.focus(); fullReset(); }
+function resetHome() { searchInput.value = ''; autocompleteEl.classList.remove('open'); state.activeCategory = null; state.activeCardId = null; state.showFavoritesOnly = false; state.displayed = 0; if (typeof activeAgeFilter !== 'undefined') activeAgeFilter = 'all'; markersLayer.clearLayers(); state.markers.clear(); map.setView([53.4, -7.7], 7); showOverlay(false); if (typeof closeDetailPanel === 'function') closeDetailPanel(); loadStaticVenues(); }
+function fullReset() { state.allVenues = []; state.filtered = []; state.displayed = 0; state.activeCategory = null; state.activeCardId = null; state.currentRegion = ''; state.showFavoritesOnly = false; if (typeof activeAgeFilter !== 'undefined') activeAgeFilter = 'all'; markersLayer.clearLayers(); state.markers.clear(); searchInput.value = ''; autocompleteEl.classList.remove('open'); map.setView([53.4, -7.7], 7); showOverlay(false); document.getElementById('resultCountText').textContent = T[LANG.current].resultLabel; document.getElementById('emptyState').style.display = 'flex'; document.getElementById('venueList').style.display = 'none'; document.getElementById('venueList').innerHTML = ''; document.getElementById('categorySummary').innerHTML = ''; closeDetailPanel(); updateEmptyStateText(); buildFilterBar(); }
+function showToast(message, duration = 3000) { const toast = document.getElementById('toast'); toast.textContent = message; toast.classList.add('show'); clearTimeout(toast._timer); toast._timer = setTimeout(() => toast.classList.remove('show'), duration); }
+const scrollTopBtn = document.getElementById('scrollTopBtn'); document.getElementById('venueList').addEventListener('scroll', function() { scrollTopBtn.classList.toggle('visible', this.scrollTop > 200); }); scrollTopBtn.addEventListener('click', () => { document.getElementById('venueList').scrollTo({ top: 0, behavior: 'smooth' }); });
+
+async function searchRegion(name) { searchInput.value = name; autocompleteEl.classList.remove('open'); state.currentRegion = name; showOverlay(true); document.getElementById('resultCountText').innerHTML = T[LANG.current].searching; try { const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(name + ' Ireland')}&format=json&limit=1&addressdetails=1`; const geoRes = await fetch(nominatimUrl); const geoData = await geoRes.json(); if (!geoData.length) { showToast(T[LANG.current].regionNotFound); showOverlay(false); return; } const place = geoData[0]; const [s, n, w, e] = place.boundingbox.map(Number); const bbox = `${s},${w},${n},${e}`; map.fitBounds([[s, w], [n, e]], { padding: [20, 20] }); const overpassQuery = buildOverpassQuery(bbox); const osmData = await fetchOverpass(overpassQuery); processOSMData(osmData.elements); showOverlay(false); } catch (err) { console.error('Search error:', err); showOverlay(false); document.getElementById('resultCountText').innerHTML = `&#9888;&#65039; Error: ${err.message || err} - please check your connection and retry`; } }
+
+const OVERPASS_ENDPOINTS = ['https://overpass.kumi.systems/api/interpreter','https://overpass.openstreetmap.fr/api/interpreter','https://overpass-api.de/api/interpreter'];
+function buildOverpassQuery(bbox) { const b = bbox; return `[out:json][timeout:60];\n(\n  node["name"]["tourism"~"museum|gallery|aquarium|zoo|theme_park|attraction|visitor_centre"](${b});\n  node["name"]["leisure"~"playground|water_park|ice_rink|miniature_golf|nature_reserve|marina"](${b});\n  node["name"]["amenity"~"theatre|cinema"](${b});\n  node["name"]["natural"="beach"](${b});\n  node["name"]["historic"~"castle|ruins|monument|fort|mill"](${b});\n  node["name"]["man_made"="windmill"](${b});\n  way["name"]["tourism"~"museum|gallery|aquarium|zoo|theme_park|attraction|visitor_centre"](${b});\n  way["name"]["leisure"~"playground|water_park|nature_reserve"](${b});\n  way["name"]["amenity"~"theatre|cinema"](${b});\n  way["name"]["natural"="beach"](${b});\n  way["name"]["historic"~"castle|ruins|fort|mill"](${b});\n  way["name"]["man_made"="windmill"](${b});\n  relation["name"]["tourism"~"museum|zoo|theme_park"](${b});\n  relation["name"]["leisure"="nature_reserve"](${b});\n  relation["name"]["natural"="beach"](${b});\n);\nout center;`; }
+const IE_BBOX = '51.42,-10.67,55.38,-5.99';
+function buildCategoryQuery(catId, bbox) { const cat = CATEGORIES.find(c => c.id === catId); if (!cat) return buildOverpassQuery(bbox); const stmts = []; Object.entries(cat.tags).forEach(([key, vals]) => { const op = vals.length === 1 ? '=' : '~'; const val = vals.join('|'); ['node', 'way', 'relation'].forEach(t => stmts.push(`  ${t}["name"]["${key}"${op}"${val}"](${bbox});`)); }); return `[out:json][timeout:90];\n(\n${stmts.join('\n')}\n);\nout center;`; }
+
+async function fetchOverpass(query) { let lastErr; for (let i = 0; i < OVERPASS_ENDPOINTS.length; i++) { const url = OVERPASS_ENDPOINTS[i] + '?data=' + encodeURIComponent(query); const controller = new AbortController(); const tid = setTimeout(() => controller.abort(), 35000); try { const res = await fetch(url, { signal: controller.signal }); clearTimeout(tid); if (res.ok) { const json = await res.json(); if (json.remark && /timed out|timeout/i.test(json.remark)) { lastErr = new Error('Server timeout'); continue; } return json; } lastErr = new Error(`HTTP ${res.status}`); } catch (e) { clearTimeout(tid); lastErr = e; } } throw lastErr || new Error('All Overpass endpoints failed'); }
+
+function formatRating(venue) { if (!venue.rating) return null; const r = parseFloat(venue.rating); const fullStars = Math.floor(r); const rem = r % 1; const halfStar = rem >= 0.25 && rem < 0.75; const stars = '\u2605'.repeat(fullStars) + (halfStar ? '\u00BD' : (rem >= 0.75 ? '\u2605' : '')); const count = parseInt(venue.reviews || '0'); const countStr = count >= 1000 ? (count / 1000).toFixed(1) + 'K' : String(count); const countFull = count >= 1000 ? count.toLocaleString() : String(count); return { stars, rating: venue.rating, countShort: countStr, countFull }; }
+function ratingCardHtml(venue) { const r = formatRating(venue); if (!r) return ''; return `<span class="venue-rating"><span class="rating-stars">\u2B50</span> <span class="rating-num">${r.rating}</span> <span class="rating-count">(${r.countShort})</span></span>`; }
+function ratingDetailHtml(venue) { const r = formatRating(venue); if (!r) return ''; return `<div class="detail-rating"><span class="detail-rating-stars">${r.stars}</span><span class="detail-rating-num">${r.rating}</span><span class="detail-rating-sep">\u00B7</span><span class="detail-rating-count">${r.countFull} reviews</span></div>`; }
+function applySortOrder(mode) { state.sortMode = mode; const list = state.filtered; if (mode === 'rating') { list.sort((a, b) => { const ra = parseFloat(a.rating || '0'); const rb = parseFloat(b.rating || '0'); if (rb !== ra) return rb - ra; return (parseInt(b.reviews || '0')) - (parseInt(a.reviews || '0')); }); } else if (mode === 'name') { list.sort((a, b) => a.name.localeCompare(b.name)); } else if (mode === 'distance' && state.userLocation) { list.sort((a, b) => (a._userDist || 9999) - (b._userDist || 9999)); } else { const orderMap = new Map(); state.allVenues.forEach((v, i) => orderMap.set(v.id, i)); list.sort((a, b) => (orderMap.get(a.id) || 0) - (orderMap.get(b.id) || 0)); } state.displayed = 0; renderList(); }
+
+function processOSMData(elements) { const venues = []; const seen = new Set(); for (const el of elements) { const tags = el.tags || {}; const name = tags.name || tags['name:en']; if (!name) continue; const lat = el.lat ?? el.center?.lat; const lon = el.lon ?? el.center?.lon; if (!lat || !lon) continue; const key = `${name.toLowerCase()}-${Math.round(lat*1000)}-${Math.round(lon*1000)}`; if (seen.has(key)) continue; seen.add(key); const cat = getCategoryForVenue(tags); const rawWebsite = tags.website || tags['contact:website'] || tags['url'] || ''; const website = rawWebsite ? (rawWebsite.startsWith('http') ? rawWebsite : 'https://' + rawWebsite) : ''; const city = tags['addr:city'] || tags['addr:town'] || tags['addr:village'] || ''; const street = [tags['addr:street'], tags['addr:housenumber']].filter(Boolean).join(' '); const address = [street, city].filter(Boolean).join(', '); venues.push({ id: `${el.type}/${el.id}`, name, nameZh: tags['name:zh'] || tags['name:zh-Hans'] || tags.nameZh || '', lat, lon, category: cat, website, address, phone: tags.phone || tags['contact:phone'] || '', openingHours: tags.opening_hours || '', rating: tags.rating || '', reviews: tags.reviews || '', osmType: el.type, osmId: el.id }); } venues.sort((a, b) => { if (a.category.id !== 'attraction' && b.category.id === 'attraction') return -1; if (a.category.id === 'attraction' && b.category.id !== 'attraction') return 1; return a.name.localeCompare(b.name); }); state.allVenues = venues; state.displayed = 0; applyFilter(); buildFilterBar(); document.getElementById('resultCountText').innerHTML = venues.length ? T[LANG.current].found(venues.length, state.currentRegion) : T[LANG.current].notFound; const sortCtrl = document.getElementById('sortControl'); if (sortCtrl) { sortCtrl.style.display = venues.length ? 'inline-flex' : 'none'; const sortSel = document.getElementById('sortSelect'); if (sortSel) sortSel.value = 'default'; } state.sortMode = 'default'; renderCategorySummary(); }
+
+function renderList() { const list = document.getElementById('venueList'); const empty = document.getElementById('emptyState'); if (state.allVenues.length === 0) { empty.style.display = 'flex'; list.style.display = 'none'; updateEmptyStateText(); if (state.activeCategory) { const cat = CATEGORIES.find(c => c.id === state.activeCategory); const catName = cat ? (cat[LANG.current] || cat.en) : ''; document.getElementById('emptyTitle').textContent = T[LANG.current].searchRegionFirst; document.getElementById('emptyDesc').textContent = T[LANG.current].searchRegionFirstDesc(catName); } return; } if (state.filtered.length === 0) { empty.style.display = 'flex'; list.style.display = 'none'; const cat = CATEGORIES.find(c => c.id === state.activeCategory); const catName = cat ? (cat[LANG.current] || cat.en) : ''; document.getElementById('emptyTitle').textContent = T[LANG.current].noInRegion(catName, state.currentRegion); document.getElementById('emptyDesc').textContent = T[LANG.current].tryOtherCategory; return; } empty.style.display = 'none'; list.style.display = 'flex'; const toShow = state.filtered.slice(0, state.displayed + PAGE_SIZE); state.displayed = toShow.length; const frag = document.createDocumentFragment(); toShow.forEach(v => { const card = document.createElement('div'); card.className = 'venue-card' + (v.id === state.activeCardId ? ' active' : ''); card.id = 'card-' + v.id.replace(/[^a-z0-9]/gi, '-'); const isFav = state.favorites.includes(v.id); const distHtml = v._userDist != null ? `<span class="venue-distance">📍 ${v._userDist.toFixed(1)} km</span>` : ''; card.innerHTML = `<button class="venue-fav-btn ${isFav ? 'favorited' : ''}" onclick="event.stopPropagation(); toggleFavorite('${v.id.replace(/'/g,"\\'")}', this)" title="${isFav ? 'Remove' : 'Add'}">${isFav ? '❤️' : '♡'}</button><div class="venue-card-top"><div class="venue-icon" style="background:${v.category.bg}">${v.category.emoji}</div><div class="venue-info"><div class="venue-name">${v.name}</div>${v.nameZh ? `<div class="venue-name-zh">${v.nameZh}</div>` : ''}${ratingCardHtml(v)}<div class="venue-meta"><span class="venue-tag" style="background:${v.category.bg};color:${v.category.color}">${v.category[LANG.current] || v.category.en}</span>${distHtml}${v.address ? `<span class="venue-address"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 10 C2 7 0.5 5.5 0.5 4a4.5 4.5 0 019 0c0 1.5-1.5 3-4.5 6z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>${v.address}</span>` : ''}</div>${v.openingHours ? `<div class="venue-detail-row">\u{1F552} ${translateHours(v.openingHours)}</div>` : ''}${v.phone ? `<div class="venue-detail-row">\u{1F4DE} <a href="tel:${v.phone}">${v.phone}</a></div>` : ''}</div></div><div class="venue-actions">${v.website ? `<a class="btn-website" href="${v.website}" target="_blank" rel="noopener">${T[LANG.current].website}</a>` : `<span class="btn-website" style="opacity:.45;cursor:default">${T[LANG.current].noWebsite}</span>`}<a class="btn-nav" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">${T[LANG.current].navigate}</a><button class="btn-map" onclick="flyToVenue('${v.id}')">${T[LANG.current].flyTo}</button></div>`; card.addEventListener('click', e => { if (e.target.closest('a,button')) return; selectVenue(v.id); }); frag.appendChild(card); }); list.innerHTML = ''; list.appendChild(frag); if (state.displayed < state.filtered.length) { const btn = document.createElement('button'); btn.className = 'load-more-btn'; btn.textContent = `${T[LANG.current].loadMore} (${state.filtered.length - state.displayed} more)`; btn.onclick = () => { renderList(); }; list.appendChild(btn); } }
+
+function renderCategorySummary() { const el = document.getElementById('categorySummary'); if (!state.allVenues.length) { el.innerHTML = ''; return; } const counts = {}; state.allVenues.forEach(v => { counts[v.category.id] = (counts[v.category.id] || 0) + 1; }); el.innerHTML = CATEGORIES.filter(cat => counts[cat.id]).map(cat => `<span class="category-summary-chip" style="background:${cat.bg};color:${cat.color}">${cat.emoji} ${counts[cat.id]}</span>`).join(''); }
+function updateEmptyStateText() { document.getElementById('emptyTitle').textContent = T[LANG.current].emptyTitle; document.getElementById('emptyDesc').textContent = T[LANG.current].emptyDesc; }
+
+const _iconCache = {}; function getIcon(cat) { if (!_iconCache[cat.id]) { _iconCache[cat.id] = L.divIcon({ html: `<div class="map-marker" style="background:${cat.color}"><div class="map-marker-inner">${cat.emoji}</div></div>`, className: '', iconSize: [34, 34], iconAnchor: [17, 34], popupAnchor: [0, -36] }); } return _iconCache[cat.id]; }
+function renderMarkers() { markersLayer.clearLayers(); state.markers.clear(); const batch = []; state.filtered.forEach(v => { const marker = L.marker([v.lat, v.lon], { icon: getIcon(v.category) }); marker.bindPopup(() => buildPopup(v), { maxWidth: 280, minWidth: 260 }); marker.on('click', () => selectVenue(v.id)); state.markers.set(v.id, marker); batch.push(marker); }); markersLayer.addLayers(batch); }
+function buildPopup(v) { return `<div class="popup-content"><div class="popup-header"><div class="popup-icon" style="background:${v.category.bg}">${v.category.emoji}</div><div><div class="popup-name">${v.name}</div>${v.nameZh ? `<div class="popup-name-zh">${v.nameZh}</div>` : ''}</div></div>${v.address ? `<div class="popup-address">\u{1F4CD} ${v.address}</div>` : ''}${v.openingHours ? `<div class="popup-address">\u{1F552} ${translateHours(v.openingHours)}</div>` : ''}${v.phone ? `<div class="popup-address">\u{1F4DE} <a href="tel:${v.phone}" style="color:var(--primary);text-decoration:none">${v.phone}</a></div>` : ''}<div style="display:flex;gap:6px">${v.website ? `<a class="popup-website" href="${v.website}" target="_blank" rel="noopener" style="flex:1">${T[LANG.current].website}</a>` : ''}<a class="popup-website" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener" style="flex:1;background:#4285F4">${T[LANG.current].navigate}</a></div></div>`; }
+function selectVenue(id) { state.activeCardId = id; document.querySelectorAll('.venue-card').forEach(c => c.classList.remove('active')); const cardEl = document.getElementById('card-' + id.replace(/[^a-z0-9]/gi, '-')); if (cardEl) { cardEl.classList.add('active'); cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } const marker = state.markers.get(id); if (marker) { marker.openPopup(); } }
+function flyToVenue(id) { const v = state.allVenues.find(x => x.id === id); if (!v) return; map.flyTo([v.lat, v.lon], 16, { duration: 1 }); selectVenue(id); }
+function showOverlay(show) { const overlay = document.getElementById('mapOverlay'); document.getElementById('loadingText').textContent = T[LANG.current].loadingVenues; document.getElementById('loadingHint').textContent = show ? T[LANG.current].loadingHint : ''; overlay.classList.toggle('hidden', !show); }
+function setLang(lang) { LANG.current = lang; document.querySelectorAll('.lang-btn').forEach(b => { b.classList.toggle('active', b.dataset.lang === lang); }); document.getElementById('searchInput').placeholder = T[lang].searchPlaceholder; updateEmptyStateText(); buildFilterBar(); if (state.allVenues.length) { document.getElementById('resultCountText').innerHTML = T[lang].found(state.filtered.length, state.currentRegion); renderList(); renderMarkers(); renderCategorySummary(); } else { document.getElementById('resultCountText').textContent = T[lang].resultLabel; } const wb = document.getElementById('weatherBanner'); if (wb && wb.style.display !== 'none') { document.getElementById('weatherBannerText').textContent = T[lang].weatherBannerText; document.getElementById('weatherBannerBtn').textContent = T[lang].weatherBannerBtn; } }
+function showSkeletons() { const list = document.getElementById('venueList'); document.getElementById('emptyState').style.display = 'none'; list.style.display = 'flex'; list.innerHTML = Array(4).fill(0).map(() => `<div class="skeleton-card"><div style="display:flex;gap:11px;align-items:center"><div class="skeleton" style="width:36px;height:36px;border-radius:50%;flex-shrink:0"></div><div style="flex:1"><div class="skeleton" style="height:12px;margin-bottom:8px;width:70%"></div><div class="skeleton" style="height:10px;width:45%"></div></div></div></div>`).join(''); }
+const _origSearch = searchRegion; window.searchRegion = async function(name) { showSkeletons(); return _origSearch(name); };
+function loadStaticVenues() { state.currentRegion = T[LANG.current].featuredRegion; processOSMData(STATIC_IE_VENUES); }
+
+const CITY_COORDS = { dublin:[53.35,-6.26],cork:[51.90,-8.47],galway:[53.27,-9.05],limerick:[52.66,-8.63],killarney:[52.06,-9.51],kilkenny:[52.65,-7.25],waterford:[52.52,-6.97],dingle:[52.14,-10.27],wicklow:[52.98,-6.04],bray:[53.20,-6.10],kinsale:[51.70,-8.53],sligo:[54.27,-8.47],donegal:[54.65,-8.11],westport:[53.80,-9.52],belfast:[54.60,-5.93],tralee:[52.27,-9.70],athlone:[53.42,-7.94],drogheda:[53.72,-6.36],ennis:[52.84,-8.98],cobh:[51.85,-8.30],wexford:[52.34,-6.46],connemara:[53.46,-10.05],都柏林:[53.35,-6.26],科克:[51.90,-8.47],戈尔韦:[53.27,-9.05],利默里克:[52.66,-8.63],基拉尼:[52.06,-9.51],基尔肯尼:[52.65,-7.25],沃特福德:[52.52,-6.97],丁格尔:[52.14,-10.27],威克洛:[52.98,-6.04],布雷:[53.20,-6.10],金塞尔:[51.70,-8.53],斯莱戈:[54.27,-8.47],贝尔法斯特:[54.60,-5.93] };
+const INTEREST_MAP = { '动物':['zoo','children_farm'],'动物园':['zoo'],'农场':['children_farm'],'博物馆':['museum'],'游乐园':['theme_park'],'室内':['indoor_playground','museum','aquarium'],'下雨':['indoor_playground','museum','aquarium'],'海滩':['beach'],'城堡':['historic'],'历史':['historic'],'自然':['nature'],'水族馆':['aquarium'],'运动':['sports'],'中餐':['chinese_restaurant'],'自助餐':['buffet'],'animal':['zoo','children_farm'],'zoo':['zoo'],'farm':['children_farm'],'museum':['museum'],'theme park':['theme_park'],'indoor':['indoor_playground','museum','aquarium'],'rain':['indoor_playground','museum','aquarium'],'beach':['beach'],'castle':['historic'],'history':['historic'],'nature':['nature'],'aquarium':['aquarium'],'sport':['sports'],'chinese':['chinese_restaurant'],'buffet':['buffet'],'playground':['indoor_playground','playground'] };
+const AGE_HINTS = { '婴儿':1,'宝宝':2,'1岁':1,'2岁':2,'3岁':3,'幼儿':3,'小朋友':5,'4岁':4,'5岁':5,'6岁':6,'7岁':7,'8岁':8,'9岁':9,'10岁':10,'学龄':7,'toddler':2,'baby':1,'teenager':13 };
+function haversine(lat1,lon1,lat2,lon2) { const R = 6371; const dLat = (lat2-lat1)*Math.PI/180; const dLon = (lon2-lon1)*Math.PI/180; const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2; return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); }
+function parseUserMessage(msg) { const lower = msg.toLowerCase(); const result = { city: null, coords: null, categories: new Set(), age: null, maxDist: null, raw: msg }; for (const [name, coords] of Object.entries(CITY_COORDS)) { if (lower.includes(name.toLowerCase())) { result.city = name; result.coords = coords; break; } } for (const [kw, cats] of Object.entries(INTEREST_MAP)) { if (lower.includes(kw.toLowerCase())) { cats.forEach(c => result.categories.add(c)); } } for (const [kw, age] of Object.entries(AGE_HINTS)) { if (lower.includes(kw)) { result.age = age; break; } } const distMatch = lower.match(/(\d+)\s*(km|公里|miles|min)/); if (distMatch) { const num = parseInt(distMatch[1]); result.maxDist = (distMatch[2] === 'miles') ? num * 1.6 : (distMatch[2] === 'min') ? num * 1.2 : num; } return result; }
+function recommendVenues(parsed) { let venues = [...STATIC_IE_VENUES].map(v => { const tags = v.tags || {}; const cat = getCategoryForVenue(tags); return { ...v, _cat: cat, _name: tags.name, _city: tags['addr:city'] || '' }; }); if (parsed.categories.size > 0) { venues = venues.filter(v => parsed.categories.has(v._cat.id)); } if (parsed.coords) { venues.forEach(v => { v._dist = haversine(parsed.coords[0], parsed.coords[1], v.lat, v.lon); }); if (parsed.maxDist) { venues = venues.filter(v => v._dist <= parsed.maxDist); } venues.sort((a, b) => a._dist - b._dist); } else { venues.sort(() => Math.random() - 0.5); } if (parsed.age !== null) { if (parsed.age <= 3) { const priority = ['children_farm', 'indoor_playground', 'playground', 'zoo']; venues.sort((a, b) => { const aP = priority.indexOf(a._cat.id); const bP = priority.indexOf(b._cat.id); if (aP >= 0 && bP < 0) return -1; if (aP < 0 && bP >= 0) return 1; return (a._dist || 0) - (b._dist || 0); }); } else if (parsed.age >= 8) { const priority = ['theme_park', 'sports', 'museum', 'historic']; venues.sort((a, b) => { const aP = priority.indexOf(a._cat.id); const bP = priority.indexOf(b._cat.id); if (aP >= 0 && bP < 0) return -1; if (aP < 0 && bP >= 0) return 1; return (a._dist || 0) - (b._dist || 0); }); } } return venues.slice(0, 6); }
+function buildChatResponse(parsed, venues) { const isZh = /[\u4e00-\u9fff]/.test(parsed.raw); const chatLang = isZh ? 'zh' : 'en'; let parts = []; if (venues.length === 0) { return isZh ? '抱歉，没有找到完全匹配的场地。试试换个关键词？' : "Sorry, no exact matches found. Try different keywords?"; } if (chatLang === 'zh') { let opener = '为你推荐以下场地'; if (parsed.city) opener = `在 ${parsed.city} 附近为你推荐`; if (parsed.age) opener += `（适合${parsed.age}岁孩子）`; opener += '：'; parts.push(opener); } else { let opener = 'Here are my recommendations'; if (parsed.city) opener = `Near ${parsed.city}, here are my picks`; if (parsed.age) opener += ` (for age ${parsed.age})`; opener += ':'; parts.push(opener); } venues.forEach((v) => { const dist = v._dist ? ` (${v._dist.toFixed(1)}km)` : ''; const catLabel = v._cat[chatLang] || v._cat.en; parts.push(`\n${v._cat.emoji} <strong>${v._name}</strong>${dist}\n<span style="color:var(--text-muted);font-size:11px">${catLabel} &middot; ${v._city}</span>`); }); if (chatLang === 'zh') { parts.push('\n点击场地名称可在地图上查看位置。'); } else { parts.push('\nClick a venue name to see it on the map.'); } return parts.join(''); }
+
+let chatOpen = false;
+function toggleChat(open) { chatOpen = open; document.getElementById('chatPanel').classList.toggle('open', open); document.getElementById('chatFab').classList.toggle('hidden', open); if (open && document.getElementById('chatMessages').children.length === 0) { initChat(); } if (open) document.getElementById('chatInput').focus(); }
+function initChat() { const greetings = { en: "Hi! I'm your Ireland family outing assistant.\n\nTell me:\n\u2022 Which city?\n\u2022 Kids' ages?\n\u2022 Indoor or outdoor?\n\u2022 Any interests?\n\nI'll recommend the best places!", zh: '你好！我是爱尔兰亲子出行助手。\n\n告诉我你的情况：\n\u2022 你在哪个城市？\n\u2022 孩子多大？\n\u2022 想要室内还是室外？\n\u2022 对什么感兴趣？\n\n我会推荐最合适的去处！' }; addBotMessage(greetings[LANG.current] || greetings.en); showQuickActions(); }
+function showQuickActions() { const el = document.getElementById('chatQuickActions'); const actions = { en: [['🏠 Indoor Dublin','Indoor activities in Dublin for rainy day'],['🦁 Zoo near Dublin','Zoo near Dublin for 3 year old'],['🏖️ Beach Dingle','Beach in Dingle for kids'],['🏰 Castle near Kilkenny','Castle for 8 year old near Kilkenny']], zh: [['🏠 都柏林室内玩','我在都柏林，下雨天想找室内游乐场'],['🦁 带3岁宝宝看动物','我孩子3岁，想去看动物，在都柏林附近'],['🏖️ 海滩推荐','周末想带孩子去海滩，丁格尔'],['🏰 城堡推荐','想带8岁孩子去看城堡，在基尔肯尼附近']] }; const a = actions[LANG.current] || actions.en; el.innerHTML = a.map(([label, msg]) => `<button class="chat-quick-btn" onclick="sendQuickMsg('${msg.replace(/'/g,"\\'")}')">${label}</button>`).join(''); }
+function sendQuickMsg(msg) { document.getElementById('chatInput').value = msg; handleChatSend(); }
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function addBotMessage(text) { const el = document.getElementById('chatMessages'); const div = document.createElement('div'); div.className = 'chat-msg bot'; div.innerHTML = escapeHtml(text).replace(/\n/g, '<br>'); el.appendChild(div); el.scrollTop = el.scrollHeight; }
+function addUserMessage(text) { const el = document.getElementById('chatMessages'); const div = document.createElement('div'); div.className = 'chat-msg user'; div.textContent = text; el.appendChild(div); el.scrollTop = el.scrollHeight; }
+function showTyping() { const el = document.getElementById('chatMessages'); const div = document.createElement('div'); div.className = 'chat-typing'; div.id = 'chatTyping'; div.innerHTML = '<span></span><span></span><span></span>'; el.appendChild(div); el.scrollTop = el.scrollHeight; }
+function removeTyping() { const t = document.getElementById('chatTyping'); if (t) t.remove(); }
+function handleChatSend() { const input = document.getElementById('chatInput'); const msg = input.value.trim(); if (!msg) return; addUserMessage(msg); input.value = ''; document.getElementById('chatQuickActions').innerHTML = ''; showTyping(); setTimeout(() => { removeTyping(); const parsed = parseUserMessage(msg); const venues = recommendVenues(parsed); const response = buildChatResponse(parsed, venues); let venueChips = ''; if (venues.length > 0) { venueChips = '<div style="margin-top:8px">' + venues.map(v => `<span class="chat-venue-chip" onclick="chatShowVenue(${v.lat},${v.lon},'${v._name.replace(/'/g,"\\'")}')">${v._cat.emoji} ${v._name}</span>`).join('') + '</div>'; } addBotMessage(response + venueChips); }, 600 + Math.random() * 400); }
+function chatShowVenue(lat, lon, name) { map.flyTo([lat, lon], 14, { duration: 1 }); const v = state.allVenues.find(x => x.name === name); if (v) selectVenue(v.id); if (window.innerWidth <= 768) toggleChat(false); }
+document.getElementById('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); handleChatSend(); } });
+
+function toggleFavorite(venueId, btnEl) { const idx = state.favorites.indexOf(venueId); if (idx >= 0) { state.favorites.splice(idx, 1); if (btnEl) { btnEl.classList.remove('favorited'); btnEl.textContent = '\u2661'; } } else { state.favorites.push(venueId); if (btnEl) { btnEl.classList.add('favorited'); btnEl.textContent = '\u2764\uFE0F'; } } if (btnEl) { btnEl.classList.remove('bounce'); void btnEl.offsetWidth; btnEl.classList.add('bounce'); } localStorage.setItem('ie-kids-explorer-favorites', JSON.stringify(state.favorites)); buildFilterBar(); if (state.showFavoritesOnly) { state.displayed = 0; applyFilter(); } }
+function toggleFavoritesFilter() { state.showFavoritesOnly = !state.showFavoritesOnly; if (state.showFavoritesOnly) { state.activeCategory = null; } state.displayed = 0; applyFilter(); buildFilterBar(); }
+function searchVenueFromAutocomplete(lat, lon, venueId, venueName) { autocompleteEl.classList.remove('open'); searchInput.value = venueName; map.flyTo([lat, lon], 16, { duration: 1 }); const v = state.allVenues.find(x => x.id === venueId); if (v) { selectVenue(v.id); } else { L.popup().setLatLng([lat, lon]).setContent(`<div class="popup-content"><div class="popup-name">${escapeHtml(venueName)}</div></div>`).openOn(map); } }
+
+function activateNearMe() { autocompleteEl.classList.remove('open'); const btn = document.getElementById('nearmeBtn'); if (!navigator.geolocation) { showToast(T[LANG.current].nearMeError); return; } btn.classList.add('active'); showToast(T[LANG.current].nearMeSearching, 2000); navigator.geolocation.getCurrentPosition((pos) => { const lat = pos.coords.latitude; const lon = pos.coords.longitude; state.userLocation = [lat, lon]; if (state.userLocationMarker) { map.removeLayer(state.userLocationMarker); } state.userLocationMarker = L.circleMarker([lat, lon], { radius: 10, color: '#4285F4', fillColor: '#4285F4', fillOpacity: 0.5, weight: 3, opacity: 0.8 }).addTo(map).bindPopup(T[LANG.current].yourLocation); state.displayed = 0; applyFilter(); buildFilterBar(); map.flyTo([lat, lon], 11, { duration: 1 }); showToast(T[LANG.current].sortedByDistance, 2000); }, (err) => { btn.classList.remove('active'); if (err.code === 1) { showToast(T[LANG.current].nearMePermDenied, 4000); } else { showToast(T[LANG.current].nearMeError); } }, { enableHighAccuracy: true, timeout: 10000 }); }
+
+(function initBottomSheet() { const sidebar = document.getElementById('sidebarSheet'); const handle = document.getElementById('bottomSheetHandle'); if (!handle) return; const SNAP_COLLAPSED = 25; const SNAP_HALF = 50; const SNAP_FULL = 90; let sheetPos = SNAP_COLLAPSED; let startY = 0, startPos = 0, dragging = false; function isMobile() { return window.innerWidth <= 768; } function setSheetPosition(pct) { if (!isMobile()) { sidebar.style.transform = ''; sidebar.style.height = ''; return; } sheetPos = pct; const h = Math.min(pct, 90); sidebar.style.height = h + 'dvh'; sidebar.style.transform = 'translateY(0)'; } handle.addEventListener('touchstart', (e) => { if (!isMobile()) return; dragging = true; startY = e.touches[0].clientY; startPos = sheetPos; sidebar.style.transition = 'none'; }, { passive: true }); handle.addEventListener('touchmove', (e) => { if (!dragging || !isMobile()) return; const dy = startY - e.touches[0].clientY; const dvh = (dy / window.innerHeight) * 100; const newPos = Math.max(10, Math.min(90, startPos + dvh)); sidebar.style.height = newPos + 'dvh'; }, { passive: true }); handle.addEventListener('touchend', () => { if (!dragging || !isMobile()) return; dragging = false; sidebar.style.transition = 'height 0.3s cubic-bezier(.4,0,.2,1)'; const currentH = parseFloat(sidebar.style.height) || SNAP_COLLAPSED; const snaps = [SNAP_COLLAPSED, SNAP_HALF, SNAP_FULL]; let closest = snaps[0]; let minDist = Math.abs(currentH - snaps[0]); for (const s of snaps) { const d = Math.abs(currentH - s); if (d < minDist) { minDist = d; closest = s; } } setSheetPosition(closest); }); function initMobileSheet() { if (isMobile()) { sidebar.style.transition = 'height 0.3s cubic-bezier(.4,0,.2,1)'; setSheetPosition(SNAP_COLLAPSED); } else { sidebar.style.transform = ''; sidebar.style.height = ''; sidebar.style.transition = ''; } } window.addEventListener('resize', initMobileSheet); initMobileSheet(); })();
+
+function openDetailPanel(venueId) { const v = state.allVenues.find(x => x.id === venueId); if (!v) return; const panel = document.getElementById('venueDetailPanel'); const body = document.getElementById('detailPanelBody'); const titleEl = document.getElementById('detailPanelTitle'); const t = T[LANG.current]; titleEl.textContent = t.venueDetails; const isFav = state.favorites.includes(v.id); let html = ''; html += `<div class="detail-venue-icon" style="background:${v.category.bg}">${v.category.emoji}</div>`; html += `<div class="detail-venue-name">${escapeHtml(v.name)}</div>`; if (v.nameZh) html += `<div class="detail-venue-name-zh">${escapeHtml(v.nameZh)}</div>`; html += `<span class="detail-category-badge" style="background:${v.category.bg};color:${v.category.color}">${v.category.emoji} ${v.category[LANG.current] || v.category.en}</span>`; html += ratingDetailHtml(v); if (v.address) html += `<div class="detail-info-row"><span class="detail-icon">📍</span><span>${escapeHtml(v.address)}</span></div>`; if (v.openingHours) html += `<div class="detail-info-row"><span class="detail-icon">\u{1F552}</span><span>${escapeHtml(translateHours(v.openingHours))}</span></div>`; if (v.phone) html += `<div class="detail-info-row"><span class="detail-icon">\u{1F4DE}</span><a href="tel:${v.phone}">${escapeHtml(v.phone)}</a></div>`; html += '<div class="detail-actions">'; if (v.website) html += `<a class="detail-btn detail-btn-website" href="${v.website}" target="_blank" rel="noopener">🔗 ${t.visitWebsite}</a>`; html += `<a class="detail-btn detail-btn-navigate" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">🧭 ${t.navigateTo}</a>`; html += `<button class="detail-btn detail-btn-favorite ${isFav ? 'favorited' : ''}" id="detailFavBtn" onclick="toggleDetailFavorite('${v.id.replace(/'/g,"\\'")}')"> ${isFav ? '❤️' : '♡'} ${isFav ? t.favorited : t.addFavorite}</button>`; html += '</div>'; body.innerHTML = html; panel.classList.add('open'); }
+function closeDetailPanel() { document.getElementById('venueDetailPanel').classList.remove('open'); }
+function toggleDetailFavorite(venueId) { toggleFavorite(venueId, null); const btn = document.getElementById('detailFavBtn'); const t = T[LANG.current]; const isFav = state.favorites.includes(venueId); if (btn) { btn.className = 'detail-btn detail-btn-favorite' + (isFav ? ' favorited' : ''); btn.innerHTML = `${isFav ? '❤️' : '♡'} ${isFav ? t.favorited : t.addFavorite}`; } renderList(); }
+const _origSelectVenue = selectVenue; window.selectVenue = function(id) { _origSelectVenue(id); openDetailPanel(id); };
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDetailPanel(); });
+
+const AGE_FILTER_RANGES = [
+  { id: 'all', en: 'All ages', zh: '所有年龄', emoji: '', categories: null },
+  { id: '0-3', en: '0-3', zh: '0-3岁', emoji: '👶', categories: ['children_farm','playground','indoor_playground','beach','chinese_restaurant','buffet'] },
+  { id: '3-6', en: '3-6', zh: '3-6岁', emoji: '🧒', categories: ['children_farm','playground','indoor_playground','beach','chinese_restaurant','buffet','zoo','aquarium','theme_park','nature','museum'] },
+  { id: '6-12', en: '6-12', zh: '6-12岁', emoji: '🧒', categories: null },
+];
+let activeAgeFilter = 'all';
+function setAgeFilter(ageId) { activeAgeFilter = ageId; if (ageId !== 'all') { state.activeCategory = null; state.showFavoritesOnly = false; } state.displayed = 0; applyFilter(); buildFilterBar(); buildAgeFilterPills(); }
+function buildAgeFilterPills() { const existing = document.getElementById('ageFilterGroup'); if (existing) existing.remove(); const bar = document.getElementById('filterBar'); const group = document.createElement('div'); group.className = 'age-filter-group'; group.id = 'ageFilterGroup'; AGE_FILTER_RANGES.forEach(age => { const pill = document.createElement('button'); pill.className = 'age-pill' + (activeAgeFilter === age.id ? ' active' : ''); const label = age[LANG.current] || age.en; pill.innerHTML = age.emoji ? `${age.emoji} ${label}` : label; pill.onclick = () => setAgeFilter(age.id); group.appendChild(pill); }); bar.appendChild(group); }
+
+const INDOOR_CATEGORIES = ['indoor_playground','museum','aquarium','theatre','buffet','chinese_restaurant','sports'];
+let weatherBannerDismissed = false;
+async function fetchWeather() { try { const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=53.35&longitude=-6.26&current=temperature_2m,rain,weather_code'); const data = await res.json(); if (!data.current) return; const temp = Math.round(data.current.temperature_2m); const rain = data.current.rain || 0; const code = data.current.weather_code || 0; let emoji = '\u2600\uFE0F'; if (code >= 61) emoji = '🌧️'; else if (code >= 51) emoji = '🌦️'; else if (code >= 45) emoji = '🌫️'; else if (code >= 3) emoji = '\u26C5'; const badge = document.getElementById('weatherBadge'); badge.innerHTML = `${emoji} ${temp}&deg;C`; badge.style.display = 'flex'; if ((rain > 0 || code >= 61) && !weatherBannerDismissed) { const banner = document.getElementById('weatherBanner'); document.getElementById('weatherBannerText').textContent = T[LANG.current].weatherBannerText; document.getElementById('weatherBannerBtn').textContent = T[LANG.current].weatherBannerBtn; banner.style.display = 'flex'; } } catch (e) { console.log('Weather fetch failed:', e.message); } }
+function filterIndoorWeather() { activeAgeFilter = 'all'; state.showFavoritesOnly = false; state.activeCategory = null; state.displayed = 0; let list = state.allVenues.filter(v => INDOOR_CATEGORIES.includes(v.category.id)); if (state.userLocation) { list.forEach(v => { v._userDist = haversine(state.userLocation[0], state.userLocation[1], v.lat, v.lon); }); list.sort((a, b) => a._userDist - b._userDist); } state.filtered = list; renderList(); renderMarkers(); buildFilterBar(); buildAgeFilterPills(); showToast(T[LANG.current].showingIndoor, 2000); dismissWeatherBanner(); }
+function dismissWeatherBanner() { weatherBannerDismissed = true; document.getElementById('weatherBanner').style.display = 'none'; }
+
+buildFilterBar(); buildAgeFilterPills(); setLang('en'); loadStaticVenues(); fetchWeather();
+</script>
+</body>
+</html>
