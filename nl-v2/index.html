@@ -104,6 +104,13 @@ input{font-family:inherit;border:none;outline:none;background:none;color:inherit
 .overlay-actions .btn-primary:hover{background:var(--brand-dark)}
 .overlay-actions .btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
 .overlay-actions .btn-secondary:hover{border-color:var(--brand);color:var(--brand)}
+.overlay-fav{width:44px;height:44px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:all .15s}
+.overlay-fav:hover{border-color:var(--brand)}
+.overlay-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.card-fav{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.9);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text-mute);z-index:2;transition:all .15s}
+.card-fav:hover{color:var(--brand);border-color:var(--brand)}
+.card-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.venue-thumb{position:relative}
 
 /* ===== Filter Drawer (slides from right) ===== */
 .filter-drawer{position:fixed;top:var(--header-h);right:0;bottom:0;width:min(360px,88vw);background:#fff;border-left:1px solid var(--border);box-shadow:-10px 0 40px rgba(0,0,0,.08);z-index:850;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
@@ -205,6 +212,7 @@ input{font-family:inherit;border:none;outline:none;background:none;color:inherit
   <div class="drawer-hdr">
     <div class="count"><span id="count">0</span> <small id="count-label">in view</small></div>
     <div class="actions">
+      <button class="chip" id="favs-chip" onclick="toggleFavsOnly()">♡ Favs</button>
       <button class="chip" onclick="openFilter()">⚙️ Filters</button>
       <button class="chip" onclick="toggleSort()">↕ Sort</button>
     </div>
@@ -223,6 +231,7 @@ input{font-family:inherit;border:none;outline:none;background:none;color:inherit
   </div>
   <div class="overlay-body" id="ov-body"></div>
   <div class="overlay-actions">
+    <button class="overlay-fav" id="ov-fav" onclick="toggleFav()" title="Save to favorites">♡</button>
     <a class="btn btn-secondary" id="ov-directions" target="_blank">🗺 Directions</a>
     <a class="btn btn-primary" id="ov-website" target="_blank">🌐 Website</a>
   </div>
@@ -1171,6 +1180,7 @@ const VENUES = STATIC_NL_VENUES.map(v=>{
 });
 
 // ===== State =====
+const FAV_KEY = 'ke_favs_nl';
 const state = {
   activeCats: new Set(),  // empty = all
   search: '',
@@ -1178,7 +1188,40 @@ const state = {
   filtered: [],
   selectedId: null,
   markers: new Map(),
+  favs: new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')),
+  favsOnly: false,
 };
+function saveFavs(){localStorage.setItem(FAV_KEY, JSON.stringify([...state.favs]));}
+function toggleFav(){
+  if(state.selectedId == null) return;
+  if(state.favs.has(state.selectedId)) state.favs.delete(state.selectedId);
+  else state.favs.add(state.selectedId);
+  saveFavs();
+  updateFavBtn();
+  renderList();
+}
+function updateFavBtn(){
+  const btn = document.getElementById('ov-fav');
+  if(!btn) return;
+  const on = state.favs.has(state.selectedId);
+  btn.classList.toggle('on', on);
+  btn.textContent = on ? '♥' : '♡';
+}
+function toggleFavsOnly(){
+  state.favsOnly = !state.favsOnly;
+  document.getElementById('favs-chip').classList.toggle('on', state.favsOnly);
+  document.getElementById('favs-chip').style.background = state.favsOnly ? '#fff5f0' : '';
+  document.getElementById('favs-chip').style.color = state.favsOnly ? 'var(--brand)' : '';
+  document.getElementById('favs-chip').style.borderColor = state.favsOnly ? 'var(--brand)' : '';
+  renderList();
+}
+function cardFavClick(ev, id){
+  ev.stopPropagation();
+  if(state.favs.has(id)) state.favs.delete(id); else state.favs.add(id);
+  saveFavs();
+  if(state.selectedId===id) updateFavBtn();
+  renderList();
+}
 
 // ===== Map =====
 const map = L.map('map', {zoomControl:false, attributionControl:false}).setView([52.1,5.1], 8);
@@ -1214,9 +1257,10 @@ function computeFiltered(){
   const q = state.search.trim().toLowerCase();
   const bounds = map.getBounds();
   let list = VENUES.filter(v=>{
+    if(state.favsOnly && !state.favs.has(v.id)) return false;
     if(state.activeCats.size && !state.activeCats.has(v.cat)) return false;
     if(q && !(v.name.toLowerCase().includes(q) || v.zh.includes(q) || v.city.toLowerCase().includes(q))) return false;
-    if(!bounds.contains([v.lat, v.lon])) return false;
+    if(!state.favsOnly && !bounds.contains([v.lat, v.lon])) return false;
     return true;
   });
   if(state.sortBy==='rating'){
@@ -1236,9 +1280,11 @@ function renderList(){
     el.innerHTML = `<div class="empty">No venues in this area. Try moving the map or clearing filters.</div>`;
     return;
   }
-  el.innerHTML = list.slice(0,200).map(v=>`
+  el.innerHTML = list.slice(0,200).map(v=>{
+    const isFav = state.favs.has(v.id);
+    return `
     <div class="venue-card" data-id="${v.id}" onclick="openDetail(VENUES.find(x=>x.id===${v.id}))">
-      <div class="venue-thumb cat-${v.cat}">${v.emoji}</div>
+      <div class="venue-thumb cat-${v.cat}">${v.emoji}<button class="card-fav ${isFav?'on':''}" onclick="cardFavClick(event,${v.id})" title="Favorite">${isFav?'♥':'♡'}</button></div>
       <div class="venue-info">
         <div class="venue-name">${v.name}</div>
         ${v.zh?`<div class="venue-zh">${v.zh}</div>`:''}
@@ -1248,8 +1294,8 @@ function renderList(){
           ${v.city?`<span class="dot">·</span><span>${v.city}</span>`:''}
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 // ===== Detail overlay =====
@@ -1274,6 +1320,7 @@ function openDetail(v){
   } else {
     wsBtn.style.display='none';
   }
+  updateFavBtn();
   document.getElementById('overlay').classList.add('open');
   // pan to marker
   map.flyTo([v.lat, v.lon], Math.max(map.getZoom(), 13), {duration:.6});
