@@ -164,6 +164,14 @@ body[data-view="list"] .fab-stack{display:none}
 .cat-ice_rink{background:linear-gradient(135deg,#60a5fa,#1d4ed8)}
 .cat-minigolf{background:linear-gradient(135deg,#10b981,#047857)}
 .cat-other{background:linear-gradient(135deg,#94a3b8,#475569)}
+.cat-castle{background:linear-gradient(135deg,#a78bfa,#6d28d9)}
+.cat-windmill{background:linear-gradient(135deg,#bae6fd,#0284c7)}
+.cat-escape{background:linear-gradient(135deg,#fdba74,#c2410c)}
+.cat-sports{background:linear-gradient(135deg,#fde047,#ca8a04)}
+.cat-restaurant{background:linear-gradient(135deg,#f87171,#b91c1c)}
+.cat-monument{background:linear-gradient(135deg,#d6d3d1,#57534e)}
+.cat-ship{background:linear-gradient(135deg,#67e8f9,#0e7490)}
+.cat-ruins{background:linear-gradient(135deg,#fde68a,#92400e)}
 
 /* Marker icons */
 .venue-marker{width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
@@ -1153,8 +1161,75 @@ const CATS = {
   cinema:      {emoji:'🎬', en:'Cinema',        zh:'电影院'},
   ice_rink:    {emoji:'⛸️', en:'Ice rink',      zh:'滑冰'},
   minigolf:    {emoji:'⛳', en:'Minigolf',      zh:'迷你高尔夫'},
+  castle:      {emoji:'🏰', en:'Castles',       zh:'城堡'},
+  windmill:    {emoji:'🌬️', en:'Windmills',     zh:'风车'},
+  escape:      {emoji:'🔓', en:'Escape rooms',  zh:'密室逃脱'},
+  sports:      {emoji:'🏆', en:'Sports centre', zh:'运动中心'},
+  restaurant:  {emoji:'🍽️', en:'Family dining', zh:'亲子餐厅'},
+  monument:    {emoji:'🗿', en:'Monuments',     zh:'古迹'},
+  ship:        {emoji:'⛵', en:'Historic ships',zh:'历史船只'},
+  ruins:       {emoji:'🏺', en:'Ruins',         zh:'遗址'},
   other:       {emoji:'📍', en:'Other',         zh:'其他'}
 };
+
+// Richer emoji mapping using venue name keywords
+function emojiFor(name, cat){
+  const n = (name||'').toLowerCase();
+  // Zoo subtype refinements
+  if(cat==='zoo'){
+    if(/safari|wild|beekse/.test(n)) return '🦁';
+    if(/dolf|sea|seal|marine/.test(n)) return '🐬';
+    if(/bird|vogel|avifauna/.test(n)) return '🦜';
+    if(/ape|monkey|apen/.test(n)) return '🐒';
+    if(/butterfly|vlinder/.test(n)) return '🦋';
+    if(/reptile|snake|slang/.test(n)) return '🐍';
+    return '🦒';
+  }
+  // Museum subtype
+  if(cat==='museum'){
+    if(/science|nemo|natur/.test(n)) return '🔬';
+    if(/art|van gogh|rijks|kunstmuseum|stedelijk|gemeente/.test(n)) return '🖼️';
+    if(/maritime|ship|scheepvaart|maritiem/.test(n)) return '⚓';
+    if(/railway|spoorweg|train|tram/.test(n)) return '🚂';
+    if(/aviation|air|luchtvaart/.test(n)) return '✈️';
+    if(/corpus|body|anatomie/.test(n)) return '🫀';
+    if(/music|muziek|instrument/.test(n)) return '🎼';
+    if(/toy|speelgoed/.test(n)) return '🧸';
+    if(/history|histori|oorlog|war|museum van de geest/.test(n)) return '📜';
+    return '🏛️';
+  }
+  // Theme park subtype
+  if(cat==='theme_park'){
+    if(/water|waterpark|splash|aqua/.test(n)) return '💦';
+    if(/snow|ski|slope/.test(n)) return '❄️';
+    if(/mini|madurodam|miniatuur/.test(n)) return '🏘️';
+    if(/fairy|sprookje|efteling/.test(n)) return '🏰';
+    return '🎢';
+  }
+  // Nature subtype
+  if(cat==='nature'){
+    if(/forest|bos|wald/.test(n)) return '🌲';
+    if(/heath|heide/.test(n)) return '🌾';
+    if(/dune|duin/.test(n)) return '🏝️';
+    if(/lake|meer|lak/.test(n)) return '🏞️';
+    if(/tulip|tulp|keukenhof/.test(n)) return '🌷';
+    return '🌳';
+  }
+  // Playground subtype
+  if(cat==='playground'){
+    if(/water|splash/.test(n)) return '💦';
+    if(/adventure|avontur/.test(n)) return '🧗';
+    return '🛝';
+  }
+  // Indoor play
+  if(cat==='indoor_play'){
+    if(/monkey/.test(n)) return '🐒';
+    if(/ballorig|ball/.test(n)) return '🎈';
+    if(/jimmy|jimmi/.test(n)) return '🤹';
+    return '🏠';
+  }
+  return CATS[cat]?.emoji || '📍';
+}
 
 function classify(t){
   if(t.tourism==='theme_park') return 'theme_park';
@@ -1172,8 +1247,18 @@ function classify(t){
   if(t.leisure==='go_kart') return 'karting';
   if(t.leisure==='miniature_golf') return 'minigolf';
   if(t.leisure==='ice_rink') return 'ice_rink';
+  if(t.leisure==='sports_centre') return 'sports';
+  if(t.leisure==='escape_room') return 'escape';
   if(t.amenity==='theatre') return 'theatre';
   if(t.amenity==='cinema') return 'cinema';
+  if(t.amenity && t.amenity.indexOf('restaurant')>=0) return 'restaurant';
+  if(t.historic==='castle') return 'castle';
+  if(t.historic==='fort') return 'castle';
+  if(t.historic==='windmill' || t.man_made==='windmill') return 'windmill';
+  if(t.historic==='monument' || t.historic==='archaeological_site') return 'monument';
+  if(t.historic==='ship') return 'ship';
+  if(t.historic==='ruins') return 'ruins';
+  if(t.natural==='beach') return 'beach';
   return 'other';
 }
 
@@ -1186,7 +1271,7 @@ const VENUES = STATIC_NL_VENUES.map(v=>{
     name: t.name || 'Unnamed',
     zh: t.nameZh || '',
     cat: cat,
-    emoji: CATS[cat]?.emoji || '📍',
+    emoji: emojiFor(t.name, cat),
     city: t['addr:city'] || '',
     street: t['addr:street'] || '',
     house: t['addr:housenumber'] || '',
