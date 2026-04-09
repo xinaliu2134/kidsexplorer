@@ -1186,6 +1186,9 @@ const state = {
   lang: localStorage.getItem(LANG_KEY) || (navigator.language.startsWith('de') ? 'de' : navigator.language.startsWith('zh') ? 'zh' : 'en'),
 };
 
+// ===== Language labels (shown in button — always the CURRENT language) =====
+const LANG_LABELS = {en:'EN', nl:'NL', de:'DE', fr:'FR', it:'IT', es:'ES', pt:'PT', el:'ΕΛ', zh:'中'};
+
 // ===== i18n =====
 const I18N = {
   en: {
@@ -1231,7 +1234,7 @@ function toggleLang(){
 }
 function applyLang(){
   // Header button shows NEXT language
-  document.getElementById('lang-btn').textContent = t('lang_next');
+  document.getElementById('lang-btn').textContent = LANG_LABELS[state.lang] || state.lang.toUpperCase();
   // Update chips
   document.getElementById('favs-chip').innerHTML = t('favs');
   document.querySelector('.actions .chip:nth-child(2)').innerHTML = t('filters');
