@@ -126,7 +126,8 @@ body[data-view="list"] .fab-stack{display:none}
 .venue-thumb{position:relative}
 
 /* ===== Filter Drawer (slides from right) ===== */
-.filter-drawer{position:fixed;top:var(--header-h);right:0;bottom:0;width:min(360px,88vw);background:#fff;border-left:1px solid var(--border);box-shadow:-10px 0 40px rgba(0,0,0,.08);z-index:850;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.filter-drawer{position:fixed;top:var(--header-h);right:0;bottom:0;width:min(360px,92vw);background:#fff;border-left:1px solid var(--border);box-shadow:-10px 0 40px rgba(0,0,0,.12);z-index:950;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;pointer-events:none}
+.filter-drawer.open{pointer-events:auto}
 .filter-drawer.open{transform:translateX(0)}
 .filter-hdr{flex-shrink:0;padding:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
 .filter-hdr h3{font-size:18px;font-weight:700}
@@ -212,9 +213,10 @@ body[data-view="list"] .fab-stack{display:none}
   </button>
   <div class="hdr-search">
     <span class="icon">🔍</span>
-    <input id="search" placeholder="Search places or cities…">
+    <input id="search" placeholder="Search / 搜索…">
   </div>
-  <button class="hdr-btn" onclick="openFilter()" title="Filters">⚙️</button>
+  <button class="hdr-btn" id="lang-btn" onclick="toggleLang()" title="Language">中</button>
+  <button class="hdr-btn" onclick="openFilter()" title="Category">⚙️</button>
 </header>
 
 <!-- Map -->
@@ -240,7 +242,7 @@ body[data-view="list"] .fab-stack{display:none}
     <div class="count"><span id="count">0</span> <small id="count-label">in view</small></div>
     <div class="actions">
       <button class="chip" id="favs-chip" onclick="toggleFavsOnly()">♡ Favs</button>
-      <button class="chip" onclick="openFilter()">⚙️ Filters</button>
+      <button class="chip" onclick="openFilter()">⚙ Category</button>
       <button class="chip" onclick="toggleSort()">↕ Sort</button>
     </div>
   </div>
@@ -267,7 +269,7 @@ body[data-view="list"] .fab-stack{display:none}
 <!-- Filter Drawer -->
 <aside class="filter-drawer" id="filter">
   <div class="filter-hdr">
-    <h3>Filters</h3>
+    <h3>Category</h3>
     <button class="overlay-close" onclick="closeFilter()">×</button>
   </div>
   <div class="filter-body">
@@ -1316,6 +1318,7 @@ const VENUES = STATIC_NL_VENUES.map(v=>{
 
 // ===== State =====
 const FAV_KEY = 'ke_favs_nl';
+const LANG_KEY = 'ke_lang';
 const state = {
   activeCats: new Set(),  // empty = all
   search: '',
@@ -1325,7 +1328,85 @@ const state = {
   markers: new Map(),
   favs: new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')),
   favsOnly: false,
+  lang: localStorage.getItem(LANG_KEY) || 'en',
 };
+
+// ===== i18n =====
+const I18N = {
+  en: {
+    in_view: 'in view',
+    favs: '♡ Favs',
+    filters: '⚙ Category',
+    sort: '↕ Sort',
+    category: 'Category',
+    clear: 'Clear',
+    show_results: 'Show results',
+    near_me: 'Near me',
+    map: '🗺 Map',
+    list: '☰ List',
+    directions: '🗺 Directions',
+    website: '🌐 Website',
+    rating: 'Rating',
+    address: 'Address',
+    city: 'City',
+    hours: 'Hours',
+    reviews: 'reviews',
+    empty: 'No venues in this area. Try moving the map or clearing filters.',
+    search_ph: 'Search / 搜索…',
+  },
+  zh: {
+    in_view: '可见',
+    favs: '♡ 收藏',
+    filters: '⚙ 品类',
+    sort: '↕ 排序',
+    category: '品类',
+    clear: '清空',
+    show_results: '显示结果',
+    near_me: '我附近',
+    map: '🗺 地图',
+    list: '☰ 列表',
+    directions: '🗺 导航',
+    website: '🌐 官网',
+    rating: '评分',
+    address: '地址',
+    city: '城市',
+    hours: '开放时间',
+    reviews: '评价',
+    empty: '当前视口内没有场所。拖动地图或清空筛选。',
+    search_ph: 'Search / 搜索…',
+  }
+};
+function t(k){return I18N[state.lang][k] || k;}
+
+function toggleLang(){
+  state.lang = state.lang === 'en' ? 'zh' : 'en';
+  localStorage.setItem(LANG_KEY, state.lang);
+  applyLang();
+  renderList();
+  buildCatGrid();
+}
+function applyLang(){
+  // Update header button
+  document.getElementById('lang-btn').textContent = state.lang === 'en' ? '中' : 'EN';
+  // Update chips
+  document.getElementById('favs-chip').innerHTML = t('favs');
+  document.querySelector('.actions .chip:nth-child(2)').innerHTML = t('filters');
+  document.querySelector('.actions .chip:nth-child(3)').innerHTML = t('sort');
+  // Filter drawer title + section
+  document.querySelector('.filter-hdr h3').textContent = t('category');
+  document.querySelector('.filter-section h4').textContent = t('category');
+  document.querySelector('.btn-clear').textContent = t('clear');
+  document.querySelector('.btn-apply').textContent = t('show_results');
+  // Near me button
+  document.querySelector('.fab.near').innerHTML = `<span>📍</span><span>${t('near_me')}</span>`;
+  // Map/List toggle
+  document.getElementById('tog-map').textContent = t('map');
+  document.getElementById('tog-list').textContent = t('list');
+  // Search placeholder
+  document.getElementById('search').placeholder = t('search_ph');
+  // Count label
+  document.getElementById('count-label').textContent = t('in_view');
+}
 function saveFavs(){localStorage.setItem(FAV_KEY, JSON.stringify([...state.favs]));}
 function toggleFav(){
   if(state.selectedId == null) return;
@@ -1417,15 +1498,18 @@ function renderList(){
   }
   el.innerHTML = list.slice(0,200).map(v=>{
     const isFav = state.favs.has(v.id);
+    const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+    const secondary = state.lang==='zh' && v.zh ? v.name : v.zh;
+    const catLabel = CATS[v.cat]?.[state.lang] || v.cat;
     return `
     <div class="venue-card" data-id="${v.id}" onclick="openDetail(VENUES.find(x=>x.id===${v.id}))">
       <div class="venue-thumb cat-${v.cat}">${v.emoji}<button class="card-fav ${isFav?'on':''}" onclick="cardFavClick(event,${v.id})" title="Favorite">${isFav?'♥':'♡'}</button></div>
       <div class="venue-info">
-        <div class="venue-name">${v.name}</div>
-        ${v.zh?`<div class="venue-zh">${v.zh}</div>`:''}
+        <div class="venue-name">${primary}</div>
+        ${secondary?`<div class="venue-zh">${secondary}</div>`:''}
         <div class="venue-meta">
           ${v.rating?`<span class="rating">★ ${v.rating.toFixed(1)}</span><span class="dot">·</span>`:''}
-          <span>${CATS[v.cat]?.en || v.cat}</span>
+          <span>${catLabel}</span>
           ${v.city?`<span class="dot">·</span><span>${v.city}</span>`:''}
         </div>
       </div>
@@ -1437,18 +1521,22 @@ function renderList(){
 function openDetail(v){
   if(!v) return;
   state.selectedId = v.id;
-  document.getElementById('ov-name').textContent = v.name;
-  document.getElementById('ov-zh').textContent = v.zh;
+  const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+  const secondary = state.lang==='zh' && v.zh ? v.name : v.zh;
+  document.getElementById('ov-name').textContent = primary;
+  document.getElementById('ov-zh').textContent = secondary;
   const rows = [];
-  if(v.rating) rows.push(['Rating', `★ ${v.rating.toFixed(1)} · ${v.reviews.toLocaleString()} reviews`]);
-  if(v.street) rows.push(['Address', `${v.street} ${v.house}, ${v.postcode} ${v.city}`.trim()]);
-  else if(v.city) rows.push(['City', v.city]);
-  rows.push(['Category', `${v.emoji} ${CATS[v.cat]?.en || v.cat}`]);
-  if(v.hours) rows.push(['Hours', v.hours]);
+  if(v.rating) rows.push([t('rating'), `★ ${v.rating.toFixed(1)} · ${v.reviews.toLocaleString()} ${t('reviews')}`]);
+  if(v.street) rows.push([t('address'), `${v.street} ${v.house}, ${v.postcode} ${v.city}`.trim()]);
+  else if(v.city) rows.push([t('city'), v.city]);
+  rows.push([t('category'), `${v.emoji} ${CATS[v.cat]?.[state.lang] || v.cat}`]);
+  if(v.hours) rows.push([t('hours'), v.hours]);
   document.getElementById('ov-body').innerHTML = rows.map(([k,val])=>
     `<div class="detail-row"><div class="lbl">${k}</div><div>${val}</div></div>`
   ).join('');
   document.getElementById('ov-directions').href = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}&destination_place_id=${encodeURIComponent(v.name)}`;
+  document.getElementById('ov-directions').textContent = t('directions');
+  document.getElementById('ov-website').textContent = t('website');
   const wsBtn = document.getElementById('ov-website');
   if(v.website){
     wsBtn.href = v.website; wsBtn.style.display='flex';
@@ -1474,7 +1562,7 @@ function buildCatGrid(){
     .filter(([k])=>counts[k])
     .sort(([a],[b])=>(counts[b]||0)-(counts[a]||0))
     .map(([k,c])=>`<button class="cat-btn ${state.activeCats.has(k)?'active':''}" data-cat="${k}" onclick="toggleCat('${k}')">
-      <span class="emoji">${c.emoji}</span>${c.en}<span class="count">${counts[k]}</span>
+      <span class="emoji">${c.emoji}</span>${c[state.lang]}<span class="count">${counts[k]}</span>
     </button>`).join('');
 }
 function toggleCat(k){
@@ -1550,6 +1638,7 @@ map.on('moveend', ()=>{
 });
 
 // ===== Initial render =====
+applyLang();
 buildCatGrid();
 renderList();
 
