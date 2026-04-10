@@ -1,0 +1,8 @@
+# robots.txt for kidsexplorer.eu
+# Family-friendly venues across Europe
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://kidsexplorer.eu/sitemap.xml
