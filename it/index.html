@@ -6,11 +6,11 @@
   <title>Italy Kids Explorer &middot; 意大利亲子探索</title>
   <meta name="description" content="Family-friendly venues across Italy. Interactive trilingual map for families with kids. 意大利亲子友好场地互动地图。">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧒</text></svg>">
-  <link rel="canonical" href="https://xinaliu2134.github.io/italy-kids-explorer/">
+  <link rel="canonical" href="https://kidsexplorer.eu/it/">
   <meta property="og:title" content="Italy Kids Explorer &middot; 意大利亲子探索">
   <meta property="og:description" content="Family-friendly venues across Italy. Interactive trilingual map for families with kids. 意大利亲子友好场地互动地图。">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://xinaliu2134.github.io/italy-kids-explorer/">
+  <meta property="og:url" content="https://kidsexplorer.eu/it/">
   <meta property="og:site_name" content="Italy Kids Explorer">
   <meta name="twitter:card" content="summary">
   <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" as="script">
@@ -938,6 +938,49 @@
     @media (min-width: 769px) {
       .bottom-sheet-handle { display: none; }
     }
+    /* ── MAP / LIST TOGGLE (mobile only) ─────────── */
+    .map-list-toggle { display: none; }
+    @media (max-width: 768px) {
+      .map-list-toggle {
+        display: flex;
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 8500;
+        background: var(--navy);
+        border-radius: 999px;
+        padding: 4px;
+        box-shadow: 0 4px 20px rgba(26,43,74,.35);
+        gap: 2px;
+        pointer-events: auto;
+      }
+      .map-list-btn {
+        padding: 8px 22px;
+        border-radius: 999px;
+        border: none;
+        font-size: 13px; font-weight: 600;
+        cursor: pointer;
+        color: rgba(255,255,255,.55);
+        background: transparent;
+        transition: all .2s;
+        white-space: nowrap;
+      }
+      .map-list-btn.active {
+        background: var(--primary);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(224,90,30,.4);
+      }
+      /* list mode: sidebar fills screen, map hidden */
+      body.mobile-list-mode .map-wrapper { visibility: hidden; }
+      body.mobile-list-mode .sidebar {
+        max-height: 100dvh !important;
+        height: 100dvh !important;
+        transform: translateY(0) !important;
+        border-radius: 0 !important;
+      }
+      body.mobile-list-mode .chat-fab { display: none; }
+    }
 
     /* -- VENUE DETAIL PANEL -- */
     .venue-detail-panel {
@@ -1227,7 +1270,13 @@
     <button class="scroll-top-btn" id="scrollTopBtn" title="Scroll to top">&#8593;</button>
   </aside>
 
-  <div class="map-wrapper">
+  <!-- Map/List toggle pill (mobile only) -->
+  <div class="map-list-toggle" id="mapListToggle">
+    <button class="map-list-btn active" id="mapToggleBtn" onclick="setMobileView('map')">🗺 Map</button>
+    <button class="map-list-btn" id="listToggleBtn" onclick="setMobileView('list')">📋 List</button>
+  </div>
+
+    <div class="map-wrapper">
     <div id="map"></div>
     <div class="map-overlay hidden" id="mapOverlay">
       <div class="spinner"></div>
@@ -2283,6 +2332,7 @@ let state = {
   showFavoritesOnly: false,
   userLocation: null,
   userLocationMarker: null,
+  viewportSync: true,
 };
 const PAGE_SIZE = 30;
 
@@ -2292,6 +2342,14 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   maxZoom: 19,
 }).addTo(map);
+// Viewport sync listener
+let _vpSyncTimer = null;
+map.on('moveend', () => {
+  if (!state.viewportSync) return;
+  clearTimeout(_vpSyncTimer);
+  _vpSyncTimer = setTimeout(() => applyFilter(), 200);
+});
+
 
 const markersLayer = L.markerClusterGroup({
   maxClusterRadius: 45,
@@ -2397,6 +2455,9 @@ function applyFilter() {
       v._userDist = haversine(state.userLocation[0], state.userLocation[1], v.lat, v.lon);
     });
     list.sort((a, b) => a._userDist - b._userDist);
+  }
+  if (state.viewportSync && !state.showFavoritesOnly && typeof map !== 'undefined' && map.getBounds) {
+    try { const bounds = map.getBounds(); list = list.filter(v => bounds.contains([v.lat, v.lon])); } catch(e) {}
   }
   state.filtered = list;
   renderList();
@@ -2883,7 +2944,7 @@ function buildPopup(v) {
       <div class="popup-icon" style="background:${v.category.bg}">${v.category.emoji}</div>
       <div>
         <div class="popup-name">${v.name}</div>
-        ${v.nameZh ? `<div class="popup-name-zh">${v.nameZh}</div>` : ''}
+        ${v.nameZh && LANG.current === 'zh' ? `<div class="popup-name-zh">${v.nameZh}</div>` : ''}
       </div>
     </div>
     ${v.address ? `<div class="popup-address">\u{1F4CD} ${v.address}</div>` : ''}
@@ -3223,7 +3284,7 @@ function addBotMessage(text) {
   const el = document.getElementById('chatMessages');
   const div = document.createElement('div');
   div.className = 'chat-msg bot';
-  div.innerHTML = escapeHtml(text).replace(/\n/g, '<br>');
+  div.innerHTML = text.replace(/\n/g, '<br>');
   el.appendChild(div);
   el.scrollTop = el.scrollHeight;
 }
@@ -3306,6 +3367,20 @@ function toggleFavorite(venueId, btnEl) {
   if (state.showFavoritesOnly) {
     state.displayed = 0;
     applyFilter();
+  }
+}
+
+
+function setMobileView(mode) {
+  if (mode === 'list') {
+    document.body.classList.add('mobile-list-mode');
+    document.getElementById('mapToggleBtn').classList.remove('active');
+    document.getElementById('listToggleBtn').classList.add('active');
+  } else {
+    document.body.classList.remove('mobile-list-mode');
+    document.getElementById('mapToggleBtn').classList.add('active');
+    document.getElementById('listToggleBtn').classList.remove('active');
+    if (typeof map !== 'undefined') setTimeout(() => map.invalidateSize(), 50);
   }
 }
 
@@ -3447,7 +3522,7 @@ function openDetailPanel(venueId) {
   let html = '';
   html += `<div class="detail-venue-icon" style="background:${v.category.bg}">${v.category.emoji}</div>`;
   html += `<div class="detail-venue-name">${escapeHtml(v.name)}</div>`;
-  if (v.nameZh) html += `<div class="detail-venue-name-zh">${escapeHtml(v.nameZh)}</div>`;
+  if (v.nameZh && LANG.current === 'zh') html += `<div class="detail-venue-name-zh">${escapeHtml(v.nameZh)}</div>`;
   html += `<span class="detail-category-badge" style="background:${v.category.bg};color:${v.category.color}">
     ${v.category.emoji} ${v.category[LANG.current] || v.category.en}
   </span>`;

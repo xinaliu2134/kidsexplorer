@@ -6,11 +6,11 @@
   <title>Austria Kids Explorer &middot; 奥地利亲子探索</title>
   <meta name="description" content="Family-friendly venues across Austria. Interactive multilingual map for families with kids. 奥地利亲子友好场地互动地图。">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧒</text></svg>">
-  <link rel="canonical" href="https://xinaliu2134.github.io/austria-kids-explorer/">
+  <link rel="canonical" href="https://kidsexplorer.eu/at/">
   <meta property="og:title" content="Austria Kids Explorer &middot; 奥地利亲子探索">
   <meta property="og:description" content="Family-friendly venues across Austria. Interactive multilingual map for families with kids. 奥地利亲子友好场地互动地图。">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://xinaliu2134.github.io/austria-kids-explorer/">
+  <meta property="og:url" content="https://kidsexplorer.eu/at/">
   <meta property="og:site_name" content="Austria Kids Explorer">
   <meta name="twitter:card" content="summary">
   <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" as="script">
@@ -224,6 +224,16 @@
       .bottom-sheet-handle:active { cursor: grabbing; }
     }
     @media (min-width: 769px) { .bottom-sheet-handle { display: none; } }
+    /* MAP/LIST TOGGLE (mobile) */
+    .map-list-toggle{display:none}
+    @media(max-width:768px){
+      .map-list-toggle{display:flex;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:8500;background:var(--navy);border-radius:999px;padding:4px;box-shadow:0 4px 20px rgba(26,43,74,.35);gap:2px}
+      .map-list-btn{padding:8px 22px;border-radius:999px;border:none;font-size:13px;font-weight:600;cursor:pointer;color:rgba(255,255,255,.55);background:transparent;transition:all .2s;white-space:nowrap}
+      .map-list-btn.active{background:var(--primary);color:#fff}
+      body.mobile-list-mode .map-wrapper{visibility:hidden}
+      body.mobile-list-mode .sidebar{max-height:100dvh!important;height:100dvh!important;transform:translateY(0)!important;border-radius:0!important}
+      body.mobile-list-mode .chat-fab{display:none}
+    }
     .venue-detail-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 400px; background: var(--surface); box-shadow: -4px 0 24px rgba(26,43,74,.18); z-index: 900; transform: translateX(100%); transition: transform 0.3s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; overflow: hidden; }
     .venue-detail-panel.open { transform: translateX(0); }
     .detail-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 2px solid var(--border-light); flex-shrink: 0; }
@@ -361,7 +371,11 @@
     <div class="venue-list" id="venueList" style="display:none"></div>
     <button class="scroll-top-btn" id="scrollTopBtn" title="Scroll to top">&#8593;</button>
   </aside>
-  <div class="map-wrapper">
+  <div class="map-list-toggle" id="mapListToggle">
+    <button class="map-list-btn active" id="mapToggleBtn" onclick="setMobileView('map')">🗺 Map</button>
+    <button class="map-list-btn" id="listToggleBtn" onclick="setMobileView('list')">📋 List</button>
+  </div>
+    <div class="map-wrapper">
     <div id="map"></div>
     <div class="map-overlay hidden" id="mapOverlay">
       <div class="spinner"></div>
@@ -868,7 +882,7 @@ function toggleChat(open){chatOpen=open;document.getElementById('chatPanel').cla
 function initChat(){const greetings={en:"Hi! I'm your Austria family outing assistant.\n\nTell me:\n\u2022 Which city?\n\u2022 Kids' age?\n\u2022 Indoor or outdoor?\n\u2022 Interests (palaces, mountains, lakes)?\n\nI'll recommend the best places!",zh:'你好！我是奥地利亲子出行助手。\n\n告诉我：\n\u2022 你在哪个城市？\n\u2022 孩子多大？\n\u2022 室内还是室外？\n\u2022 对什么感兴趣（宫殿、山、湖）？\n\n我会推荐最合适的去处！'};addBotMessage(greetings[LANG.current]||greetings.en);showQuickActions();}
 function showQuickActions(){const el=document.getElementById('chatQuickActions');const actions={en:[['🏠 Indoor Wien','Indoor activities in Wien for rainy day'],['🦁 Zoo near Salzburg','Zoo near Salzburg for 3 year old'],['🏔️ Mountain trip','Mountain experience near Innsbruck for kids'],['🏰 Palace visit','Palace or castle visit for family']],zh:[['🏠 维也纳室内玩','我在维也纳，下雨天想找室内游乐场'],['🦁 带3岁宝宝看动物','我孩子3岁，想去看动物，在Salzburg附近'],['🏔️ 山区体验','带孩子去Innsbruck附近山区体验'],['🏰 宫殿参观','想带孩子参观宫殿或城堡']]};const a=actions[LANG.current]||actions.en;el.innerHTML=a.map(([label,msg])=>`<button class="chat-quick-btn" onclick="sendQuickMsg('${msg.replace(/'/g,"\\'")}')">${label}</button>`).join('');}
 function sendQuickMsg(msg){document.getElementById('chatInput').value=msg;handleChatSend();}
-function addBotMessage(text){const el=document.getElementById('chatMessages');const div=document.createElement('div');div.className='chat-msg bot';div.innerHTML=escapeHtml(text).replace(/\n/g,'<br>');el.appendChild(div);el.scrollTop=el.scrollHeight;}
+function addBotMessage(text){const el=document.getElementById('chatMessages');const div=document.createElement('div');div.className='chat-msg bot';div.innerHTML=text.replace(/\n/g,'<br>');el.appendChild(div);el.scrollTop=el.scrollHeight;}
 function addUserMessage(text){const el=document.getElementById('chatMessages');const div=document.createElement('div');div.className='chat-msg user';div.textContent=text;el.appendChild(div);el.scrollTop=el.scrollHeight;}
 function showTyping(){const el=document.getElementById('chatMessages');const div=document.createElement('div');div.className='chat-typing';div.id='chatTyping';div.innerHTML='<span></span><span></span><span></span>';el.appendChild(div);el.scrollTop=el.scrollHeight;}
 function removeTyping(){const t=document.getElementById('chatTyping');if(t)t.remove();}
@@ -878,6 +892,11 @@ document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='
 
 function toggleFavorite(venueId,btnEl){const idx=state.favorites.indexOf(venueId);if(idx>=0){state.favorites.splice(idx,1);if(btnEl){btnEl.classList.remove('favorited');btnEl.textContent='\u2661';}}else{state.favorites.push(venueId);if(btnEl){btnEl.classList.add('favorited');btnEl.textContent='\u2764\uFE0F';}}if(btnEl){btnEl.classList.remove('bounce');void btnEl.offsetWidth;btnEl.classList.add('bounce');}localStorage.setItem('at-kids-explorer-favorites',JSON.stringify(state.favorites));buildFilterBar();if(state.showFavoritesOnly){state.displayed=0;applyFilter();}}
 function toggleFavoritesFilter(){state.showFavoritesOnly=!state.showFavoritesOnly;if(state.showFavoritesOnly){state.activeCategory=null;}state.displayed=0;applyFilter();buildFilterBar();}
+function setMobileView(mode){
+  if(mode==='list'){document.body.classList.add('mobile-list-mode');document.getElementById('mapToggleBtn').classList.remove('active');document.getElementById('listToggleBtn').classList.add('active');}
+  else{document.body.classList.remove('mobile-list-mode');document.getElementById('mapToggleBtn').classList.add('active');document.getElementById('listToggleBtn').classList.remove('active');if(typeof map!=='undefined')setTimeout(()=>map.invalidateSize(),50);}
+}
+
 
 function searchVenueFromAutocomplete(lat,lon,venueId,venueName){autocompleteEl.classList.remove('open');searchInput.value=venueName;map.flyTo([lat,lon],16,{duration:1});const v=state.allVenues.find(x=>x.id===venueId);if(v){selectVenue(v.id);}else{L.popup().setLatLng([lat,lon]).setContent(`<div class="popup-content"><div class="popup-name">${escapeHtml(venueName)}</div></div>`).openOn(map);}}
 
@@ -885,7 +904,7 @@ function activateNearMe(){autocompleteEl.classList.remove('open');const btn=docu
 
 (function initBottomSheet(){const sidebar=document.getElementById('sidebarSheet');const handle=document.getElementById('bottomSheetHandle');if(!handle)return;const SNAP_COLLAPSED=25;const SNAP_HALF=50;const SNAP_FULL=90;let sheetPos=SNAP_COLLAPSED;let startY=0,startPos=0,dragging=false;function isMobile(){return window.innerWidth<=768;}function setSheetPosition(pct){if(!isMobile()){sidebar.style.transform='';sidebar.style.height='';return;}sheetPos=pct;const h=Math.min(pct,90);sidebar.style.height=h+'dvh';sidebar.style.transform='translateY(0)';}handle.addEventListener('touchstart',(e)=>{if(!isMobile())return;dragging=true;startY=e.touches[0].clientY;startPos=sheetPos;sidebar.style.transition='none';},{passive:true});handle.addEventListener('touchmove',(e)=>{if(!dragging||!isMobile())return;const dy=startY-e.touches[0].clientY;const dvh=(dy/window.innerHeight)*100;const newPos=Math.max(10,Math.min(90,startPos+dvh));sidebar.style.height=newPos+'dvh';},{passive:true});handle.addEventListener('touchend',(e)=>{if(!dragging||!isMobile())return;dragging=false;sidebar.style.transition='height 0.3s cubic-bezier(.4,0,.2,1)';const currentH=parseFloat(sidebar.style.height)||SNAP_COLLAPSED;const snaps=[SNAP_COLLAPSED,SNAP_HALF,SNAP_FULL];let closest=snaps[0];let minDist=Math.abs(currentH-snaps[0]);for(const s of snaps){const d=Math.abs(currentH-s);if(d<minDist){minDist=d;closest=s;}}setSheetPosition(closest);});function initMobileSheet(){if(isMobile()){sidebar.style.transition='height 0.3s cubic-bezier(.4,0,.2,1)';setSheetPosition(SNAP_COLLAPSED);}else{sidebar.style.transform='';sidebar.style.height='';sidebar.style.transition='';}}window.addEventListener('resize',initMobileSheet);initMobileSheet();})();
 
-function openDetailPanel(venueId){const v=state.allVenues.find(x=>x.id===venueId);if(!v)return;const panel=document.getElementById('venueDetailPanel');const body=document.getElementById('detailPanelBody');const titleEl=document.getElementById('detailPanelTitle');const t=T[LANG.current];titleEl.textContent=t.venueDetails;const isFav=state.favorites.includes(v.id);let html='';html+=`<div class="detail-venue-icon" style="background:${v.category.bg}">${v.category.emoji}</div>`;html+=`<div class="detail-venue-name">${escapeHtml(v.name)}</div>`;if(v.nameZh)html+=`<div class="detail-venue-name-zh">${escapeHtml(v.nameZh)}</div>`;html+=`<span class="detail-category-badge" style="background:${v.category.bg};color:${v.category.color}">${v.category.emoji} ${v.category[LANG.current]||v.category.en}</span>`;html+=ratingDetailHtml(v);if(v.address){html+=`<div class="detail-info-row"><span class="detail-icon">📍</span><span>${escapeHtml(v.address)}</span></div>`;}if(v.openingHours){html+=`<div class="detail-info-row"><span class="detail-icon">\u{1F552}</span><span>${escapeHtml(translateHours(v.openingHours))}</span></div>`;}if(v.phone){html+=`<div class="detail-info-row"><span class="detail-icon">\u{1F4DE}</span><a href="tel:${v.phone}">${escapeHtml(v.phone)}</a></div>`;}html+='<div class="detail-actions">';if(v.website){html+=`<a class="detail-btn detail-btn-website" href="${v.website}" target="_blank" rel="noopener">🔗 ${t.visitWebsite}</a>`;}html+=`<a class="detail-btn detail-btn-navigate" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">🧭 ${t.navigateTo}</a>`;html+=`<button class="detail-btn detail-btn-favorite ${isFav?'favorited':''}" id="detailFavBtn" onclick="toggleDetailFavorite('${v.id.replace(/'/g,"\\'")}')">  ${isFav?'❤️':'♡'} ${isFav?t.favorited:t.addFavorite}</button>`;html+='</div>';body.innerHTML=html;panel.classList.add('open');}
+function openDetailPanel(venueId){const v=state.allVenues.find(x=>x.id===venueId);if(!v)return;const panel=document.getElementById('venueDetailPanel');const body=document.getElementById('detailPanelBody');const titleEl=document.getElementById('detailPanelTitle');const t=T[LANG.current];titleEl.textContent=t.venueDetails;const isFav=state.favorites.includes(v.id);let html='';html+=`<div class="detail-venue-icon" style="background:${v.category.bg}">${v.category.emoji}</div>`;html+=`<div class="detail-venue-name">${escapeHtml(v.name)}</div>`;if(v.nameZh&&LANG.current==="zh")html+=`<div class="detail-venue-name-zh">${escapeHtml(v.nameZh)}</div>`;html+=`<span class="detail-category-badge" style="background:${v.category.bg};color:${v.category.color}">${v.category.emoji} ${v.category[LANG.current]||v.category.en}</span>`;html+=ratingDetailHtml(v);if(v.address){html+=`<div class="detail-info-row"><span class="detail-icon">📍</span><span>${escapeHtml(v.address)}</span></div>`;}if(v.openingHours){html+=`<div class="detail-info-row"><span class="detail-icon">\u{1F552}</span><span>${escapeHtml(translateHours(v.openingHours))}</span></div>`;}if(v.phone){html+=`<div class="detail-info-row"><span class="detail-icon">\u{1F4DE}</span><a href="tel:${v.phone}">${escapeHtml(v.phone)}</a></div>`;}html+='<div class="detail-actions">';if(v.website){html+=`<a class="detail-btn detail-btn-website" href="${v.website}" target="_blank" rel="noopener">🔗 ${t.visitWebsite}</a>`;}html+=`<a class="detail-btn detail-btn-navigate" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">🧭 ${t.navigateTo}</a>`;html+=`<button class="detail-btn detail-btn-favorite ${isFav?'favorited':''}" id="detailFavBtn" onclick="toggleDetailFavorite('${v.id.replace(/'/g,"\\'")}')">  ${isFav?'❤️':'♡'} ${isFav?t.favorited:t.addFavorite}</button>`;html+='</div>';body.innerHTML=html;panel.classList.add('open');}
 function closeDetailPanel(){document.getElementById('venueDetailPanel').classList.remove('open');}
 function toggleDetailFavorite(venueId){toggleFavorite(venueId,null);const btn=document.getElementById('detailFavBtn');const t=T[LANG.current];const isFav=state.favorites.includes(venueId);if(btn){btn.className='detail-btn detail-btn-favorite'+(isFav?' favorited':'');btn.innerHTML=`${isFav?'❤️':'♡'} ${isFav?t.favorited:t.addFavorite}`;}renderList();}
 const _origSelectVenue=selectVenue;window.selectVenue=function(id){_origSelectVenue(id);openDetailPanel(id);};
