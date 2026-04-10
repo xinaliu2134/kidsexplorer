@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#E05A1E">
   <title>Austria Kids Explorer &middot; 奥地利亲子探索</title>
   <meta name="description" content="Family-friendly venues across Austria. Interactive multilingual map for families with kids. 奥地利亲子友好场地互动地图。">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧒</text></svg>">
@@ -319,6 +324,25 @@
     .weather-banner-btn:hover { background: rgba(255,255,255,.3); }
     .weather-banner-close { background: none; border: none; color: rgba(255,255,255,.6); font-size: 18px; cursor: pointer; padding: 2px 6px; transition: color .15s; }
     .weather-banner-close:hover { color: #fff; }
+    /* ── EMPTY STATE NEAR ME BUTTON ─────────────────────── */
+    .empty-nearme-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin: 8px 0 4px;
+      padding: 10px 24px;
+      background: var(--primary);
+      color: #fff;
+      border: none; border-radius: 999px;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer;
+      transition: background .15s;
+      box-shadow: 0 2px 8px rgba(224,90,30,.3);
+    }
+    .empty-nearme-btn:hover { background: #c44e1a; }
+    @media (max-width: 768px) {
+      .empty-nearme-btn { font-size: 15px; padding: 12px 32px; }
+      .empty-suggestion { padding: 9px 14px; font-size: 13px; }
+    }
+
     /* ── MOBILE-ONLY: hide cross-nav + filter bar, show action bar ──────── */
     @media (max-width: 768px) {
       #crossNav, .cross-nav { display: none !important; }
@@ -466,6 +490,7 @@
       <div class="empty-state-icon">🗺️</div>
       <h3 id="emptyTitle">Explore Austria</h3>
       <p id="emptyDesc">Search a Bundesland or city above to find museums, playgrounds, zoos, theme parks and more for kids.</p>
+      <button class="empty-nearme-btn" onclick="activateNearMe()">📍 Near me</button>
       <div class="empty-suggestions">
         <button class="empty-suggestion" onclick="searchRegion('Wien')">Wien</button>
         <button class="empty-suggestion" onclick="searchRegion('Salzburg')">Salzburg</button>
@@ -1009,7 +1034,8 @@ function searchVenueFromAutocomplete(lat,lon,venueId,venueName){autocompleteEl.c
 
 function activateNearMe(){autocompleteEl.classList.remove('open');const btn=document.getElementById('nearmeBtn');if(!navigator.geolocation){showToast(T[LANG.current].nearMeError);return;}btn.classList.add('active');showToast(T[LANG.current].nearMeSearching,2000);navigator.geolocation.getCurrentPosition((pos)=>{const lat=pos.coords.latitude;const lon=pos.coords.longitude;state.userLocation=[lat,lon];if(state.userLocationMarker){map.removeLayer(state.userLocationMarker);}state.userLocationMarker=L.circleMarker([lat,lon],{radius:10,color:'#4285F4',fillColor:'#4285F4',fillOpacity:0.5,weight:3,opacity:0.8}).addTo(map).bindPopup(T[LANG.current].yourLocation);state.displayed=0;applyFilter();buildFilterBar();map.flyTo([lat,lon],11,{duration:1});showToast(T[LANG.current].sortedByDistance,2000);},(err)=>{btn.classList.remove('active');if(err.code===1){showToast(T[LANG.current].nearMePermDenied,4000);}else{showToast(T[LANG.current].nearMeError);}},{enableHighAccuracy:true,timeout:10000});}
 
-(function initBottomSheet(){const sidebar=document.getElementById('sidebarSheet');const handle=document.getElementById('bottomSheetHandle');if(!handle)return;const SNAP_COLLAPSED=25;const SNAP_HALF=50;const SNAP_FULL=90;let sheetPos=SNAP_COLLAPSED;let startY=0,startPos=0,dragging=false;function isMobile(){return window.innerWidth<=768;}function setSheetPosition(pct){if(!isMobile()){sidebar.style.transform='';sidebar.style.height='';return;}sheetPos=pct;const h=Math.min(pct,90);sidebar.style.height=h+'dvh';sidebar.style.transform='translateY(0)';}handle.addEventListener('touchstart',(e)=>{if(!isMobile())return;dragging=true;startY=e.touches[0].clientY;startPos=sheetPos;sidebar.style.transition='none';},{passive:true});handle.addEventListener('touchmove',(e)=>{if(!dragging||!isMobile())return;const dy=startY-e.touches[0].clientY;const dvh=(dy/window.innerHeight)*100;const newPos=Math.max(10,Math.min(90,startPos+dvh));sidebar.style.height=newPos+'dvh';},{passive:true});handle.addEventListener('touchend',(e)=>{if(!dragging||!isMobile())return;dragging=false;sidebar.style.transition='height 0.3s cubic-bezier(.4,0,.2,1)';const currentH=parseFloat(sidebar.style.height)||SNAP_COLLAPSED;const snaps=[SNAP_COLLAPSED,SNAP_HALF,SNAP_FULL];let closest=snaps[0];let minDist=Math.abs(currentH-snaps[0]);for(const s of snaps){const d=Math.abs(currentH-s);if(d<minDist){minDist=d;closest=s;}}setSheetPosition(closest);});function initMobileSheet(){if(isMobile()){sidebar.style.transition='height 0.3s cubic-bezier(.4,0,.2,1)';setSheetPosition(SNAP_COLLAPSED);}else{sidebar.style.transform='';sidebar.style.height='';sidebar.style.transition='';}}window.addEventListener('resize',initMobileSheet);initMobileSheet();})();
+(function initBottomSheet(){const sidebar=document.getElementById('sidebarSheet');const handle=document.getElementById('bottomSheetHandle');if(!handle)return;const SNAP_COLLAPSED=25;const SNAP_HALF=50;const SNAP_FULL=90;let sheetPos=SNAP_COLLAPSED;let startY=0,startPos=0,dragging=false;function isMobile(){return window.innerWidth<=768;}function setSheetPosition(pct){if(!isMobile()){sidebar.style.transform='';sidebar.style.height='';return;}sheetPos=pct;const h=Math.min(pct,90);sidebar.style.height=h+'dvh';sidebar.style.transform='translateY(0)';}handle.addEventListener('touchstart',(e)=>{if(!isMobile())return;dragging=true;startY=e.touches[0].clientY;startPos=sheetPos;sidebar.style.transition='none';},{passive:true});handle.addEventListener('touchmove',(e)=>{if(!dragging||!isMobile())return;const dy=startY-e.touches[0].clientY;const dvh=(dy/window.innerHeight)*100;const newPos=Math.max(10,Math.min(90,startPos+dvh));sidebar.style.height=newPos+'dvh';},{passive:true});handle.addEventListener('touchend',(e)=>{if(!dragging||!isMobile())return;dragging=false;sidebar.style.transition='height 0.3s cubic-bezier(.4,0,.2,1)';const currentH=parseFloat(sidebar.style.height)||SNAP_COLLAPSED;const snaps=[SNAP_COLLAPSED,SNAP_HALF,SNAP_FULL];let closest=snaps[0];let minDist=Math.abs(currentH-snaps[0]);for(const s of snaps){const d=Math.abs(currentH-s);if(d<minDist){minDist=d;closest=s;}}setSheetPosition(closest);});function initMobileSheet(){if(isMobile()){sidebar.style.transition='height 0.3s cubic-bezier(.4,0,.2,1)';const startSnap = state.allVenues.length === 0 ? SNAP_HALF : SNAP_COLLAPSED;
+      setSheetPosition(startSnap);}else{sidebar.style.transform='';sidebar.style.height='';sidebar.style.transition='';}}window.addEventListener('resize',initMobileSheet);initMobileSheet();})();
 
 function openDetailPanel(venueId){const v=state.allVenues.find(x=>x.id===venueId);if(!v)return;const panel=document.getElementById('venueDetailPanel');const body=document.getElementById('detailPanelBody');const titleEl=document.getElementById('detailPanelTitle');const t=T[LANG.current];titleEl.textContent=t.venueDetails;const isFav=state.favorites.includes(v.id);let html='';html+=`<div class="detail-venue-icon" style="background:${v.category.bg}">${v.category.emoji}</div>`;html+=`<div class="detail-venue-name">${escapeHtml(v.name)}</div>`;if(v.nameZh&&LANG.current==="zh")html+=`<div class="detail-venue-name-zh">${escapeHtml(v.nameZh)}</div>`;html+=`<span class="detail-category-badge" style="background:${v.category.bg};color:${v.category.color}">${v.category.emoji} ${v.category[LANG.current]||v.category.en}</span>`;html+=ratingDetailHtml(v);if(v.address){html+=`<div class="detail-info-row"><span class="detail-icon">📍</span><span>${escapeHtml(v.address)}</span></div>`;}if(v.openingHours){html+=`<div class="detail-info-row"><span class="detail-icon">\u{1F552}</span><span>${escapeHtml(translateHours(v.openingHours))}</span></div>`;}if(v.phone){html+=`<div class="detail-info-row"><span class="detail-icon">\u{1F4DE}</span><a href="tel:${v.phone}">${escapeHtml(v.phone)}</a></div>`;}html+='<div class="detail-actions">';if(v.website){html+=`<a class="detail-btn detail-btn-website" href="${v.website}" target="_blank" rel="noopener">🔗 ${t.visitWebsite}</a>`;}html+=`<a class="detail-btn detail-btn-navigate" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">🧭 ${t.navigateTo}</a>`;html+=`<button class="detail-btn detail-btn-favorite ${isFav?'favorited':''}" id="detailFavBtn" onclick="toggleDetailFavorite('${v.id.replace(/'/g,"\\'")}')">  ${isFav?'❤️':'♡'} ${isFav?t.favorited:t.addFavorite}</button>`;html+='</div>';body.innerHTML=html;panel.classList.add('open');}
 function closeDetailPanel(){document.getElementById('venueDetailPanel').classList.remove('open');}
@@ -1115,6 +1141,14 @@ function updateMobileActionBar() {
   catBtn.classList.toggle('active', mobileFilterOpen || state.activeCategory !== null || (state.activeAgeGroup && state.activeAgeGroup !== 'all'));
   const sortSel = document.getElementById('sortSelect');
   sortBtn.classList.toggle('active', !!(sortSel && sortSel.value !== 'default'));
+}
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
 }
 </script>
 </body>

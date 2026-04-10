@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#E05A1E">
   <title>Belgium Kids Explorer &middot; 比利时亲子探索</title>
   <meta name="description" content="Family-friendly venues across Belgium. Interactive bilingual map for families with kids. 比利时亲子友好场地互动地图。">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧒</text></svg>">
@@ -1270,6 +1275,25 @@
       transition: color .15s;
     }
     .weather-banner-close:hover { color: #fff; }
+    /* ── EMPTY STATE NEAR ME BUTTON ─────────────────────── */
+    .empty-nearme-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin: 8px 0 4px;
+      padding: 10px 24px;
+      background: var(--primary);
+      color: #fff;
+      border: none; border-radius: 999px;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer;
+      transition: background .15s;
+      box-shadow: 0 2px 8px rgba(224,90,30,.3);
+    }
+    .empty-nearme-btn:hover { background: #c44e1a; }
+    @media (max-width: 768px) {
+      .empty-nearme-btn { font-size: 15px; padding: 12px 32px; }
+      .empty-suggestion { padding: 9px 14px; font-size: 13px; }
+    }
+
     /* ── MOBILE-ONLY: hide cross-nav + filter bar, show action bar ──────── */
     @media (max-width: 768px) {
       #crossNav, .cross-nav { display: none !important; }
@@ -1431,6 +1455,7 @@
       <div class="empty-state-icon">🗺️</div>
       <h3 id="emptyTitle">Explore Belgium</h3>
       <p id="emptyDesc">Search a province or city above to find museums, playgrounds, zoos, theme parks and more for kids.</p>
+      <button class="empty-nearme-btn" onclick="activateNearMe()">📍 Near me</button>
       <div class="empty-suggestions">
         <button class="empty-suggestion" onclick="searchRegion('Brussels')">Brussels</button>
         <button class="empty-suggestion" onclick="searchRegion('Antwerp')">Antwerp</button>
@@ -3728,7 +3753,8 @@ function activateNearMe() {
   function initMobileSheet() {
     if (isMobile()) {
       sidebar.style.transition = 'height 0.3s cubic-bezier(.4,0,.2,1)';
-      setSheetPosition(SNAP_COLLAPSED);
+      const startSnap = state.allVenues.length === 0 ? SNAP_HALF : SNAP_COLLAPSED;
+      setSheetPosition(startSnap);
     } else {
       sidebar.style.transform = '';
       sidebar.style.height = '';
@@ -4032,6 +4058,14 @@ function updateMobileActionBar() {
   catBtn.classList.toggle('active', mobileFilterOpen || state.activeCategory !== null || (state.activeAgeGroup && state.activeAgeGroup !== 'all'));
   const sortSel = document.getElementById('sortSelect');
   sortBtn.classList.toggle('active', !!(sortSel && sortSel.value !== 'default'));
+}
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
 }
 </script>
 </body>
