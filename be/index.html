@@ -193,6 +193,55 @@
     }
 
     .header-spacer { flex: 1; }
+    /* ── COUNTRY PICKER BUTTON ──────────────────── */
+    .country-btn {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: #fff;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background .15s;
+    }
+    .country-btn:hover { background: rgba(255,255,255,.18); }
+    .country-btn .cb-arrow { opacity: .5; font-size: 10px; }
+    .country-picker {
+      position: fixed; inset: 0; z-index: 11000;
+      background: rgba(0,0,0,.55);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .country-picker.open { opacity: 1; pointer-events: auto; }
+    .country-picker-panel {
+      background: var(--surface); border-radius: var(--radius-xl);
+      padding: 24px; width: 100%; max-width: 480px; max-height: 80vh;
+      overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,.3);
+    }
+    .cp-title { font-size: 16px; font-weight: 700; color: var(--text);
+      margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .cp-close { background: none; border: none; cursor: pointer;
+      font-size: 20px; color: var(--text-muted); line-height: 1; padding: 4px; }
+    .cp-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .cp-item { display: flex; flex-direction: column; align-items: center; gap: 6px;
+      background: var(--bg); border: 2px solid var(--border-light);
+      border-radius: var(--radius-md); padding: 14px 8px; cursor: pointer;
+      text-decoration: none; color: var(--text); transition: all .15s; text-align: center; }
+    .cp-item:hover { border-color: var(--primary); background: var(--primary-light); }
+    .cp-item.current { border-color: var(--primary); background: var(--primary-light); }
+    .cp-flag { font-size: 28px; } .cp-name { font-size: 11px; font-weight: 600; }
+    .cp-count { font-size: 10px; color: var(--text-muted); }
+    .fab-zoom { position: fixed; right: 14px; top: 50%; transform: translateY(-50%);
+      z-index: 8000; display: flex; flex-direction: column; gap: 4px; }
+    .fab-zoom-btn { width: 36px; height: 36px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 20px; font-weight: 300; cursor: pointer;
+      display: grid; place-items: center; color: var(--text);
+      box-shadow: var(--shadow-sm); transition: background .15s; line-height: 1; }
+    .fab-zoom-btn:hover { background: var(--bg); }
+    @media(max-width:768px){.fab-zoom{right:10px;top:45%}}
 
     .lang-toggle {
       display: flex;
@@ -1275,7 +1324,11 @@
 
   <div class="weather-badge" id="weatherBadge" style="display:none;"></div>
 
-  <div class="header-spacer"></div>
+  <button class="country-btn" onclick="openCountryPicker()" aria-label="Switch country">
+    🇧🇪 <span class="cb-arrow">▾</span>
+  </button>
+
+    <div class="header-spacer"></div>
 
   <div class="lang-toggle">
     <button class="lang-btn active" data-lang="en" onclick="setLang('en')">EN</button>
@@ -2337,7 +2390,14 @@ function renderList() {
   empty.style.display = 'none';
   list.style.display = 'flex';
 
-  const toShow = state.filtered.slice(0, state.displayed + PAGE_SIZE);
+  // Update "in view" count label when viewport sync is active
+  if (state.viewportSync && state.allVenues.length > 0) {
+    const n = state.filtered.length;
+    document.getElementById('resultCountText').innerHTML =
+      tl(`<strong>${n}</strong> in view`, `视图内 <strong>${n}</strong> 个`, `<strong>${n}</strong> zichtbaar`);
+  }
+
+    const toShow = state.filtered.slice(0, state.displayed + PAGE_SIZE);
   state.displayed = toShow.length;
 
   const frag = document.createDocumentFragment();
@@ -3561,11 +3621,11 @@ function activateNearMe() {
   const handle = document.getElementById('bottomSheetHandle');
   if (!handle) return;
 
-  const SNAP_COLLAPSED = 25;
+  const SNAP_COLLAPSED = 12; // peek
   const SNAP_HALF = 50;
   const SNAP_FULL = 90;
   let sheetPos = SNAP_COLLAPSED;
-  let startY = 0, startPos = 0, dragging = false;
+  let startY = 0, tapStartY = 0, startPos = 0, dragging = false;
 
   function isMobile() { return window.innerWidth <= 768; }
 
@@ -3581,6 +3641,7 @@ function activateNearMe() {
     if (!isMobile()) return;
     dragging = true;
     startY = e.touches[0].clientY;
+    tapStartY = e.touches[0].clientY;
     startPos = sheetPos;
     sidebar.style.transition = 'none';
   }, { passive: true });
@@ -3829,6 +3890,45 @@ buildAgeFilterPills();
 setLang('en');
 loadStaticVenues();
 fetchWeather();
+</script>
+
+<!-- COUNTRY PICKER -->
+<div class="country-picker" id="countryPicker" onclick="if(event.target===this)closeCountryPicker()">
+  <div class="country-picker-panel">
+    <div class="cp-title"><span id="cpTitle">Switch Country</span>
+      <button class="cp-close" onclick="closeCountryPicker()">✕</button></div>
+    <div class="cp-grid" id="cpGrid"></div>
+  </div>
+</div>
+<!-- ZOOM FABs -->
+<div class="fab-zoom">
+  <button class="fab-zoom-btn" onclick="map.zoomIn()" aria-label="Zoom in">+</button>
+  <button class="fab-zoom-btn" onclick="map.zoomOut()" aria-label="Zoom out">−</button>
+</div>
+<script>
+const CP_COUNTRIES=[
+  {slug:'nl',flag:'🇳🇱',en:'Netherlands',zh:'荷兰',nl:'Nederland',count:672},
+  {slug:'be',flag:'🇧🇪',en:'Belgium',zh:'比利时',nl:'België',count:464},
+  {slug:'de',flag:'🇩🇪',en:'Germany',zh:'德国',nl:'Duitsland',count:593},
+  {slug:'at',flag:'🇦🇹',en:'Austria',zh:'奥地利',nl:'Oostenrijk',count:255},
+  {slug:'ch',flag:'🇨🇭',en:'Switzerland',zh:'瑞士',nl:'Zwitserland',count:257},
+  {slug:'fr',flag:'🇫🇷',en:'France',zh:'法国',nl:'Frankrijk',count:607},
+  {slug:'uk',flag:'🇬🇧',en:'United Kingdom',zh:'英国',nl:'VK',count:515},
+  {slug:'ie',flag:'🇮🇪',en:'Ireland',zh:'爱尔兰',nl:'Ierland',count:176},
+  {slug:'es',flag:'🇪🇸',en:'Spain',zh:'西班牙',nl:'Spanje',count:576},
+  {slug:'pt',flag:'🇵🇹',en:'Portugal',zh:'葡萄牙',nl:'Portugal',count:533},
+  {slug:'it',flag:'🇮🇹',en:'Italy',zh:'意大利',nl:'Italië',count:570},
+  {slug:'gr',flag:'🇬🇷',en:'Greece',zh:'希腊',nl:'Griekenland',count:129}
+];
+const CURRENT_CC='be';
+function openCountryPicker(){
+  const lang=typeof LANG!=='undefined'?LANG.current:'en';
+  document.getElementById('cpTitle').textContent=lang==='zh'?'选择国家':lang==='nl'?'Kies land':'Switch Country';
+  document.getElementById('cpGrid').innerHTML=CP_COUNTRIES.map(c=>`<a href="https://kidsexplorer.eu/${c.slug}/" class="cp-item${c.slug===CURRENT_CC?' current':''}"><span class="cp-flag">${c.flag}</span><span class="cp-name">${lang==='zh'?c.zh:lang==='nl'?c.nl:c.en}</span><span class="cp-count">${c.count}+</span></a>`).join('');
+  document.getElementById('countryPicker').classList.add('open');
+}
+function closeCountryPicker(){document.getElementById('countryPicker').classList.remove('open');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCountryPicker();});
 </script>
 </body>
 </html>
