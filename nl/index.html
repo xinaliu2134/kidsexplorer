@@ -1050,6 +1050,50 @@
       .bottom-sheet-handle { display: none; }
     }
 
+    /* ── MAP / LIST TOGGLE (mobile only) ─────────── */
+    .map-list-toggle { display: none; }
+    @media (max-width: 768px) {
+      .map-list-toggle {
+        display: flex;
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 8500;
+        background: var(--navy);
+        border-radius: 999px;
+        padding: 4px;
+        box-shadow: 0 4px 20px rgba(26,43,74,.35);
+        gap: 2px;
+        pointer-events: auto;
+      }
+      .map-list-btn {
+        padding: 8px 22px;
+        border-radius: 999px;
+        border: none;
+        font-size: 13px; font-weight: 600;
+        cursor: pointer;
+        color: rgba(255,255,255,.55);
+        background: transparent;
+        transition: all .2s;
+        white-space: nowrap;
+      }
+      .map-list-btn.active {
+        background: var(--primary);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(224,90,30,.4);
+      }
+      /* list mode: sidebar fills screen, map hidden */
+      body.mobile-list-mode .map-wrapper { visibility: hidden; }
+      body.mobile-list-mode .sidebar {
+        max-height: 100dvh !important;
+        height: 100dvh !important;
+        transform: translateY(0) !important;
+        border-radius: 0 !important;
+      }
+      body.mobile-list-mode .chat-fab { display: none; }
+    }
+
     /* ── VENUE THUMBNAILS ───────────────────────── */
     .venue-thumb {
       width: 80px; height: 60px;
@@ -1367,6 +1411,12 @@
     <div class="venue-list" id="venueList" style="display:none"></div>
     <button class="scroll-top-btn" id="scrollTopBtn" title="Scroll to top">&#8593;</button>
   </aside>
+
+  <!-- Map/List toggle pill (mobile only) -->
+  <div class="map-list-toggle" id="mapListToggle">
+    <button class="map-list-btn active" id="mapToggleBtn" onclick="setMobileView('map')">🗺 Map</button>
+    <button class="map-list-btn" id="listToggleBtn" onclick="setMobileView('list')">📋 List</button>
+  </div>
 
   <!-- Map -->
   <div class="map-wrapper">
@@ -2474,7 +2524,7 @@ function renderList() {
         <div class="venue-icon" style="background:${v.category.bg}">${v.category.emoji}</div>
         <div class="venue-info">
           <div class="venue-name">${v.name}</div>
-          ${v.nameZh ? `<div class="venue-name-zh">${v.nameZh}</div>` : ''}
+          ${v.nameZh && LANG.current === 'zh' ? `<div class="venue-name-zh">${v.nameZh}</div>` : ''}
           ${ratingCardHtml(v)}
           <div class="venue-meta">
             <span class="venue-tag" style="background:${v.category.bg};color:${v.category.color}">
@@ -2574,7 +2624,7 @@ function buildPopup(v) {
       <div class="popup-icon" style="background:${v.category.bg}">${v.category.emoji}</div>
       <div>
         <div class="popup-name">${v.name}</div>
-        ${v.nameZh ? `<div class="popup-name-zh">${v.nameZh}</div>` : ''}
+        ${v.nameZh && LANG.current === 'zh' ? `<div class="popup-name-zh">${v.nameZh}</div>` : ''}
       </div>
     </div>
     ${v.address ? `<div class="popup-address">\u{1F4CD} ${v.address}</div>` : ''}
@@ -3922,6 +3972,20 @@ function toggleFavorite(venueId, btnEl) {
   }
 }
 
+function setMobileView(mode) {
+  if (mode === 'list') {
+    document.body.classList.add('mobile-list-mode');
+    document.getElementById('mapToggleBtn').classList.remove('active');
+    document.getElementById('listToggleBtn').classList.add('active');
+  } else {
+    document.body.classList.remove('mobile-list-mode');
+    document.getElementById('mapToggleBtn').classList.add('active');
+    document.getElementById('listToggleBtn').classList.remove('active');
+    // Invalidate map size after reveal
+    if (typeof map !== 'undefined') setTimeout(() => map.invalidateSize(), 50);
+  }
+}
+
 function toggleFavoritesFilter() {
   state.showFavoritesOnly = !state.showFavoritesOnly;
   if (state.showFavoritesOnly) {
@@ -4077,7 +4141,7 @@ function openDetailPanel(venueId) {
   }
   html += `<div class="detail-venue-icon" style="background:${v.category.bg}">${v.category.emoji}</div>`;
   html += `<div class="detail-venue-name">${escapeHtml(v.name)}</div>`;
-  if (v.nameZh) html += `<div class="detail-venue-name-zh">${escapeHtml(v.nameZh)}</div>`;
+  if (v.nameZh && LANG.current === 'zh') html += `<div class="detail-venue-name-zh">${escapeHtml(v.nameZh)}</div>`;
   html += `<span class="detail-category-badge" style="background:${v.category.bg};color:${v.category.color}">
     ${v.category.emoji} ${catLabel(v.category)}
   </span>`;
