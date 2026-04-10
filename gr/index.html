@@ -113,6 +113,55 @@
       box-shadow: var(--shadow-sm); transition: background .15s; line-height: 1; }
     .fab-zoom-btn:hover { background: var(--bg); }
     @media(max-width:768px){.fab-zoom{right:10px;top:45%}}
+  
+    /* ── MOBILE-ONLY: hide cross-nav + filter bar, show action bar ──────── */
+    @media (max-width: 768px) {
+      #crossNav, .cross-nav { display: none !important; }
+      #filterBar { display: none; }
+      #filterBar.mobile-open {
+        display: block !important;
+        position: fixed;
+        top: 56px;
+        left: 0; right: 0;
+        z-index: 9500;
+        background: var(--surface);
+        border-bottom: 2px solid var(--border-light);
+        box-shadow: 0 6px 24px rgba(0,0,0,.2);
+        padding-bottom: 4px;
+      }
+      .mobile-filter-dimmer {
+        position: fixed; inset: 0;
+        z-index: 9499;
+        background: rgba(0,0,0,.3);
+      }
+      .mobile-action-bar {
+        display: flex;
+        gap: 8px;
+        padding: 8px 16px 6px;
+        border-bottom: 1px solid var(--border-light);
+      }
+      .mob-action-btn {
+        flex: 1;
+        padding: 7px 6px;
+        border-radius: 8px;
+        border: 1.5px solid var(--border);
+        background: var(--bg);
+        font-size: 12px; font-weight: 600;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all .15s;
+        text-align: center;
+      }
+      .mob-action-btn.active {
+        border-color: var(--primary);
+        background: var(--primary-light);
+        color: var(--primary);
+      }
+    }
+    @media (min-width: 769px) {
+      .mobile-action-bar { display: none !important; }
+      .mobile-filter-dimmer { display: none !important; }
+    }
   </style>
 </head>
 <body><!-- kidsexplorer-back -->
@@ -192,6 +241,12 @@
         <div class="sort-control" id="sortControl" style="display:none;"><label for="sortSelect">Sort:</label><select id="sortSelect" onchange="applySortOrder(this.value)"><option value="default">Default</option><option value="rating">Top rated</option><option value="name">A-Z</option></select></div>
       </div>
       <div class="category-summary" id="categorySummary"></div>
+    </div>
+    <!-- Mobile action bar (hidden on desktop via CSS) -->
+    <div class="mobile-action-bar" id="mobileActionBar">
+      <button class="mob-action-btn" id="mobFavBtn" onclick="toggleMobileFavs()">♡ Favs</button>
+      <button class="mob-action-btn" id="mobCatBtn" onclick="toggleMobileFilter()">🏷 Category</button>
+      <button class="mob-action-btn" id="mobSortBtn" onclick="toggleMobileSort()">⇅ Sort</button>
     </div>
     <div class="empty-state" id="emptyState">
       <div class="empty-state-icon">🗺️</div>
@@ -560,6 +615,54 @@ function openCountryPicker(){
 }
 function closeCountryPicker(){document.getElementById('countryPicker').classList.remove('open');}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCountryPicker();});
+</script>
+
+<!-- Mobile filter dimmer -->
+<div class="mobile-filter-dimmer" id="mobileFilterDimmer" style="display:none;" onclick="closeMobileFilter()"></div>
+
+<script>
+// ── MOBILE ACTION BAR ──────────────────────────────────────────────────
+let mobileFilterOpen = false;
+
+function toggleMobileFilter() {
+  mobileFilterOpen = !mobileFilterOpen;
+  document.getElementById('filterBar').classList.toggle('mobile-open', mobileFilterOpen);
+  document.getElementById('mobileFilterDimmer').style.display = mobileFilterOpen ? 'block' : 'none';
+  updateMobileActionBar();
+}
+
+function closeMobileFilter() {
+  mobileFilterOpen = false;
+  document.getElementById('filterBar').classList.remove('mobile-open');
+  document.getElementById('mobileFilterDimmer').style.display = 'none';
+  updateMobileActionBar();
+}
+
+function toggleMobileFavs() {
+  toggleFavoritesFilter();
+  if (mobileFilterOpen) closeMobileFilter();
+  setTimeout(updateMobileActionBar, 50);
+}
+
+function toggleMobileSort() {
+  const sc = document.getElementById('sortControl');
+  if (!sc) return;
+  const isVisible = sc.style.display !== 'none';
+  sc.style.display = isVisible ? 'none' : 'flex';
+  if (!isVisible) document.getElementById('sortSelect')?.focus();
+  updateMobileActionBar();
+}
+
+function updateMobileActionBar() {
+  const favBtn = document.getElementById('mobFavBtn');
+  const catBtn = document.getElementById('mobCatBtn');
+  const sortBtn = document.getElementById('mobSortBtn');
+  if (!favBtn) return;
+  favBtn.classList.toggle('active', !!state.showFavoritesOnly);
+  catBtn.classList.toggle('active', mobileFilterOpen || state.activeCategory !== null || (state.activeAgeGroup && state.activeAgeGroup !== 'all'));
+  const sortSel = document.getElementById('sortSelect');
+  sortBtn.classList.toggle('active', !!(sortSel && sortSel.value !== 'default'));
+}
 </script>
 </body>
 </html>
