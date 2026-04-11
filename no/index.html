@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#E05A1E">
+  <title>Norway Kids Explorer &middot; 挪威亲子探索</title>
+  <meta name="description" content="Family-friendly venues across Norway. Interactive trilingual map for families with kids. 挪威亲子友好场地互动地图。">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧒</text></svg>">
+  <link rel="canonical" href="https://kidsexplorer.eu/no/">
+  <meta property="og:title" content="Norway Kids Explorer &middot; 挪威亲子探索">
+  <meta property="og:description" content="Family-friendly venues across Norway. Interactive trilingual map for families with kids. 挪威亲子友好场地互动地图。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://kidsexplorer.eu/no/">
+  <meta property="og:site_name" content="Norway Kids Explorer">
+  <meta name="twitter:card" content="summary">
+  <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" as="script">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&family=Noto+Sans+SC:wght@500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <style>
+    :root { --bg:#F2F4F8;--surface:#FFFFFF;--primary:#E05A1E;--primary-light:#FFF0E9;--primary-dark:#B84515;--navy:#1A2B4A;--teal:#0EA5A0;--text:#1A2B4A;--text-secondary:#5A6A84;--text-muted:#9AA5B8;--border:#CBD5E1;--border-light:#E2E8F0;--shadow-sm:0 1px 3px rgba(26,43,74,.12),0 0 0 1px rgba(26,43,74,.04);--shadow-md:0 4px 12px rgba(26,43,74,.16),0 0 0 1px rgba(26,43,74,.06);--shadow-lg:0 8px 24px rgba(26,43,74,.20),0 0 0 1px rgba(26,43,74,.08);--radius-sm:6px;--radius-md:12px;--radius-lg:18px;--radius-xl:24px;font-family:'Inter','Noto Sans SC',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}body{background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
+    .cross-nav{background:#111827;padding:6px 20px;display:flex;align-items:center;justify-content:center;gap:16px;font-size:12px;font-weight:600;flex-shrink:0;z-index:101;flex-wrap:wrap;}.cross-nav a{color:rgba(255,255,255,.6);text-decoration:none;transition:color .15s;}.cross-nav a:hover{color:#fff;}.cross-nav .active-site{color:#fff;border-bottom:2px solid var(--primary);padding-bottom:1px;}
+    header{background:var(--navy);padding:0 20px;height:60px;display:flex;align-items:center;gap:16px;flex-shrink:0;z-index:100;}.logo{display:flex;align-items:center;gap:10px;text-decoration:none;}.logo-icon{width:36px;height:36px;background:var(--primary);border-radius:10px;display:grid;place-items:center;font-size:18px;flex-shrink:0;}.logo-text{display:flex;flex-direction:column;line-height:1.1;}.logo-text-en{font-size:13px;font-weight:700;color:#FFFFFF;letter-spacing:.5px;}.logo-text-zh{font-size:11px;font-weight:400;color:rgba(255,255,255,.55);}
+    .header-search{flex:1;max-width:480px;position:relative;}.header-search input{width:100%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.2);border-radius:var(--radius-md);padding:8px 40px 8px 36px;font-size:14px;color:#fff;outline:none;transition:background .2s,border-color .2s;}.header-search input::placeholder{color:rgba(255,255,255,.5);}.header-search input:focus{background:rgba(255,255,255,.18);border-color:var(--primary);box-shadow:0 0 0 3px rgba(224,90,30,.25);}.header-search .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.45);font-size:15px;pointer-events:none;}.header-search .clear-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:16px;padding:2px 4px;display:none;transition:color .15s;}.header-search .clear-btn:hover{color:rgba(255,255,255,.8);}.header-search input:not(:placeholder-shown)~.clear-btn{display:block;}
+    .autocomplete{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);max-height:240px;overflow-y:auto;z-index:200;display:none;}.autocomplete.open{display:block;}.autocomplete-item{padding:10px 14px;cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px;transition:background .12s;}.autocomplete-item:hover,.autocomplete-item.focused{background:var(--primary-light);}.autocomplete-item .region-type{margin-left:auto;font-size:11px;color:var(--text-muted);}
+    .header-spacer{flex:1;}.lang-toggle{display:flex;background:rgba(255,255,255,.1);border-radius:8px;padding:3px;gap:2px;}.lang-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.5);font-size:12px;font-weight:600;padding:4px 10px;border-radius:6px;transition:background .15s,color .15s;}.lang-btn.active{background:var(--primary);color:#fff;}
+    .filter-bar{background:var(--surface);border-bottom:2px solid var(--border);padding:0 20px;height:48px;display:flex;align-items:center;gap:8px;overflow-x:auto;flex-shrink:0;scrollbar-width:none;}.filter-bar::-webkit-scrollbar{display:none;}.filter-label{font-size:12px;font-weight:600;color:var(--text-muted);white-space:nowrap;flex-shrink:0;}.filter-chip{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-size:12px;font-weight:600;color:var(--text-secondary);white-space:nowrap;flex-shrink:0;transition:all .15s;user-select:none;}.filter-chip:hover{border-color:var(--primary);color:var(--primary);}.filter-chip.active{color:#fff;border-color:transparent;}.filter-chip.no-data{opacity:0.45;cursor:default;pointer-events:none;}
+    .main{flex:1;display:grid;grid-template-columns:380px 1fr;overflow:hidden;}.sidebar{background:var(--bg);display:flex;flex-direction:column;overflow:hidden;border-right:2px solid var(--border);}.sidebar-header{padding:16px 20px 12px;background:var(--surface);border-bottom:2px solid var(--border-light);flex-shrink:0;}.result-count{font-size:13px;color:var(--text-secondary);}.result-count strong{color:var(--text);}
+    .venue-list{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;contain:layout style;will-change:scroll-position;}.venue-list::-webkit-scrollbar{width:4px;}.venue-list::-webkit-scrollbar-track{background:transparent;}.venue-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+    .venue-card{background:var(--surface);border-radius:var(--radius-md);padding:14px;border:none;cursor:pointer;transition:box-shadow .15s,transform .12s;box-shadow:var(--shadow-sm);contain:content;position:relative;}.venue-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px);}.venue-card.active{box-shadow:0 0 0 2px var(--primary),var(--shadow-md);}
+    .venue-card-top{display:flex;align-items:flex-start;gap:11px;}.venue-icon{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:20px;flex-shrink:0;}.venue-info{flex:1;min-width:0;}.venue-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}.venue-name-zh{font-size:12px;color:var(--text-secondary);margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;}.venue-meta{margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}.venue-tag{font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;display:inline-block;}.venue-address{font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}.venue-address svg{flex-shrink:0;}
+    .venue-actions{margin-top:10px;display:flex;gap:6px;}.btn-website{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--primary);background:var(--primary-light);border:none;border-radius:6px;padding:5px 10px;cursor:pointer;text-decoration:none;transition:background .15s;}.btn-website:hover{background:#fde0cd;}.btn-map{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--text-secondary);background:var(--bg);border:2px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;transition:background .15s,border-color .15s;}.btn-map:hover{border-color:var(--primary);color:var(--primary);}.btn-nav{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#fff;background:#4285F4;border:none;border-radius:6px;padding:5px 10px;cursor:pointer;text-decoration:none;transition:background .15s;}.btn-nav:hover{background:#3367D6;}
+    .load-more-btn{margin:8px 0 16px;width:100%;padding:10px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius-md);font-size:13px;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all .15s;}.load-more-btn:hover{border-color:var(--primary);color:var(--primary);}
+    .skeleton{background:linear-gradient(90deg,var(--bg) 25%,#f0f2f5 50%,var(--bg) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:6px;}@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}.skeleton-card{padding:14px;}
+    .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;gap:12px;}.empty-state-icon{font-size:48px;}.empty-state h3{font-size:16px;font-weight:600;color:var(--text);}.empty-state p{font-size:13px;color:var(--text-secondary);line-height:1.5;}.empty-suggestions{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px;}.empty-suggestion{background:var(--primary-light);color:var(--primary);border:none;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:500;cursor:pointer;transition:background .15s;}.empty-suggestion:hover{background:#fde0cd;}
+    #map{width:100%;height:100%;z-index:1;}.leaflet-popup-content-wrapper{border-radius:var(--radius-md)!important;box-shadow:var(--shadow-lg)!important;border:2px solid var(--border);padding:0!important;overflow:hidden;}.leaflet-popup-content{margin:0!important;width:260px!important;}.leaflet-popup-tip-container{margin-top:-1px;}
+    .popup-content{padding:14px;}.popup-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}.popup-icon{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:18px;flex-shrink:0;}.popup-name{font-size:14px;font-weight:700;color:var(--text);line-height:1.3;}.popup-name-zh{font-size:12px;color:var(--text-secondary);}.popup-address{font-size:12px;color:var(--text-muted);margin-bottom:10px;line-height:1.4;}.popup-website{display:block;text-align:center;background:var(--primary);color:white;border-radius:8px;padding:7px;font-size:12px;font-weight:600;text-decoration:none;transition:background .15s;}.popup-website:hover{background:var(--primary-dark);}
+    .map-marker{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35),0 0 0 1px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .2s;}.map-marker:hover{transform:rotate(-45deg) scale(1.3);z-index:1000!important;}.map-marker-inner{transform:rotate(45deg);font-size:14px;line-height:1;}
+    .map-overlay{position:absolute;inset:0;background:rgba(242,244,248,.85);backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:500;gap:12px;transition:opacity .3s;}.map-overlay.hidden{opacity:0;pointer-events:none;}.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;}@keyframes spin{to{transform:rotate(360deg);}}.map-overlay p{font-size:14px;color:var(--text-secondary);}.map-wrapper{position:relative;}
+    .toast{position:fixed;top:76px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:var(--radius-md);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);z-index:9999;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;}.toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+    .scroll-top-btn{position:absolute;bottom:18px;right:18px;width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;border:none;box-shadow:var(--shadow-md);cursor:pointer;font-size:18px;display:none;align-items:center;justify-content:center;z-index:50;transition:background .15s,transform .15s;}.scroll-top-btn:hover{background:var(--primary-dark);transform:scale(1.1);}.scroll-top-btn.visible{display:flex;}
+    .venue-detail-row{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);margin-top:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}.venue-detail-row a{color:var(--primary);text-decoration:none;}.venue-detail-row a:hover{text-decoration:underline;}
+    .category-summary{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}.category-summary-chip{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:500;padding:2px 7px;border-radius:10px;}
+    .filter-chip-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:9px;font-size:10px;font-weight:700;padding:0 5px;line-height:1;}.filter-chip:not(.active) .filter-chip-count{background:var(--bg);color:var(--text-secondary);}.filter-chip.active .filter-chip-count{background:rgba(255,255,255,.25);color:#fff;}
+    .venue-fav-btn{position:absolute;top:10px;right:10px;background:none;border:none;font-size:20px;cursor:pointer;opacity:0.5;transition:opacity .15s,transform .15s;line-height:1;padding:2px;z-index:2;}.venue-fav-btn:hover{opacity:0.8;}.venue-fav-btn.favorited{opacity:1;}.venue-fav-btn.bounce{animation:favBounce .35s ease;}@keyframes favBounce{0%{transform:scale(1);}40%{transform:scale(1.35);}100%{transform:scale(1);}}
+    .venue-distance{font-size:11px;color:var(--teal);font-weight:600;display:inline-flex;align-items:center;gap:3px;}
+    .venue-rating{font-size:11px;color:#B8860B;font-weight:600;display:inline-flex;align-items:center;gap:3px;margin-left:2px;}.venue-rating .rating-stars{color:#DAA520;letter-spacing:-1px;}.venue-rating .rating-num{color:#B8860B;}.venue-rating .rating-count{color:var(--text-muted);font-weight:400;}.detail-rating{display:flex;align-items:center;gap:8px;margin:8px 0 12px;padding:8px 12px;background:#FFFBF0;border:1px solid #F0E6CC;border-radius:var(--radius-sm);}.detail-rating-stars{font-size:18px;color:#DAA520;letter-spacing:-1px;}.detail-rating-num{font-size:16px;font-weight:700;color:#B8860B;}.detail-rating-count{font-size:12px;color:var(--text-muted);}.detail-rating-sep{color:var(--text-muted);font-size:14px;}.sort-control{display:inline-flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0;}.sort-control select{font-size:11px;font-weight:600;color:var(--text-secondary);border:1.5px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--surface);cursor:pointer;outline:none;}.sort-control select:focus{border-color:var(--primary);}.sort-control label{font-size:11px;color:var(--text-muted);white-space:nowrap;}
+    .nearme-btn{background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:8px;transition:color .15s,background .15s;flex-shrink:0;}.nearme-btn:hover{color:#fff;background:rgba(255,255,255,.1);}.nearme-btn.active{color:#4FC3F7;}
+    .autocomplete-item .venue-result-detail{font-size:11px;color:var(--text-muted);margin-left:4px;}.autocomplete-item .venue-emoji{font-size:16px;flex-shrink:0;}.autocomplete-section-label{padding:6px 14px 2px;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;}
+    @media(max-width:768px){.header-search{max-width:100%;}.logo-text{display:none;}}
+    .chat-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#F39C12);color:#fff;border:none;box-shadow:0 4px 16px rgba(224,90,30,.4);cursor:pointer;font-size:24px;display:flex;align-items:center;justify-content:center;z-index:9000;transition:transform .2s,box-shadow .2s;}.chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 24px rgba(224,90,30,.5);}.chat-fab.hidden{display:none;}
+    .chat-panel{position:fixed;bottom:24px;right:24px;width:380px;max-height:520px;background:var(--surface);border-radius:var(--radius-lg);box-shadow:0 12px 48px rgba(26,43,74,.25);z-index:9001;display:none;flex-direction:column;overflow:hidden;}.chat-panel.open{display:flex;}.chat-header{background:var(--navy);padding:14px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;}.chat-header-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--primary),#F39C12);border-radius:50%;display:grid;place-items:center;font-size:16px;}.chat-header-text{flex:1;color:#fff;font-size:14px;font-weight:700;}.chat-header-sub{color:rgba(255,255,255,.5);font-size:11px;font-weight:400;}.chat-close{background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;padding:4px;transition:color .15s;}.chat-close:hover{color:#fff;}
+    .chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:200px;max-height:340px;}.chat-messages::-webkit-scrollbar{width:4px;}.chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}.chat-msg{max-width:88%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.5;word-break:break-word;}.chat-msg.bot{background:var(--bg);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;}.chat-msg.user{background:var(--primary);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}.chat-msg.bot a{color:var(--primary);text-decoration:none;font-weight:600;}.chat-msg.bot a:hover{text-decoration:underline;}
+    .chat-venue-chip{display:inline-flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px 8px;margin:3px 2px;font-size:12px;cursor:pointer;transition:border-color .15s,background .15s;}.chat-venue-chip:hover{border-color:var(--primary);background:var(--primary-light);}
+    .chat-typing{align-self:flex-start;padding:10px 14px;background:var(--bg);border-radius:16px;border-bottom-left-radius:4px;display:flex;gap:4px;}.chat-typing span{width:6px;height:6px;background:var(--text-muted);border-radius:50%;animation:typingBounce .8s ease-in-out infinite;}.chat-typing span:nth-child(2){animation-delay:.15s;}.chat-typing span:nth-child(3){animation-delay:.3s;}@keyframes typingBounce{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-4px);}}
+    .chat-quick-actions{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 8px;}.chat-quick-btn{background:var(--primary-light);color:var(--primary);border:none;border-radius:16px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;}.chat-quick-btn:hover{background:#fde0cd;}
+    .chat-input-area{padding:12px 16px;border-top:2px solid var(--border-light);display:flex;gap:8px;flex-shrink:0;}.chat-input{flex:1;border:2px solid var(--border);border-radius:20px;padding:8px 14px;font-size:13px;color:var(--text);outline:none;font-family:inherit;transition:border-color .2s;}.chat-input:focus{border-color:var(--primary);}.chat-input::placeholder{color:var(--text-muted);}.chat-send{width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;}.chat-send:hover{background:var(--primary-dark);}
+    @media(max-width:768px){.chat-panel{width:calc(100vw - 24px);right:12px;bottom:12px;max-height:70vh;}.chat-fab{bottom:16px;right:16px;width:50px;height:50px;font-size:22px;}}
+    @media(max-width:768px){.main{grid-template-columns:1fr;grid-template-rows:1fr;position:relative;}.map-wrapper{order:-1;grid-row:1;grid-column:1;}.sidebar{position:fixed;bottom:0;left:0;right:0;z-index:800;border-radius:16px 16px 0 0;border-right:none;border-top:none;box-shadow:0 -4px 24px rgba(26,43,74,.18);transition:transform 0.3s cubic-bezier(.4,0,.2,1);max-height:90dvh;will-change:transform;}.bottom-sheet-handle{display:flex;justify-content:center;padding:10px 0 4px;cursor:grab;flex-shrink:0;}.bottom-sheet-handle::after{content:'';width:36px;height:4px;background:var(--border);border-radius:2px;}.bottom-sheet-handle:active{cursor:grabbing;}}@media(min-width:769px){.bottom-sheet-handle{display:none;}}
+    .venue-detail-panel{position:fixed;top:0;right:0;bottom:0;width:400px;background:var(--surface);box-shadow:-4px 0 24px rgba(26,43,74,.18);z-index:900;transform:translateX(100%);transition:transform 0.3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;}.venue-detail-panel.open{transform:translateX(0);}.detail-panel-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:2px solid var(--border-light);flex-shrink:0;}.detail-panel-close{background:none;border:none;cursor:pointer;font-size:22px;color:var(--text-secondary);padding:4px 8px;border-radius:8px;transition:background .15s;}.detail-panel-close:hover{background:var(--bg);}.detail-panel-body{flex:1;overflow-y:auto;padding:20px;}.detail-venue-icon{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:28px;margin-bottom:16px;}.detail-venue-name{font-size:20px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:4px;}.detail-venue-name-zh{font-size:15px;color:var(--text-secondary);margin-bottom:12px;}.detail-category-badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:16px;}.detail-info-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border-light);font-size:14px;color:var(--text);}.detail-info-row .detail-icon{font-size:16px;flex-shrink:0;width:20px;text-align:center;padding-top:1px;}.detail-info-row a{color:var(--primary);text-decoration:none;}.detail-info-row a:hover{text-decoration:underline;}.detail-actions{display:flex;flex-direction:column;gap:10px;margin-top:20px;}.detail-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:var(--radius-md);font-size:14px;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:background .15s,transform .1s;}.detail-btn:hover{transform:translateY(-1px);}.detail-btn:active{transform:translateY(0);}.detail-btn-website{background:var(--primary);color:#fff;}.detail-btn-website:hover{background:var(--primary-dark);}.detail-btn-navigate{background:#4285F4;color:#fff;}.detail-btn-navigate:hover{background:#3367D6;}.detail-btn-favorite{background:var(--bg);color:var(--text);border:2px solid var(--border);}.detail-btn-favorite:hover{border-color:var(--primary);color:var(--primary);}.detail-btn-favorite.favorited{background:#FEE2E2;color:#DC2626;border-color:#FECACA;}
+    @media(max-width:768px){.venue-detail-panel{width:100%;top:auto;bottom:0;max-height:90dvh;border-radius:16px 16px 0 0;transform:translateY(100%);}.venue-detail-panel.open{transform:translateY(0);}}
+    .age-filter-group{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:4px;padding-left:8px;border-left:2px solid var(--border-light);}.age-pill{display:flex;align-items:center;gap:3px;padding:4px 10px;border-radius:20px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-size:11px;font-weight:600;color:var(--text-secondary);white-space:nowrap;flex-shrink:0;transition:all .15s;user-select:none;}.age-pill:hover{border-color:var(--primary);color:var(--primary);}.age-pill.active{background:#7C3AED;color:#fff;border-color:#7C3AED;}
+    .weather-badge{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:rgba(255,255,255,.8);background:rgba(255,255,255,.1);border-radius:8px;padding:4px 10px;flex-shrink:0;white-space:nowrap;}.weather-banner{background:linear-gradient(135deg,#1e3a5f,#2d5a8e);color:#fff;padding:8px 20px;display:flex;align-items:center;gap:12px;font-size:13px;font-weight:500;flex-shrink:0;z-index:99;}.weather-banner-text{flex:1;}.weather-banner-btn{background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap;}.weather-banner-btn:hover{background:rgba(255,255,255,.3);}.weather-banner-close{background:none;border:none;color:rgba(255,255,255,.6);font-size:18px;cursor:pointer;padding:2px 6px;transition:color .15s;}.weather-banner-close:hover{color:#fff;}
+  
+    /* ── COUNTRY PICKER BUTTON ──────────────────── */
+    .country-btn {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: #fff;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background .15s;
+    }
+    .country-btn:hover { background: rgba(255,255,255,.18); }
+    .country-btn .cb-arrow { opacity: .5; font-size: 10px; }
+    .country-picker {
+      position: fixed; inset: 0; z-index: 11000;
+      background: rgba(0,0,0,.55);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .country-picker.open { opacity: 1; pointer-events: auto; }
+    .country-picker-panel {
+      background: var(--surface); border-radius: var(--radius-xl);
+      padding: 24px; width: 100%; max-width: 480px; max-height: 80vh;
+      overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,.3);
+    }
+    .cp-title { font-size: 16px; font-weight: 700; color: var(--text);
+      margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .cp-close { background: none; border: none; cursor: pointer;
+      font-size: 20px; color: var(--text-muted); line-height: 1; padding: 4px; }
+    .cp-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .cp-item { display: flex; flex-direction: column; align-items: center; gap: 6px;
+      background: var(--bg); border: 2px solid var(--border-light);
+      border-radius: var(--radius-md); padding: 14px 8px; cursor: pointer;
+      text-decoration: none; color: var(--text); transition: all .15s; text-align: center; }
+    .cp-item:hover { border-color: var(--primary); background: var(--primary-light); }
+    .cp-item.current { border-color: var(--primary); background: var(--primary-light); }
+    .cp-flag { font-size: 28px; } .cp-name { font-size: 11px; font-weight: 600; }
+    .cp-count { font-size: 10px; color: var(--text-muted); }
+    .fab-zoom { position: fixed; right: 14px; top: 50%; transform: translateY(-50%);
+      z-index: 8000; display: flex; flex-direction: column; gap: 4px; }
+    .fab-zoom-btn { width: 36px; height: 36px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 20px; font-weight: 300; cursor: pointer;
+      display: grid; place-items: center; color: var(--text);
+      box-shadow: var(--shadow-sm); transition: background .15s; line-height: 1; }
+    .fab-zoom-btn:hover { background: var(--bg); }
+    @media(max-width:768px){.fab-zoom{right:10px;top:45%}}
+  
+    /* ── EMPTY STATE NEAR ME BUTTON ─────────────────────── */
+    .empty-nearme-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin: 8px 0 4px;
+      padding: 10px 24px;
+      background: var(--primary);
+      color: #fff;
+      border: none; border-radius: 999px;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer;
+      transition: background .15s;
+      box-shadow: 0 2px 8px rgba(224,90,30,.3);
+    }
+    .empty-nearme-btn:hover { background: #c44e1a; }
+    @media (max-width: 768px) {
+      .empty-nearme-btn { font-size: 15px; padding: 12px 32px; }
+      .empty-suggestion { padding: 9px 14px; font-size: 13px; }
+    }
+
+    /* ── MOBILE-ONLY: hide cross-nav + filter bar, show action bar ──────── */
+    @media (max-width: 768px) {
+      #crossNav, .cross-nav { display: none !important; }
+      #filterBar { display: none; }
+      #filterBar.mobile-open {
+        display: block !important;
+        position: fixed;
+        top: 56px;
+        left: 0; right: 0;
+        z-index: 9500;
+        background: var(--surface);
+        border-bottom: 2px solid var(--border-light);
+        box-shadow: 0 6px 24px rgba(0,0,0,.2);
+        padding-bottom: 4px;
+      }
+      .mobile-filter-dimmer {
+        position: fixed; inset: 0;
+        z-index: 9499;
+        background: rgba(0,0,0,.3);
+      }
+      .mobile-action-bar {
+        display: flex;
+        gap: 8px;
+        padding: 8px 16px 6px;
+        border-bottom: 1px solid var(--border-light);
+      }
+      .mob-action-btn {
+        flex: 1;
+        padding: 7px 6px;
+        border-radius: 8px;
+        border: 1.5px solid var(--border);
+        background: var(--bg);
+        font-size: 12px; font-weight: 600;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all .15s;
+        text-align: center;
+      }
+      .mob-action-btn.active {
+        border-color: var(--primary);
+        background: var(--primary-light);
+        color: var(--primary);
+      }
+    }
+    @media (min-width: 769px) {
+      .mobile-action-bar { display: none !important; }
+      .mobile-filter-dimmer { display: none !important; }
+    }
+  </style>
+</head>
+<body><!-- kidsexplorer-back -->
+<style>#ke-back{position:fixed;top:14px;left:14px;z-index:99999;padding:8px 14px;background:rgba(255,255,255,.94);border:1px solid #e8e6dc;border-radius:999px;font-family:-apple-system,Inter,sans-serif;font-size:12px;font-weight:600;color:#141413;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.08);backdrop-filter:blur(8px);transition:all .15s}#ke-back:hover{background:#fff;border-color:#c96442;color:#c96442}</style>
+<a id="ke-back" href="https://kidsexplorer.eu/">← KidsExplorer</a>
+
+
+<div class="cross-nav">
+  <a href="https://xinaliu2134.github.io/nana-hub/holland-kids-explorer.html">Holland 🇳🇱</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/belgium-kids-explorer/">Belgium 🇧🇪</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/germany-kids-explorer/">Germany 🇩🇪</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/france-kids-explorer/">France 🇫🇷</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/portugal-kids-explorer/">Portugal 🇵🇹</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/spain-kids-explorer/">Spain 🇪🇸</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/italy-kids-explorer/">Italy 🇮🇹</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/uk-kids-explorer/">UK 🇬🇧</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/switzerland-kids-explorer/">Switzerland 🇨🇭</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/austria-kids-explorer/">Austria 🇦🇹</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/ireland-kids-explorer/">Ireland 🇮🇪</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <span class="active-site">Greece 🇬🇷</span>
+</div>
+
+<header>
+  <a class="logo" href="#" onclick="event.preventDefault(); resetHome();">
+    <div class="logo-icon">🧒</div>
+    <div class="logo-text">
+      <span class="logo-text-en">Norway Kids Explorer</span>
+      <span class="logo-text-zh">挪威亲子探索</span>
+    </div>
+  </a>
+  <div class="header-search">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Search venue or region... e.g. Oslo, Bergen" autocomplete="off">
+    <button class="clear-btn" id="clearBtn" onclick="clearSearch()">&#10005;</button>
+    <div class="autocomplete" id="autocomplete"></div>
+  </div>
+  <button class="nearme-btn" id="nearmeBtn" onclick="activateNearMe()" title="Near Me 我附近">📍</button>
+  <div class="weather-badge" id="weatherBadge" style="display:none;"></div>
+  <button class="country-btn" onclick="openCountryPicker()" aria-label="Switch country">
+    🇳🇴 <span class="cb-arrow">▾</span>
+  </button>
+
+    <div class="header-spacer"></div>
+  <div class="lang-toggle">
+    <button class="lang-btn active" data-lang="en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" data-lang="zh" onclick="setLang('zh')">中文</button>
+    <button class="lang-btn" data-lang="no" onclick="setLang('no')">NO</button>
+  </div>
+</header>
+
+<div class="weather-banner" id="weatherBanner" style="display:none;">
+  <span class="weather-banner-text" id="weatherBannerText"></span>
+  <button class="weather-banner-btn" id="weatherBannerBtn" onclick="filterIndoorWeather()"></button>
+  <button class="weather-banner-close" onclick="dismissWeatherBanner()">&times;</button>
+</div>
+
+<div class="filter-bar" id="filterBar"><span class="filter-label" id="filterLabel">Filter:</span></div>
+
+<div class="main">
+  <div class="toast" id="toast"></div>
+  <aside class="sidebar" id="sidebarSheet" style="position:relative;">
+    <div class="bottom-sheet-handle" id="bottomSheetHandle"></div>
+    <div class="sidebar-header">
+      <div class="result-count" id="resultCount" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span id="resultCountText">Search a region to discover kids venues</span>
+        <div class="sort-control" id="sortControl" style="display:none;"><label for="sortSelect">Sort:</label><select id="sortSelect" onchange="applySortOrder(this.value)"><option value="default">Default</option><option value="rating">Top rated</option><option value="name">A-Z</option></select></div>
+      </div>
+      <div class="category-summary" id="categorySummary"></div>
+    </div>
+    <!-- Mobile action bar (hidden on desktop via CSS) -->
+    <div class="mobile-action-bar" id="mobileActionBar">
+      <button class="mob-action-btn" id="mobFavBtn" onclick="toggleMobileFavs()">♡ Favs</button>
+      <button class="mob-action-btn" id="mobCatBtn" onclick="toggleMobileFilter()">🏷 Category</button>
+      <button class="mob-action-btn" id="mobSortBtn" onclick="toggleMobileSort()">⇅ Sort</button>
+    </div>
+    <div class="empty-state" id="emptyState">
+      <div class="empty-state-icon">🗺️</div>
+      <h3 id="emptyTitle">Explore Norway</h3>
+      <p id="emptyDesc">Search a city or region to find museums, playgrounds, fjords, theme parks and more.</p>
+      <button class="empty-nearme-btn" onclick="activateNearMe()">📍 Near me</button>
+      <div class="empty-suggestions">
+        <button class="empty-suggestion" onclick="searchRegion('Oslo')">Oslo</button>
+        <button class="empty-suggestion" onclick="searchRegion('Bergen')">Bergen</button>
+        <button class="empty-suggestion" onclick="searchRegion('Trondheim')">Trondheim</button>
+        <button class="empty-suggestion" onclick="searchRegion('Stavanger')">Stavanger</button>
+        <button class="empty-suggestion" onclick="searchRegion('Tromsø')">Tromsø</button>
+      </div>
+    </div>
+    <div class="venue-list" id="venueList" style="display:none"></div>
+    <button class="scroll-top-btn" id="scrollTopBtn" title="Scroll to top">&#8593;</button>
+  </aside>
+  <div class="map-list-toggle" id="mapListToggle">
+    <button class="map-list-btn active" id="mapToggleBtn" onclick="setMobileView('map')">🗺 Map</button>
+    <button class="map-list-btn" id="listToggleBtn" onclick="setMobileView('list')">📋 List</button>
+  </div>
+    <div class="map-wrapper">
+    <div id="map"></div>
+    <div class="map-overlay hidden" id="mapOverlay"><div class="spinner"></div><p id="loadingText">Loading venues...</p><p id="loadingHint" style="font-size:12px;color:var(--text-muted);margin-top:4px;"></p></div>
+  </div>
+</div>
+
+<div class="venue-detail-panel" id="venueDetailPanel"><div class="detail-panel-header"><span style="font-weight:700;font-size:15px;" id="detailPanelTitle">Venue Details</span><button class="detail-panel-close" onclick="closeDetailPanel()">&times;</button></div><div class="detail-panel-body" id="detailPanelBody"></div></div>
+
+<button class="chat-fab" id="chatFab" onclick="toggleChat(true)" title="AI Assistant">🧸</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header"><div class="chat-header-icon">🧸</div><div><div class="chat-header-text">Kids Explorer AI</div><div class="chat-header-sub" id="chatSubtitle">智能亲子出行助手</div></div><button class="chat-close" onclick="toggleChat(false)">&#10005;</button></div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-quick-actions" id="chatQuickActions"></div>
+  <div class="chat-input-area"><input class="chat-input" id="chatInput" placeholder="Describe what you need... e.g. beach near Athens, kids age 5" autocomplete="off"><button class="chat-send" id="chatSend" onclick="handleChatSend()">&#10148;</button></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" integrity="sha384-pmjIAcz2bAn0xukfxADbZIb3t8oRT9Sv0rvO+BR5Csr6Dhqq+nZs59P0pPKQJkEV" crossorigin="anonymous">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" integrity="sha384-wgw+aLYNQ7dlhK47ZPK7FRACiq7ROZwgFNg0m04avm4CaXS+Z9Y7nMu8yNjBKYC+" crossorigin="anonymous">
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
+<style>.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background:rgba(224,90,30,.15)!important;}.marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background:var(--primary)!important;color:#fff!important;font-weight:700!important;font-family:'Inter',system-ui,sans-serif!important;}</style>
+<script>
+const LANG = { current: 'en' };
+const T = {
+  en: { filterLabel:'Category:',allLabel:'All',searching:'Searching... (may take 10-40s)',loadingVenues:'Loading venues...',loadingHint:'Querying OpenStreetMap, usually 10-40s',found:(n,region)=>`<strong>${n}</strong> venues in <strong>${region}</strong>`,notFound:'No venues found. Try a different region.',emptyTitle:'Explore Norway',emptyDesc:'Search a city or region to find museums, playgrounds, fjords, theme parks and more.',noWebsite:'No website',website:'🔗 Official Website',navigate:'🧭 Navigate',flyTo:'📍 Show on map',loadMore:'Load more',regionNotFound:'Region not found. Try a Norwegian city or region name.',searchPlaceholder:'Search venue or region... e.g. Acropolis, Athens',resultLabel:'Search a region to discover kids venues',favoritesLabel:'Favorites',nearMe:'Near Me',nearMeSearching:'Getting your location...',nearMePermDenied:'Location access denied. Enable it in browser settings to use Near Me.',nearMeError:'Could not get your location. Please try again.',weatherBannerText:'Hot day? Try indoor activities!',weatherBannerBtn:'Show indoor venues',searchRegionFirst:'Search a region first',searchRegionFirstDesc:(c)=>`Type a city or region in the search bar above, then filter by "${c}"`,browseCategory:(c)=>`Search a region to browse ${c}`,browseCategoryDesc:'Type a city or region above - results will be filtered to this category.',noInRegion:(c,r)=>`No ${c} in ${r}`,tryOtherCategory:'Try a different category or search another region.',venuesSection:'Venues',regionsSection:'Regions',nearMeLocationType:'Location',featuredRegion:'Featured Norway Venues',allCountry:'All Norway',allCountryCat:(c)=>`${c} - All Greece`,yourLocation:'Your location',sortedByDistance:'Sorted by distance',showingIndoor:'Showing indoor venues',venueDetails:'Venue Details',visitWebsite:'Visit Website',navigateTo:'Navigate',favorited:'Favorited',addFavorite:'Add to Favorites' },
+  zh: { filterLabel:'种类：',allLabel:'全部',searching:'搜索中... (通常需要10-40秒)',loadingVenues:'正在加载场地...',loadingHint:'正在查询 OpenStreetMap，通常需要 10-40 秒',found:(n,region)=>`<strong>${region}</strong> 共找到 <strong>${n}</strong> 个亲子场地`,notFound:'未找到相关场地，请尝试其他地区。',emptyTitle:'探索挪威亲子场地',emptyDesc:'在上方搜索城市或地区，找到挪威亲子活动场所。',noWebsite:'暂无官网',website:'🔗 官方网站',navigate:'🧭 导航',flyTo:'📍 在地图上显示',loadMore:'加载更多',regionNotFound:'未找到该地区，请输入挪威城市或地区名称。',searchPlaceholder:'搜索场地或地区... 如 雅典, Athens',resultLabel:'搜索地区以发现亲子场地',favoritesLabel:'收藏',nearMe:'我附近',nearMeSearching:'正在获取位置...',nearMePermDenied:'位置访问被拒绝，请在浏览器设置中允许以使用"我附近"功能。',nearMeError:'无法获取位置，请重试。',weatherBannerText:'大热天？试试室内活动！',weatherBannerBtn:'查看室内场地',searchRegionFirst:'请先搜索地区',searchRegionFirstDesc:(c)=>`在上方搜索框输入城市或地区，再按「${c}」筛选`,browseCategory:(c)=>`搜索地区，查看全部${c}`,browseCategoryDesc:'在上方搜索框输入城市或地区，立即筛选该种类',noInRegion:(c,r)=>`${r} 暂无${c}`,tryOtherCategory:'试试其他分类，或搜索其他地区。',venuesSection:'场地',regionsSection:'地区',nearMeLocationType:'定位',featuredRegion:'挪威精选场地',allCountry:'挪威全境',allCountryCat:(c)=>`${c} - 希腊全境`,yourLocation:'你的位置',sortedByDistance:'已按距离排序',showingIndoor:'已筛选室内活动场地',venueDetails:'场地详情',visitWebsite:'访问官方网站',navigateTo:'导航前往',favorited:'已收藏',addFavorite:'收藏' },
+  no: { filterLabel:'Kategori:',allLabel:'Alle',searching:'Søker... (10-40s)',loadingVenues:'Loading...',loadingHint:'Loading...',found:(n,region)=>`<strong>${n}</strong> venues in <strong>${region}</strong>`,notFound:'Ingen resultater. Prøv et annet område.',emptyTitle:'Utforsk Norge',emptyDesc:'Søk et område eller by ovenfor for å finne steder for barn.',noWebsite:'Ingen nettside',website:'🔗 Offisiell nettside',navigate:'🧭 Navigasjon',flyTo:'📍 Vis på kart',loadMore:'Last inn flere',regionNotFound:'Regionen ikke funnet. Prøv en norsk by.',searchPlaceholder:'Søk... f.eks. Oslo, Bergen',resultLabel:'Søk et område for å finne barnvennlige steder',favoritesLabel:'Favorites',nearMe:'I nærheten',nearMeSearching:'Henter posisjon...',nearMePermDenied:'Posisjonstilgang avvist.',nearMeError:'Kan ikke hente posisjon.',weatherBannerText:'Varmt vær? Prøv innendørsaktiviteter!',weatherBannerBtn:'Vis innendørssteder',searchRegionFirst:'Søk et område først',searchRegionFirstDesc:(c)=>`Search above, then filter by: "${c}"`  ,browseCategory:(c)=>`${c}`,browseCategoryDesc:'Search above.',noInRegion:(c,r)=>`No ${c} in ${r}`,tryOtherCategory:'Try another category.',venuesSection:'Venues',regionsSection:'Regions',nearMeLocationType:'Location',featuredRegion:'Anbefalte steder i Norge',allCountry:'Hele Norge',allCountryCat:(c)=>`${c}`,yourLocation:'Your location',sortedByDistance:'Sorted by distance',showingIndoor:'Showing indoor venues',venueDetails:'Venue Details',visitWebsite:'Visit Website',navigateTo:'Navigate',favorited:'Favorited',addFavorite:'Add to Favorites' }
+};
+const CATEGORIES = [
+  { id:'museum',emoji:'🏛️',color:'#4ECDC4',bg:'#E8FAF8',en:'Museum',zh:'博物馆',no:'', nl:'',tags:{tourism:['museum','gallery']}},
+  { id:'aquarium',emoji:'🐠',color:'#0077B6',bg:'#E0F4FF',en:'Aquarium',zh:'水族馆',no:'', nl:'',tags:{tourism:['aquarium']}},
+  { id:'zoo',emoji:'🦁',color:'#82B74B',bg:'#EEF7E6',en:'Zoo',zh:'动物园',no:'', nl:'',tags:{tourism:['zoo']}},
+  { id:'children_farm',emoji:'🐑',color:'#A0C878',bg:'#F0F7E6',en:"Children's Farm",zh:'儿童农场',no:'', nl:'',tags:{tourism:['children_farm']}},
+  { id:'theme_park',emoji:'🎡',color:'#E05A1E',bg:'#FFF0E9',en:'Theme Park',zh:'主题公园',no:'', nl:'',tags:{tourism:['theme_park'],leisure:['water_park','amusement_arcade']}},
+  { id:'indoor_playground',emoji:'🏠',color:'#FF6B35',bg:'#FFF0E9',en:'Indoor Play',zh:'室内游乐场',no:'', nl:'',tags:{leisure:['indoor_playground']}},
+  { id:'playground',emoji:'🛝',color:'#F7DC6F',bg:'#FEFCE8',en:'Playground',zh:'游乐场',no:'', nl:'',tags:{leisure:['playground']}},
+  { id:'beach',emoji:'🏖️',color:'#0EA5A0',bg:'#E0F7F6',en:'Beach',zh:'海滩',no:'', nl:'',tags:{natural:['beach']}},
+  { id:'nature',emoji:'🌳',color:'#27AE60',bg:'#E8F8EE',en:'Nature & Park',zh:'自然公园',no:'', nl:'',tags:{leisure:['nature_reserve','park','miniature_golf','marina']}},
+  { id:'historic',emoji:'🏰',color:'#8B6914',bg:'#F5EDD5',en:'Historic',zh:'历史古迹',no:'', nl:'',tags:{historic:['castle','monument','fort','ruins','windmill','ship']}},
+  { id:'sports',emoji:'⛸️',color:'#6C5CE7',bg:'#F0EEFF',en:'Sports',zh:'运动场',no:'', nl:'',tags:{leisure:['ice_rink','swimming_pool','sports_centre']}},
+  { id:'theatre',emoji:'🎭',color:'#E84393',bg:'#FEE9F4',en:'Theatre & Cinema',zh:'剧院影院',no:'', nl:'',tags:{amenity:['theatre','cinema','arts_centre']}},
+  { id:'visitor',emoji:'🔭',color:'#0369A1',bg:'#E0F2FE',en:'Visitor Centre',zh:'游客中心',no:'', nl:'',tags:{tourism:['visitor_centre']}},
+  { id:'attraction',emoji:'⭐',color:'#F39C12',bg:'#FEF5E7',en:'Attraction',zh:'景点',no:'', nl:'',tags:{tourism:['attraction']}},
+  { id:'chinese_restaurant',emoji:'🥡',color:'#E74C3C',bg:'#FADBD8',en:'Chinese Restaurant',zh:'中餐厅',no:'', nl:'',tags:{amenity:['chinese_restaurant']}},
+  { id:'buffet',emoji:'🍱',color:'#8E44AD',bg:'#F4ECF7',en:'Buffet / All-You-Can-Eat',zh:'自助餐',no:'', nl:'',tags:{amenity:['buffet_restaurant']}},
+];
+const NO_REGIONS = [
+  {name:'Oslo',nameZh:'奥斯陆',type:'city'},
+  {name:'Bergen',nameZh:'卑尔根',type:'city'},
+  {name:'Trondheim',nameZh:'特隆赫姆',type:'city'},
+  {name:'Stavanger',nameZh:'斯塔万格',type:'city'},
+  {name:'Tromsø',nameZh:'特罗姆瑟',type:'city'},
+  {name:'Kristiansand',nameZh:'克里斯蒂安桑',type:'city'},
+  {name:'Ålesund',nameZh:'奥勒松',type:'city'},
+  {name:'Drammen',nameZh:'德拉门',type:'city'},
+  {name:'Viken',type:'province'},
+  {name:'Vestland',type:'province'},
+  {name:'Trøndelag',type:'province'},
+];
+const STATIC_NO_VENUES = [
+{type:'node',id:2001,lat:59.9139,lon:10.7522,tags:{nameZh:'奥斯陆弗罗格纳公园',name:'Vigeland Sculpture Park Oslo',tourism:'attraction',website:'https://www.vigeland.museum.no','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'34521'}},
+{type:'node',id:2002,lat:59.9171,lon:10.7276,tags:{nameZh:'奥斯陆阿克苏斯城堡',name:'Akershus Fortress Oslo',tourism:'museum',website:'https://www.forsvarsbygg.no','addr:city':'Oslo',opening_hours:'Mo-Su 08:00-21:00',rating:'4.4',reviews:'18342'}},
+{type:'node',id:2003,lat:59.9095,lon:10.7230,tags:{nameZh:'奥斯陆歌剧院',name:'Oslo Opera House',tourism:'attraction',website:'https://www.operaen.no','addr:city':'Oslo',opening_hours:'Mo-Fr 10:00-20:00, Sa-Su 11:00-18:00',rating:'4.6',reviews:'28431'}},
+{type:'node',id:2004,lat:59.9025,lon:10.6971,tags:{nameZh:'奥斯陆弗兰姆博物馆',name:'Fram Museum Oslo',tourism:'museum',website:'https://www.frammuseum.no','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'14231'}},
+{type:'node',id:2005,lat:59.9019,lon:10.6953,tags:{nameZh:'奥斯陆康提基博物馆',name:'Kon-Tiki Museum Oslo',tourism:'museum',website:'https://www.kon-tiki.no','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'12841'}},
+{type:'node',id:2006,lat:59.9271,lon:10.6994,tags:{nameZh:'奥斯陆动物园',name:'Oslo Zoo Frognerparken',tourism:'zoo','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.1',reviews:'8421'}},
+{type:'node',id:2007,lat:59.9290,lon:10.7350,tags:{nameZh:'奥斯陆自然历史博物馆',name:'Natural History Museum Oslo',tourism:'museum',website:'https://www.nhm.uio.no','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-16:00',rating:'4.3',reviews:'7842'}},
+{type:'node',id:2008,lat:59.8933,lon:10.6253,tags:{nameZh:'科伦水上乐园',name:'Tusenfryd Amusement Park',tourism:'theme_park',website:'https://www.tusenfryd.no','addr:city':'Vinterbro',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.2',reviews:'24312'}},
+{type:'node',id:2009,lat:59.9202,lon:10.7251,tags:{nameZh:'奥斯陆儿童艺术博物馆',name:'International Children\'s Art Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.2',reviews:'3421'}},
+{type:'node',id:2010,lat:59.9082,lon:10.7603,tags:{nameZh:'奥斯陆市政厅',name:'Oslo City Hall',tourism:'museum',website:'https://www.oslo.kommune.no','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-18:00',rating:'4.1',reviews:'12341'}},
+{type:'node',id:2011,lat:59.8739,lon:10.5938,tags:{nameZh:'奥斯陆冬季公园',name:'Slottsfjell Oslo Ski Area',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-17:00 (winter)',rating:'4.3',reviews:'6842'}},
+{type:'node',id:2012,lat:59.9148,lon:10.7553,tags:{nameZh:'奥斯陆儿童游乐场',name:'Spikersuppa Playground Oslo',tourism:'playground','addr:city':'Oslo',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'3241'}},
+{type:'node',id:2013,lat:59.9043,lon:10.7182,tags:{nameZh:'奥斯陆室内游乐中心',name:'Eventyrland Indoor Play Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-19:00',rating:'4.1',reviews:'4521'}},
+{type:'node',id:2014,lat:59.9219,lon:10.6947,tags:{nameZh:'奥斯陆游泳中心',name:'Frognerbadet Swimming Pool Oslo',tourism:'swimming_pool',website:'https://www.oslo.kommune.no','addr:city':'Oslo',opening_hours:'Mo-Su 07:00-20:00 (seasonal)',rating:'4.3',reviews:'8421'}},
+{type:'node',id:2015,lat:59.9088,lon:10.7469,tags:{nameZh:'奥斯陆密室逃脱',name:'Escape Oslo',tourism:'escape_room',website:'https://www.escape.no','addr:city':'Oslo',opening_hours:'Mo-Su 11:00-23:00',rating:'4.5',reviews:'3241'}},
+{type:'node',id:2016,lat:59.9131,lon:10.7497,tags:{nameZh:'奥斯陆保龄球',name:'Bowlero Oslo',tourism:'bowling','addr:city':'Oslo',opening_hours:'Mo-Su 12:00-24:00',rating:'4.0',reviews:'2841'}},
+{type:'node',id:2017,lat:59.9264,lon:10.7177,tags:{nameZh:'奥斯陆科技博物馆',name:'Norwegian Museum of Science and Technology',tourism:'science_center',website:'https://www.tekniskmuseum.no','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'9821'}},
+{type:'node',id:2018,lat:59.9133,lon:10.7596,tags:{nameZh:'奥斯陆国家剧院',name:'National Theatre Oslo',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Sa 10:00-20:00',rating:'4.4',reviews:'7342'}},
+{type:'node',id:2019,lat:59.9089,lon:10.7282,tags:{nameZh:'奥斯陆海盗船博物馆',name:'Viking Ship Museum Oslo',tourism:'museum',website:'https://www.khm.uio.no','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-18:00',rating:'4.7',reviews:'32841'}},
+{type:'node',id:2020,lat:59.9118,lon:10.7334,tags:{nameZh:'奥斯陆民俗博物馆',name:'Norwegian Folk Museum Oslo',tourism:'museum',website:'https://www.norskfolkemuseum.no','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'14321'}},
+{type:'node',id:2021,lat:59.9283,lon:10.7521,tags:{nameZh:'圣母玛利亚公园游乐场',name:'Olaf Ryes Plass Playground Oslo',tourism:'playground','addr:city':'Oslo',opening_hours:'Mo-Su 07:00-22:00',rating:'4.0',reviews:'1842'}},
+{type:'node',id:2022,lat:59.9394,lon:10.7282,tags:{nameZh:'奥斯陆儿童农场',name:'Tiurleiken Children\'s Farm Oslo',tourism:'children_farm','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.2',reviews:'2341'}},
+{type:'node',id:2023,lat:59.9183,lon:10.7327,tags:{nameZh:'奥斯陆皇宫公园',name:'Palace Park Oslo',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'12341'}},
+{type:'node',id:2024,lat:59.9451,lon:10.6183,tags:{nameZh:'霍尔门科伦滑雪博物馆',name:'Holmenkollen Ski Museum',tourism:'museum',website:'https://www.holmenkollen.com','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'18342'}},
+{type:'node',id:2025,lat:59.9462,lon:10.6199,tags:{nameZh:'霍尔门科伦滑雪跳台',name:'Holmenkollen Ski Jump Tower',tourism:'attraction',website:'https://www.holmenkollen.com','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'22341'}},
+{type:'node',id:2026,lat:60.3929,lon:5.3221,tags:{nameZh:'卑尔根布里根',name:'Bryggen Wharf Bergen',tourism:'attraction',website:'https://www.visitbergen.com','addr:city':'Bergen',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'42341'}},
+{type:'node',id:2027,lat:60.3981,lon:5.3286,tags:{nameZh:'卑尔根水族馆',name:'Bergen Aquarium',tourism:'aquarium',website:'https://www.akvariet.no','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'14321'}},
+{type:'node',id:2028,lat:60.3950,lon:5.3270,tags:{nameZh:'卑尔根弗洛伊恩山缆车',name:'Fløibanen Funicular Bergen',tourism:'attraction',website:'https://www.floibanen.no','addr:city':'Bergen',opening_hours:'Mo-Su 07:30-23:00',rating:'4.8',reviews:'34521'}},
+{type:'node',id:2029,lat:60.3902,lon:5.3262,tags:{nameZh:'卑尔根汉萨博物馆',name:'Hanseatic Museum Bergen',tourism:'museum',website:'https://www.khm.uio.no','addr:city':'Bergen',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'8342'}},
+{type:'node',id:2030,lat:60.3866,lon:5.3307,tags:{nameZh:'卑尔根儿童博物馆',name:'Children\'s Museum Bergen',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2031,lat:60.3876,lon:5.3315,tags:{nameZh:'卑尔根自然历史博物馆',name:'University Museum of Bergen',tourism:'museum',website:'https://www.uib.no/en/universitymuseum','addr:city':'Bergen',opening_hours:'Tu-Su 11:00-15:00',rating:'4.3',reviews:'5421'}},
+{type:'node',id:2032,lat:60.4072,lon:5.3146,tags:{nameZh:'卑尔根游泳中心',name:'Fana Swim Club Bergen',tourism:'swimming_pool','addr:city':'Bergen',opening_hours:'Mo-Fr 07:00-21:00, Sa-Su 09:00-18:00',rating:'4.1',reviews:'2841'}},
+{type:'node',id:2033,lat:60.3938,lon:5.3274,tags:{nameZh:'卑尔根室内游乐场',name:'VilVite Bergen Science Center',tourism:'science_center',website:'https://www.vilvite.no','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'9841'}},
+{type:'node',id:2034,lat:60.4014,lon:5.3181,tags:{nameZh:'卑尔根密室逃脱',name:'Escape Bergen',tourism:'escape_room','addr:city':'Bergen',opening_hours:'Mo-Su 11:00-22:00',rating:'4.4',reviews:'2341'}},
+{type:'node',id:2035,lat:60.3921,lon:5.3242,tags:{nameZh:'卑尔根儿童游乐场',name:'Verftet Playground Bergen',tourism:'playground','addr:city':'Bergen',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'1842'}},
+{type:'node',id:2036,lat:63.4297,lon:10.3930,tags:{nameZh:'特隆赫姆尼达罗斯大教堂',name:'Nidaros Cathedral Trondheim',tourism:'museum',website:'https://www.nidarosdomen.no','addr:city':'Trondheim',opening_hours:'Mo-Fr 09:00-18:00, Sa 09:00-14:00, Su 13:00-16:00',rating:'4.7',reviews:'24321'}},
+{type:'node',id:2037,lat:63.4265,lon:10.3811,tags:{nameZh:'特隆赫姆自然历史博物馆',name:'NTNU Natural History Museum Trondheim',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2038,lat:63.4285,lon:10.3967,tags:{nameZh:'特隆赫姆科技博物馆',name:'Vitenskapsmuseet Trondheim',tourism:'science_center','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-16:00',rating:'4.3',reviews:'5421'}},
+{type:'node',id:2039,lat:63.4322,lon:10.4019,tags:{nameZh:'特隆赫姆游乐场',name:'Lerkendal Park Playground Trondheim',tourism:'playground','addr:city':'Trondheim',opening_hours:'Mo-Su 07:00-22:00',rating:'3.9',reviews:'1241'}},
+{type:'node',id:2040,lat:63.4239,lon:10.3869,tags:{nameZh:'特隆赫姆儿童乐园',name:'Trondheim Children\'s Museum',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-16:00',rating:'4.1',reviews:'3241'}},
+{type:'node',id:2041,lat:63.4411,lon:10.4100,tags:{nameZh:'特隆赫姆游泳馆',name:'Pirbadet Aquapark Trondheim',tourism:'swimming_pool',website:'https://www.pirbadet.no','addr:city':'Trondheim',opening_hours:'Mo-Fr 07:00-21:30, Sa-Su 09:00-18:00',rating:'4.4',reviews:'7841'}},
+{type:'node',id:2042,lat:63.4294,lon:10.3944,tags:{nameZh:'特隆赫姆密室逃脱',name:'Epic Escape Trondheim',tourism:'escape_room','addr:city':'Trondheim',opening_hours:'Mo-Su 12:00-22:00',rating:'4.4',reviews:'2341'}},
+{type:'node',id:2043,lat:63.4307,lon:10.3973,tags:{nameZh:'特隆赫姆保龄球',name:'Bolgen Bowling Trondheim',tourism:'bowling','addr:city':'Trondheim',opening_hours:'Mo-Su 12:00-24:00',rating:'4.0',reviews:'2141'}},
+{type:'node',id:2044,lat:58.9700,lon:5.7328,tags:{nameZh:'斯塔万格罐头食品博物馆',name:'Norwegian Canning Museum Stavanger',tourism:'museum',website:'https://www.saf-museum.no','addr:city':'Stavanger',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'6341'}},
+{type:'node',id:2045,lat:58.9744,lon:5.7310,tags:{nameZh:'斯塔万格石油博物馆',name:'Norwegian Petroleum Museum Stavanger',tourism:'museum',website:'https://www.norskolje.museum.no','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'18342'}},
+{type:'node',id:2046,lat:58.9760,lon:5.7283,tags:{nameZh:'斯塔万格儿童博物馆',name:'Stavanger Children\'s Museum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 11:00-16:00',rating:'4.1',reviews:'3421'}},
+{type:'node',id:2047,lat:58.9822,lon:5.7419,tags:{nameZh:'斯塔万格游泳馆',name:'Stavanger Aquapark',tourism:'swimming_pool','addr:city':'Stavanger',opening_hours:'Mo-Fr 07:00-21:00, Sa-Su 09:00-18:00',rating:'4.2',reviews:'4341'}},
+{type:'node',id:2048,lat:58.9701,lon:5.7364,tags:{nameZh:'斯塔万格老城',name:'Stavanger Old Town',tourism:'attraction','addr:city':'Stavanger',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'14321'}},
+{type:'node',id:2049,lat:58.9750,lon:5.7350,tags:{nameZh:'斯塔万格儿童游乐场',name:'Mosvatnet Park Playground Stavanger',tourism:'playground','addr:city':'Stavanger',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'1841'}},
+{type:'node',id:2050,lat:58.9670,lon:5.7241,tags:{nameZh:'斯塔万格动物园',name:'Stavanger Zoo',tourism:'zoo','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-17:00',rating:'4.1',reviews:'5341'}},
+{type:'node',id:2051,lat:58.9718,lon:5.7312,tags:{nameZh:'斯塔万格科技博物馆',name:'Vitenfabrikken Science Center Stavanger',tourism:'science_center','addr:city':'Stavanger',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'7842'}},
+{type:'node',id:2052,lat:58.9688,lon:5.7397,tags:{nameZh:'斯塔万格密室逃脱',name:'Stavanger Escape Room',tourism:'escape_room','addr:city':'Stavanger',opening_hours:'Mo-Su 11:00-22:00',rating:'4.4',reviews:'1841'}},
+{type:'node',id:2053,lat:59.9120,lon:10.7513,tags:{nameZh:'奥斯陆波佩萨游泳池',name:'Tøyenbadet Outdoor Pool Oslo',tourism:'swimming_pool','addr:city':'Oslo',opening_hours:'Mo-Su 07:00-20:00 (seasonal)',rating:'4.1',reviews:'6342'}},
+{type:'node',id:2054,lat:59.9283,lon:10.7191,tags:{nameZh:'奥斯陆儿童科学馆',name:'VitenParken Science Center Oslo',tourism:'science_center','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'8342'}},
+{type:'node',id:2055,lat:59.9153,lon:10.7582,tags:{nameZh:'奥斯陆港口游船',name:'Oslo Fjord Cruise',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'12841'}},
+{type:'node',id:2056,lat:59.9181,lon:10.7431,tags:{nameZh:'奥斯陆蹦床公园',name:'Airborne Trampoline Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-21:00',rating:'4.3',reviews:'5421'}},
+{type:'node',id:2057,lat:59.9051,lon:10.7344,tags:{nameZh:'奥斯陆儿童博物馆',name:'Norwegian Children\'s Museum',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-16:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2058,lat:59.9341,lon:10.7283,tags:{nameZh:'奥斯陆自然保护区',name:'Ekebergparken Nature Oslo',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'9341'}},
+{type:'node',id:2059,lat:59.9061,lon:10.7181,tags:{nameZh:'奥斯陆中国城餐厅',name:'China Garden Oslo',amenity:'chinese_restaurant','addr:city':'Oslo',opening_hours:'Mo-Su 12:00-22:00',rating:'4.0',reviews:'2341'}},
+{type:'node',id:2060,lat:59.9091,lon:10.7211,tags:{nameZh:'奥斯陆龙宫',name:'Dragon Palace Oslo',amenity:'chinese_restaurant','addr:city':'Oslo',opening_hours:'Mo-Su 12:00-22:00',rating:'4.1',reviews:'1841'}},
+{type:'node',id:2061,lat:59.9073,lon:10.7291,tags:{nameZh:'奥斯陆自助餐',name:'Asian Buffet Oslo',amenity:'buffet_restaurant','addr:city':'Oslo',opening_hours:'Mo-Su 11:00-22:00',rating:'3.9',reviews:'2141'}},
+{type:'node',id:2062,lat:60.3982,lon:5.3243,tags:{nameZh:'卑尔根蹦床公园',name:'Jump Bergen Trampoline',tourism:'indoor_play','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-21:00',rating:'4.2',reviews:'3421'}},
+{type:'node',id:2063,lat:60.3938,lon:5.3192,tags:{nameZh:'卑尔根儿童农场',name:'Gullgruven Children\'s Farm Bergen',tourism:'children_farm','addr:city':'Bergen',opening_hours:'Sa-Su 10:00-17:00',rating:'4.1',reviews:'1841'}},
+{type:'node',id:2064,lat:60.4041,lon:5.3122,tags:{nameZh:'卑尔根保龄球',name:'Alrek Bowling Bergen',tourism:'bowling','addr:city':'Bergen',opening_hours:'Mo-Su 12:00-24:00',rating:'3.9',reviews:'2341'}},
+{type:'node',id:2065,lat:69.6492,lon:18.9553,tags:{nameZh:'特罗姆瑟北极博物馆',name:'Polar Museum Tromsø',tourism:'museum',website:'https://www.uit.no/polarmuseum','addr:city':'Tromsø',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'8342'}},
+{type:'node',id:2066,lat:69.6476,lon:18.9589,tags:{nameZh:'特罗姆瑟北极星缆车',name:'Fjellheisen Cable Car Tromsø',tourism:'attraction',website:'https://www.fjellheisen.no','addr:city':'Tromsø',opening_hours:'Mo-Su 10:00-23:00',rating:'4.7',reviews:'22341'}},
+{type:'node',id:2067,lat:69.6521,lon:18.9411,tags:{nameZh:'特罗姆瑟北极水族馆',name:'Polaria Arctic Aquarium Tromsø',tourism:'aquarium',website:'https://www.polaria.no','addr:city':'Tromsø',opening_hours:'Mo-Su 10:00-19:00',rating:'4.5',reviews:'12341'}},
+{type:'node',id:2068,lat:69.6556,lon:18.9638,tags:{nameZh:'特罗姆瑟科学中心',name:'Tromsø Science Centre',tourism:'science_center','addr:city':'Tromsø',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'5421'}},
+{type:'node',id:2069,lat:69.6473,lon:18.9633,tags:{nameZh:'特罗姆瑟儿童游乐场',name:'Storgata Playground Tromsø',tourism:'playground','addr:city':'Tromsø',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'1241'}},
+{type:'node',id:2070,lat:69.6541,lon:18.9521,tags:{nameZh:'特罗姆瑟游泳馆',name:'Tromsø Aquatics Center',tourism:'swimming_pool','addr:city':'Tromsø',opening_hours:'Mo-Fr 07:00-21:00, Sa-Su 09:00-18:00',rating:'4.2',reviews:'3421'}},
+{type:'node',id:2071,lat:59.9200,lon:10.7380,tags:{nameZh:'奥斯陆卡尔约翰购物广场',name:'Karl Johans Gate Oslo',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'18342'}},
+{type:'node',id:2072,lat:59.9139,lon:10.7612,tags:{nameZh:'奥斯陆弗耶尔博格海滩',name:'Sørenga Seawater Pool Oslo',tourism:'swimming_pool','addr:city':'Oslo',opening_hours:'Mo-Su 08:00-21:00 (seasonal)',rating:'4.4',reviews:'9341'}},
+{type:'node',id:2073,lat:59.9153,lon:10.7294,tags:{nameZh:'奥斯陆儿童室内游乐',name:'Kiddie Land Indoor Play Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-19:00',rating:'4.0',reviews:'3421'}},
+{type:'node',id:2074,lat:60.3862,lon:5.3211,tags:{nameZh:'卑尔根马里亚博物馆',name:'KODE Art Museums Bergen',tourism:'museum',website:'https://www.kodebergen.no','addr:city':'Bergen',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'6841'}},
+{type:'node',id:2075,lat:60.3932,lon:5.3173,tags:{nameZh:'卑尔根游乐场',name:'Nygårdsparken Playground Bergen',tourism:'playground','addr:city':'Bergen',opening_hours:'Mo-Su 08:00-22:00',rating:'4.1',reviews:'1841'}},
+{type:'node',id:2076,lat:63.4287,lon:10.3941,tags:{nameZh:'特隆赫姆蹦床公园',name:'Jump Zone Trampoline Trondheim',tourism:'indoor_play','addr:city':'Trondheim',opening_hours:'Mo-Su 10:00-21:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2077,lat:63.4213,lon:10.3921,tags:{nameZh:'特隆赫姆儿童农场',name:'Sverresborg Children\'s Farm Trondheim',tourism:'children_farm','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'2341'}},
+{type:'node',id:2078,lat:63.4379,lon:10.4089,tags:{nameZh:'特隆赫姆自然公园',name:'Lerkendal Nature Park Trondheim',tourism:'nature_park','addr:city':'Trondheim',opening_hours:'Mo-Su 07:00-22:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2079,lat:58.9742,lon:5.7288,tags:{nameZh:'斯塔万格保龄球',name:'Bowlero Stavanger',tourism:'bowling','addr:city':'Stavanger',opening_hours:'Mo-Su 12:00-24:00',rating:'4.0',reviews:'1841'}},
+{type:'node',id:2080,lat:58.9698,lon:5.7310,tags:{nameZh:'斯塔万格蹦床公园',name:'Air Time Trampoline Stavanger',tourism:'indoor_play','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-21:00',rating:'4.2',reviews:'3421'}},
+{type:'node',id:2081,lat:59.9083,lon:10.7478,tags:{nameZh:'奥斯陆阿斯特鲁普费纳利现代艺术博物馆',name:'Astrup Fearnley Museum Oslo',tourism:'museum',website:'https://www.afmuseet.no','addr:city':'Oslo',opening_hours:'Tu-Su 12:00-17:00',rating:'4.3',reviews:'7841'}},
+{type:'node',id:2082,lat:59.9172,lon:10.7548,tags:{nameZh:'奥斯陆国家历史博物馆',name:'Museum of Cultural History Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-16:00',rating:'4.4',reviews:'9841'}},
+{type:'node',id:2083,lat:59.9294,lon:10.7471,tags:{nameZh:'奥斯陆自然历史公园',name:'Botanisk Hage Oslo',tourism:'nature_park',website:'https://www.nhm.uio.no','addr:city':'Oslo',opening_hours:'Mo-Su 07:00-21:00',rating:'4.3',reviews:'8341'}},
+{type:'node',id:2084,lat:59.9183,lon:10.7282,tags:{nameZh:'奥斯陆儿童科技馆',name:'Teknisk Museum Kids Workshop Oslo',tourism:'science_center','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'7341'}},
+{type:'node',id:2085,lat:60.3948,lon:5.3211,tags:{nameZh:'卑尔根儿童室内游乐',name:'Mini Zoo Indoor Play Bergen',tourism:'indoor_play','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-19:00',rating:'4.1',reviews:'2841'}},
+{type:'node',id:2086,lat:60.3913,lon:5.3289,tags:{nameZh:'卑尔根史前博物馆',name:'Bergen Museum of Natural History',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2087,lat:58.9733,lon:5.7331,tags:{nameZh:'斯塔万格蝴蝶农场',name:'Stavanger Butterfly Farm',tourism:'children_farm','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-17:00 (seasonal)',rating:'4.3',reviews:'4321'}},
+{type:'node',id:2088,lat:59.9219,lon:10.7519,tags:{nameZh:'奥斯陆游艇码头',name:'Aker Brygge Oslo Waterfront',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'18341'}},
+{type:'node',id:2089,lat:63.4341,lon:10.4056,tags:{nameZh:'特隆赫姆儿童游乐场',name:'Marinen Playground Trondheim',tourism:'playground','addr:city':'Trondheim',opening_hours:'Mo-Su 07:00-22:00',rating:'4.0',reviews:'1241'}},
+{type:'node',id:2090,lat:60.3871,lon:5.3231,tags:{nameZh:'卑尔根自然保护区',name:'Ulriken Nature Reserve Bergen',tourism:'nature_park','addr:city':'Bergen',opening_hours:'Mo-Su 08:00-21:00',rating:'4.5',reviews:'12341'}},
+{type:'node',id:2091,lat:59.9241,lon:10.7422,tags:{nameZh:'奥斯陆蒙克博物馆',name:'Munch Museum Oslo',tourism:'museum',website:'https://www.munchmuseet.no','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-21:00',rating:'4.4',reviews:'14321'}},
+{type:'node',id:2092,lat:59.9198,lon:10.7311,tags:{nameZh:'奥斯陆北欧食品博物馆',name:'Norwegian Food Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-16:00',rating:'4.1',reviews:'3421'}},
+{type:'node',id:2093,lat:60.4021,lon:5.3211,tags:{nameZh:'卑尔根保龄球联盟',name:'Bowling Alliance Bergen',tourism:'bowling','addr:city':'Bergen',opening_hours:'Mo-Su 12:00-24:00',rating:'4.0',reviews:'1841'}},
+{type:'node',id:2094,lat:58.9679,lon:5.7372,tags:{nameZh:'斯塔万格艺术博物馆',name:'Stavanger Art Museum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'5321'}},
+{type:'node',id:2095,lat:59.9102,lon:10.7223,tags:{nameZh:'奥斯陆地下室内游乐',name:'Adventure House Indoor Play Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-19:00',rating:'4.1',reviews:'3141'}},
+{type:'node',id:2096,lat:63.4259,lon:10.3889,tags:{nameZh:'特隆赫姆科技园',name:'Gråmølna Science Park Trondheim',tourism:'science_center','addr:city':'Trondheim',opening_hours:'Mo-Su 09:00-17:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2097,lat:59.9284,lon:10.7312,tags:{nameZh:'奥斯陆体育博物馆',name:'Norwegian Sports Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-16:00',rating:'4.0',reviews:'3421'}},
+{type:'node',id:2098,lat:60.3989,lon:5.3323,tags:{nameZh:'卑尔根峡湾游船',name:'Hardangerfjord Cruise Bergen',tourism:'attraction','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-18:00 (seasonal)',rating:'4.8',reviews:'28341'}},
+{type:'node',id:2099,lat:59.9041,lon:10.6912,tags:{nameZh:'奥斯陆阿斯克尔儿童农场',name:'Asker Children\'s Farm',tourism:'children_farm','addr:city':'Asker',opening_hours:'We-Su 10:00-17:00',rating:'4.3',reviews:'3421'}},
+{type:'node',id:2100,lat:59.9118,lon:10.7381,tags:{nameZh:'奥斯陆城市博物馆',name:'Oslo City Museum',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-16:00',rating:'4.1',reviews:'4321'}},
+{type:'node',id:2101,lat:59.9162,lon:10.7452,tags:{nameZh:'奥斯陆国家美术馆',name:'National Museum Oslo',tourism:'museum',website:'https://www.nasjonalmuseet.no','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-20:00',rating:'4.6',reviews:'22341'}},
+{type:'node',id:2102,lat:60.3900,lon:5.3280,tags:{nameZh:'卑尔根挪威民间博物馆',name:'Gamle Bergen Museum',tourism:'museum','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'7841'}},
+{type:'node',id:2103,lat:63.4202,lon:10.3956,tags:{nameZh:'特隆赫姆古城博物馆',name:'Nidaros Cathedral Museum',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-16:00',rating:'4.4',reviews:'6341'}},
+{type:'node',id:2104,lat:58.9631,lon:5.7319,tags:{nameZh:'斯塔万格游乐场',name:'Byparken Playground Stavanger',tourism:'playground','addr:city':'Stavanger',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'1841'}},
+{type:'node',id:2105,lat:59.9228,lon:10.7491,tags:{nameZh:'奥斯陆蜡像馆',name:'Wax Museum Oslo',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'3.9',reviews:'4321'}},
+{type:'node',id:2106,lat:59.9059,lon:10.7541,tags:{nameZh:'奥斯陆峡湾探险',name:'Oslo Fjord Adventure',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-18:00 (seasonal)',rating:'4.5',reviews:'8341'}},
+{type:'node',id:2107,lat:60.3963,lon:5.3196,tags:{nameZh:'卑尔根自然探险公园',name:'Espehaugen Nature Park Bergen',tourism:'nature_park','addr:city':'Bergen',opening_hours:'Mo-Su 08:00-20:00',rating:'4.3',reviews:'4321'}},
+{type:'node',id:2108,lat:63.4321,lon:10.3889,tags:{nameZh:'特隆赫姆儿童乐园',name:'Fun Factory Indoor Play Trondheim',tourism:'indoor_play','addr:city':'Trondheim',opening_hours:'Mo-Su 10:00-19:00',rating:'4.1',reviews:'3241'}},
+{type:'node',id:2109,lat:58.9779,lon:5.7241,tags:{nameZh:'斯塔万格儿童博物馆',name:'Stavanger Museum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 11:00-16:00',rating:'4.3',reviews:'5421'}},
+{type:'node',id:2110,lat:59.9053,lon:10.7273,tags:{nameZh:'奥斯陆博物馆岛',name:'Bygdøy Museum Peninsula Oslo',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'22341'}},
+
+{type:'node',id:5801,lat:59.9145,lon:10.7523,tags:{nameZh:'奥斯陆攀岩中心',name:'Climbing Centre Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-22:00',rating:'4.5',reviews:'9200'}},
+{type:'node',id:5802,lat:59.9278,lon:10.7389,tags:{nameZh:'奥斯陆冰场',name:'Ice Rink Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-21:00',rating:'4.4',reviews:'12000'}},
+{type:'node',id:5803,lat:59.9034,lon:10.7678,tags:{nameZh:'奥斯陆VR体验馆',name:'VR Zone Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'7200'}},
+{type:'node',id:5804,lat:59.9367,lon:10.7289,tags:{nameZh:'奥斯陆卡丁车',name:'Indoor Karting Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'6800'}},
+{type:'node',id:5805,lat:59.9189,lon:10.7512,tags:{nameZh:'奥斯陆儿童戏剧',name:'Children\'s Theatre Oslo',tourism:'attraction','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'6200'}},
+{type:'node',id:5806,lat:59.9056,lon:10.7623,tags:{nameZh:'奥斯陆逃脱密室2',name:'Escape Room 2 Oslo',tourism:'escape_room','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'5800'}},
+{type:'node',id:5807,lat:59.9312,lon:10.7178,tags:{nameZh:'奥斯陆体验博物馆',name:'Immersive Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-20:00',rating:'4.5',reviews:'11000'}},
+{type:'node',id:5808,lat:59.9445,lon:10.7445,tags:{nameZh:'奥斯陆机器人实验室',name:'Robot Lab Oslo Kids',tourism:'science_center','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'6700'}},
+{type:'node',id:5809,lat:59.9134,lon:10.7756,tags:{nameZh:'奥斯陆恐龙博物馆',name:'Dino Experience Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'9200'}},
+{type:'node',id:5810,lat:59.9256,lon:10.7634,tags:{nameZh:'奥斯陆高绳索公园',name:'High Ropes Course Oslo',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'7800'}},
+{type:'node',id:5811,lat:59.9178,lon:10.7389,tags:{nameZh:'奥斯陆fjord游船',name:'Oslofjord Family Cruise',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'18000'}},
+{type:'node',id:5812,lat:59.9423,lon:10.7223,tags:{nameZh:'奥斯陆滑雪博物馆',name:'Ski Museum Oslo',tourism:'museum',website:'https://www.skiforeningen.no','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'7800'}},
+{type:'node',id:5813,lat:59.9089,lon:10.7834,tags:{nameZh:'奥斯陆自然探索',name:'Oslo Nature Discovery Centre',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'8900'}},
+{type:'node',id:5814,lat:59.9234,lon:10.7567,tags:{nameZh:'奥斯陆儿童农场',name:'City Farm Oslo',tourism:'children_farm','addr:city':'Oslo',opening_hours:'Sa-Su 09:00-17:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:5815,lat:59.9456,lon:10.7134,tags:{nameZh:'奥斯陆激光枪战',name:'Laser Zone Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'6200'}},
+{type:'node',id:5816,lat:60.3934,lon:5.3245,tags:{nameZh:'卑尔根攀岩中心',name:'Climbing Centre Bergen',tourism:'indoor_play','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-22:00',rating:'4.4',reviews:'6200'}},
+{type:'node',id:5817,lat:60.3789,lon:5.3378,tags:{nameZh:'卑尔根VR体验馆',name:'VR Experience Bergen',tourism:'indoor_play','addr:city':'Bergen',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'4800'}},
+{type:'node',id:5818,lat:60.4012,lon:5.3156,tags:{nameZh:'卑尔根峡湾游船',name:'Fjord Cruise Bergen Families',tourism:'nature_park','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-17:00',rating:'4.8',reviews:'22000'}},
+{type:'node',id:5819,lat:60.3867,lon:5.3489,tags:{nameZh:'卑尔根冒险公园',name:'Adventure Park Bergen',tourism:'nature_park','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'7800'}},
+{type:'node',id:5820,lat:60.3734,lon:5.3312,tags:{nameZh:'卑尔根儿童博物馆',name:'Children\'s Museum Bergen',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'6700'}},
+{type:'node',id:5821,lat:60.3945,lon:5.3223,tags:{nameZh:'卑尔根逃脱密室',name:'Escape Room Bergen',tourism:'escape_room','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-22:00',rating:'4.4',reviews:'5200'}},
+{type:'node',id:5822,lat:60.3812,lon:5.3578,tags:{nameZh:'卑尔根儿童农场',name:'Farm Bergen',tourism:'children_farm','addr:city':'Bergen',opening_hours:'Sa-Su 09:00-17:00',rating:'4.3',reviews:'3800'}},
+{type:'node',id:5823,lat:60.3678,lon:5.3145,tags:{nameZh:'卑尔根水族馆',name:'Bergen Aquarium Marine Activities',tourism:'aquarium','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'14000'}},
+{type:'node',id:5824,lat:63.4312,lon:10.3978,tags:{nameZh:'特隆赫姆冒险公园',name:'Adventure Forest Trondheim',tourism:'nature_park','addr:city':'Trondheim',opening_hours:'Mo-Su 09:00-19:00',rating:'4.4',reviews:'6700'}},
+{type:'node',id:5825,lat:63.4189,lon:10.4123,tags:{nameZh:'特隆赫姆VR体验馆',name:'VR Zone Trondheim',tourism:'indoor_play','addr:city':'Trondheim',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'4800'}},
+{type:'node',id:5826,lat:63.4456,lon:10.3834,tags:{nameZh:'特隆赫姆攀岩中心',name:'Climbing Centre Trondheim',tourism:'indoor_play','addr:city':'Trondheim',opening_hours:'Mo-Su 09:00-22:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:5827,lat:63.4267,lon:10.4245,tags:{nameZh:'特隆赫姆儿童博物馆',name:'Children\'s Museum Trondheim',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'6200'}},
+{type:'node',id:5828,lat:63.4089,lon:10.3912,tags:{nameZh:'特隆赫姆峡湾游船',name:'Trondheim Fjord Cruise',tourism:'nature_park','addr:city':'Trondheim',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'9200'}},
+{type:'node',id:5829,lat:58.9701,lon:5.7245,tags:{nameZh:'斯塔万格海洋博物馆',name:'Stavanger Maritime Museum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 10:00-16:00',rating:'4.4',reviews:'8900'}},
+{type:'node',id:5830,lat:58.9823,lon:5.7134,tags:{nameZh:'斯塔万格室内游乐场',name:'Fun Park Stavanger',tourism:'indoor_play','addr:city':'Stavanger',opening_hours:'Mo-Su 09:00-21:00',rating:'4.2',reviews:'5200'}},
+{type:'node',id:5831,lat:58.9634,lon:5.7367,tags:{nameZh:'斯塔万格攀岩中心',name:'Climbing Wall Stavanger',tourism:'indoor_play','addr:city':'Stavanger',opening_hours:'Mo-Su 09:00-22:00',rating:'4.3',reviews:'4800'}},
+{type:'node',id:5832,lat:58.9756,lon:5.7023,tags:{nameZh:'斯塔万格峡湾游船',name:'Lysefjord Cruise Stavanger',tourism:'nature_park','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-17:00',rating:'4.7',reviews:'16000'}},
+{type:'node',id:5833,lat:69.6512,lon:18.9534,tags:{nameZh:'特罗姆瑟极光中心',name:'Northern Lights Centre Tromsø',tourism:'science_center',website:'https://www.nordlyssenteret.no','addr:city':'Tromsø',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'14000'}},
+{type:'node',id:5834,lat:69.6634,lon:18.9412,tags:{nameZh:'特罗姆瑟缆车',name:'Tromsø Cable Car',tourism:'nature_park','addr:city':'Tromsø',opening_hours:'Mo-Su 10:00-17:00',rating:'4.8',reviews:'18000'}},
+{type:'node',id:5835,lat:69.6489,lon:18.9623,tags:{nameZh:'特罗姆瑟北极博物馆',name:'Arctic Museum Tromsø',tourism:'museum','addr:city':'Tromsø',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'11000'}},
+{type:'node',id:5836,lat:69.6712,lon:18.9289,tags:{nameZh:'特罗姆瑟冰雪活动',name:'Arctic Snow Activities Tromsø',tourism:'nature_park','addr:city':'Tromsø',opening_hours:'Mo-Su 09:00-17:00',rating:'4.6',reviews:'9800'}},
+{type:'node',id:5837,lat:59.9078,lon:10.7689,tags:{nameZh:'奥斯陆儿童创客空间',name:'Makerspace Kids Oslo',tourism:'science_center','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'5600'}},
+{type:'node',id:5838,lat:59.9289,lon:10.7512,tags:{nameZh:'奥斯陆迷你城市',name:'Mini World Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'7800'}},
+{type:'node',id:5839,lat:59.9367,lon:10.7634,tags:{nameZh:'奥斯陆天文馆',name:'Oslo Planetarium',tourism:'science_center','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'8900'}},
+{type:'node',id:5840,lat:59.9145,lon:10.7312,tags:{nameZh:'奥斯陆儿童骑马',name:'Horseback Riding Kids Oslo',tourism:'children_farm','addr:city':'Oslo',opening_hours:'Sa-Su 09:00-17:00',rating:'4.5',reviews:'4800'}},
+{type:'node',id:5841,lat:60.3923,lon:5.3334,tags:{nameZh:'卑尔根冰场',name:'Ice Rink Bergen',tourism:'indoor_play','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-21:00',rating:'4.3',reviews:'7200'}},
+{type:'node',id:5842,lat:60.3778,lon:5.3467,tags:{nameZh:'卑尔根迷你高尔夫',name:'Mini Golf Bergen',tourism:'indoor_play','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-20:00',rating:'4.1',reviews:'3600'}},
+{type:'node',id:5843,lat:63.4378,lon:10.4034,tags:{nameZh:'特隆赫姆科学与技术博物馆',name:'NTNU Science Museum Trondheim',tourism:'science_center','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-16:00',rating:'4.4',reviews:'7200'}},
+{type:'node',id:5844,lat:63.4156,lon:10.3856,tags:{nameZh:'特隆赫姆儿童农场',name:'Farm Experience Trondheim',tourism:'children_farm','addr:city':'Trondheim',opening_hours:'Sa-Su 09:00-17:00',rating:'4.3',reviews:'3800'}},
+{type:'node',id:5845,lat:58.9889,lon:5.7178,tags:{nameZh:'斯塔万格儿童博物馆',name:'Children\'s Museum Stavanger',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'6700'}},
+{type:'node',id:5846,lat:58.9712,lon:5.7289,tags:{nameZh:'斯塔万格水上乐园',name:'Stavanger Aquapark',tourism:'swimming_pool','addr:city':'Stavanger',opening_hours:'Mo-Su 07:00-22:00',rating:'4.3',reviews:'8900'}},
+{type:'node',id:5847,lat:59.9512,lon:10.6934,tags:{nameZh:'奥斯陆滑冰公园',name:'Skating Park Oslo',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-21:00',rating:'4.5',reviews:'12000'}},
+{type:'node',id:5848,lat:59.9201,lon:10.7823,tags:{nameZh:'奥斯陆儿童图书馆',name:'Children\'s Library Oslo',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Sa 09:00-18:00',rating:'4.4',reviews:'4800'}},
+{type:'node',id:5849,lat:60.4089,lon:5.3089,tags:{nameZh:'卑尔根高绳索公园',name:'High Ropes Bergen',tourism:'nature_park','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'6200'}},
+{type:'node',id:5850,lat:60.3645,lon:5.3534,tags:{nameZh:'卑尔根儿童创客空间',name:'Makerspace Kids Bergen',tourism:'science_center','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'4200'}},
+{type:'node',id:5991,lat:59.9139,lon:10.7522,tags:{nameZh:'奥斯陆科学探索馆',name:'Vitenfabrikken',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'2340'}},
+{type:'node',id:5992,lat:59.9134,lon:10.7328,tags:{nameZh:'奥斯陆植物园',name:'Botanisk hage Oslo',tourism:'park','addr:city':'Oslo',opening_hours:'Mo-Su 07:00-20:00',rating:'4.5',reviews:'3120'}},
+{type:'node',id:5993,lat:59.9075,lon:10.7197,tags:{nameZh:'挪威奥运博物馆',name:'Ski Museum Holmenkollen',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.7',reviews:'6780'}},
+{type:'node',id:5994,lat:59.9129,lon:10.7509,tags:{nameZh:'奥斯陆动物园',name:'Dyreparken Oslo',tourism:'zoo','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'2560'}},
+{type:'node',id:5995,lat:59.9084,lon:10.7366,tags:{nameZh:'奥斯陆儿童剧场',name:'Det Norske Teatret',tourism:'theatre','addr:city':'Oslo',opening_hours:'varies',rating:'4.5',reviews:'1340'}},
+{type:'node',id:5996,lat:59.9073,lon:10.7285,tags:{nameZh:'挪威民族博物馆',name:'Norsk Folkemuseum',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'9870'}},
+{type:'node',id:5997,lat:59.9155,lon:10.7501,tags:{nameZh:'奥斯陆天文馆',name:'Oslo Planetarium',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.4',reviews:'1890'}},
+{type:'node',id:5998,lat:59.9102,lon:10.7476,tags:{nameZh:'奥斯陆探索科学中心',name:'Teknisk Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:5999,lat:59.9099,lon:10.7403,tags:{nameZh:'挪威自然历史博物馆',name:'Naturhistorisk Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.4',reviews:'1780'}},
+{type:'node',id:6000,lat:59.9040,lon:10.7281,tags:{nameZh:'奥斯陆维吉兰雕塑公园',name:'Vigelandsparken',tourism:'park','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.8',reviews:'18900'}},
+{type:'node',id:6001,lat:60.3929,lon:5.3240,tags:{nameZh:'卑尔根阿夸里姆水族馆',name:'Akvariet i Bergen',tourism:'aquarium','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-18:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:6002,lat:60.3965,lon:5.3208,tags:{nameZh:'卑尔根历史博物馆',name:'Bergen Museum',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 10:00-16:00',rating:'4.4',reviews:'1890'}},
+{type:'node',id:6003,lat:60.3989,lon:5.3283,tags:{nameZh:'汉萨博物馆',name:'Bryggens Museum',tourism:'museum','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-16:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6004,lat:60.4050,lon:5.3262,tags:{nameZh:'卑尔根绳子公园',name:'Fløibanen',tourism:'attraction','addr:city':'Bergen',opening_hours:'Mo-Su 07:30-23:00',rating:'4.7',reviews:'12300'}},
+{type:'node',id:6005,lat:60.3879,lon:5.3320,tags:{nameZh:'卑尔根海盗鱼市场',name:'Fisketorget Bergen',tourism:'attraction','addr:city':'Bergen',opening_hours:'Mo-Su 07:00-20:00',rating:'4.5',reviews:'8920'}},
+{type:'node',id:6006,lat:60.3962,lon:5.3244,tags:{nameZh:'格里格音乐厅',name:'Grieghallen',tourism:'theatre','addr:city':'Bergen',opening_hours:'varies',rating:'4.6',reviews:'2340'}},
+{type:'node',id:6007,lat:60.3926,lon:5.3332,tags:{nameZh:'卑尔根自然博物馆',name:'Naturhistorisk museum Bergen',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 10:00-15:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6008,lat:63.4305,lon:10.3951,tags:{nameZh:'特隆赫姆科学博物馆',name:'Vitenskapsmuseet',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 11:00-16:00',rating:'4.4',reviews:'1120'}},
+{type:'node',id:6009,lat:63.4298,lon:10.3926,tags:{nameZh:'特隆赫姆儿童科学馆',name:'Trondheim Science Centre',tourism:'museum','addr:city':'Trondheim',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'2560'}},
+{type:'node',id:6010,lat:63.4272,lon:10.3981,tags:{nameZh:'特隆赫姆大教堂',name:'Nidarosdomen',tourism:'attraction','addr:city':'Trondheim',opening_hours:'Mo-Su 09:00-18:00',rating:'4.7',reviews:'8920'}},
+{type:'node',id:6011,lat:63.4389,lon:10.3989,tags:{nameZh:'特隆赫姆植物园',name:'Ringve Museum',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 11:00-16:00',rating:'4.5',reviews:'1890'}},
+{type:'node',id:6012,lat:58.9701,lon:5.7331,tags:{nameZh:'斯塔万格石油博物馆',name:'Norsk Oljemuseum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'7890'}},
+{type:'node',id:6013,lat:58.9667,lon:5.7328,tags:{nameZh:'斯塔万格大教堂',name:'Stavanger Domkirke',tourism:'attraction','addr:city':'Stavanger',opening_hours:'Mo-Sa 11:00-16:00',rating:'4.5',reviews:'2560'}},
+{type:'node',id:6014,lat:58.9712,lon:5.7345,tags:{nameZh:'斯塔万格孩子文化馆',name:'Petroleum Museum Kids',tourism:'museum','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'1340'}},
+{type:'node',id:6015,lat:69.6489,lon:18.9551,tags:{nameZh:'特罗姆瑟北极博物馆',name:'Polaria',tourism:'museum','addr:city':'Tromsø',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:6016,lat:69.6527,lon:18.9565,tags:{nameZh:'特罗姆瑟大学博物馆',name:'Tromsø University Museum',tourism:'museum','addr:city':'Tromsø',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6017,lat:69.6536,lon:18.9588,tags:{nameZh:'北极灯塔观测台',name:'Nordlysplanetariet',tourism:'museum','addr:city':'Tromsø',opening_hours:'Mo-Su 11:00-18:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6018,lat:59.7439,lon:10.2042,tags:{nameZh:'德拉门冒险乐园',name:'Drammens Museum',tourism:'museum','addr:city':'Drammen',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:6019,lat:59.0942,lon:9.8601,tags:{nameZh:'斯基恩博物馆',name:'Telemark Museum',tourism:'museum','addr:city':'Skien',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:6020,lat:62.4722,lon:6.1495,tags:{nameZh:'奥勒松水族馆',name:'Atlanterhavsparken',tourism:'aquarium','addr:city':'Ålesund',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'6780'}},
+{type:'node',id:6021,lat:62.4726,lon:6.1548,tags:{nameZh:'奥勒松新艺术博物馆',name:'Jugendstilsenteret',tourism:'museum','addr:city':'Ålesund',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'3120'}},
+{type:'node',id:6022,lat:59.9119,lon:10.7453,tags:{nameZh:'奥斯陆歌剧院',name:'Operahuset Oslo',tourism:'theatre','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-23:00',rating:'4.8',reviews:'12300'}},
+{type:'node',id:6023,lat:59.9040,lon:10.7232,tags:{nameZh:'挪威工艺博物馆',name:'Kunstindustrimuseet',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.4',reviews:'1230'}},
+{type:'node',id:6024,lat:59.9124,lon:10.7519,tags:{nameZh:'奥斯陆自然科学中心',name:'NHM Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.5',reviews:'2890'}},
+{type:'node',id:6025,lat:59.9085,lon:10.7422,tags:{nameZh:'奥斯陆孩子游乐中心',name:'Tusenfryd Oslo',tourism:'theme_park','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-19:00',rating:'4.5',reviews:'8920'}},
+{type:'node',id:6026,lat:59.8990,lon:10.6214,tags:{nameZh:'埃克堡雕塑公园',name:'Ekeberg Sculpture Park',tourism:'park','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6027,lat:59.9053,lon:10.6981,tags:{nameZh:'挪威航海博物馆',name:'Norsk Maritime Museum',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'2340'}},
+{type:'node',id:6028,lat:59.9049,lon:10.6954,tags:{nameZh:'孔帖基博物馆',name:'Kon-Tiki Museet',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'7890'}},
+{type:'node',id:6029,lat:59.9065,lon:10.6973,tags:{nameZh:'奥斯陆海盗船博物馆',name:'Vikingskipshuset',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-18:00',rating:'4.7',reviews:'14500'}},
+{type:'node',id:6030,lat:60.3946,lon:5.3197,tags:{nameZh:'卑尔根现代艺术博物馆',name:'KODE Art Museum Bergen',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 11:00-18:00',rating:'4.6',reviews:'3560'}},
+{type:'node',id:6031,lat:60.3975,lon:5.3175,tags:{nameZh:'卑尔根儿童剧场',name:'Den Nationale Scene Bergen',tourism:'theatre','addr:city':'Bergen',opening_hours:'varies',rating:'4.5',reviews:'1120'}},
+{type:'node',id:6032,lat:63.4311,lon:10.3864,tags:{nameZh:'特隆赫姆老城区',name:'Nedre Elvehavn',tourism:'attraction','addr:city':'Trondheim',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6033,lat:58.9741,lon:5.7302,tags:{nameZh:'斯塔万格旧城',name:'Gamle Stavanger',tourism:'attraction','addr:city':'Stavanger',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:6034,lat:58.9682,lon:5.7214,tags:{nameZh:'斯塔万格水族馆',name:'Stavanger Akvarium',tourism:'aquarium','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:6035,lat:67.2804,lon:14.4051,tags:{nameZh:'博多航空博物馆',name:'Norsk Luftfartsmuseum',tourism:'museum','addr:city':'Bodø',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'3450'}},
+{type:'node',id:6036,lat:67.2838,lon:14.3832,tags:{nameZh:'博多海事博物馆',name:'Nordlandsmuseet',tourism:'museum','addr:city':'Bodø',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6037,lat:59.1266,lon:11.3921,tags:{nameZh:'萨普斯堡古堡',name:'Borregaard Museum',tourism:'museum','addr:city':'Sarpsborg',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'560'}},
+{type:'node',id:6038,lat:59.0460,lon:10.0107,tags:{nameZh:'桑德菲奥德鲸鱼博物馆',name:'Hvalfangstmuseet',tourism:'museum','addr:city':'Sandefjord',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6039,lat:59.4461,lon:10.4739,tags:{nameZh:'霍滕摩托博物馆',name:'Preus Museum Horten',tourism:'museum','addr:city':'Horten',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:6040,lat:59.2661,lon:10.4079,tags:{nameZh:'通斯贝格城堡',name:'Slottsfjellet Tønsberg',tourism:'castle','addr:city':'Tønsberg',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'2130'}},
+{type:'node',id:6041,lat:59.9137,lon:10.7464,tags:{nameZh:'奥斯陆阿斯楚普费恩利博物馆',name:'Astrup Fearnley Museet',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 12:00-18:00',rating:'4.5',reviews:'1890'}},
+{type:'node',id:6042,lat:59.9140,lon:10.7350,tags:{nameZh:'奥斯陆国家画廊',name:'Nasjonalmuseet',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-18:00',rating:'4.7',reviews:'8920'}},
+{type:'node',id:6043,lat:59.9178,lon:10.7376,tags:{nameZh:'奥斯陆王宫',name:'Det Kongelige Slott Oslo',tourism:'castle','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'6780'}},
+{type:'node',id:6044,lat:59.9080,lon:10.7534,tags:{nameZh:'奥斯陆新博物馆区',name:'Bjørvika Museumsbyen',tourism:'attraction','addr:city':'Oslo',opening_hours:'varies',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6045,lat:59.9041,lon:10.7367,tags:{nameZh:'奥斯陆历史博物馆',name:'Kulturhistorisk Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'3560'}},
+{type:'node',id:6046,lat:59.9105,lon:10.7530,tags:{nameZh:'奥斯陆市政厅',name:'Oslo Rådhus',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'4560'}},
+{type:'node',id:6047,lat:59.9085,lon:10.7255,tags:{nameZh:'弗拉姆极地博物馆',name:'Frammuseet',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'8920'}},
+{type:'node',id:6048,lat:63.4188,lon:10.4014,tags:{nameZh:'特隆赫姆水族馆',name:'Vitarium Trondheim',tourism:'aquarium','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:6049,lat:69.6492,lon:18.9636,tags:{nameZh:'特罗姆瑟极地体验馆',name:'Arctic Cathedral',tourism:'attraction','addr:city':'Tromsø',opening_hours:'Mo-Su 09:00-19:00',rating:'4.7',reviews:'7890'}},
+{type:'node',id:6050,lat:59.7463,lon:10.2059,tags:{nameZh:'德拉门水上公园',name:'Drammensbadet',tourism:'theme_park','addr:city':'Drammen',opening_hours:'Mo-Su 07:00-21:00',rating:'4.4',reviews:'2130'}},
+{type:'node',id:6131,lat:59.9127,lon:10.7401,tags:{nameZh:'奥斯陆音乐博物馆',name:'Musikkens Hus Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.4',reviews:'1340'}},
+{type:'node',id:6132,lat:59.9091,lon:10.7308,tags:{nameZh:'奥斯陆市政历史公园',name:'Bygdøy Allé Park',tourism:'park','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6133,lat:59.9162,lon:10.7338,tags:{nameZh:'挪威建筑博物馆',name:'Norsk Arkitekturmuseum',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6134,lat:59.9169,lon:10.7453,tags:{nameZh:'奥斯陆设计博物馆',name:'Designmuseo Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-18:00',rating:'4.4',reviews:'1230'}},
+{type:'node',id:6135,lat:59.9052,lon:10.7210,tags:{nameZh:'奥斯陆船坞博物馆',name:'Norsk Maritimt Museum',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'2560'}},
+{type:'node',id:6136,lat:59.9086,lon:10.7459,tags:{nameZh:'奥斯陆现代艺术博物馆',name:'Astrup Fearnley Museet',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 12:00-18:00',rating:'4.5',reviews:'1780'}},
+{type:'node',id:6137,lat:59.9131,lon:10.7498,tags:{nameZh:'奥斯陆城堡要塞',name:'Akershus Festning',tourism:'castle','addr:city':'Oslo',opening_hours:'Mo-Su 06:00-21:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:6138,lat:59.9201,lon:10.7290,tags:{nameZh:'奥斯陆国家体育馆公园',name:'Frognerparken',tourism:'park','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'12300'}},
+{type:'node',id:6139,lat:59.9185,lon:10.7321,tags:{nameZh:'奥斯陆公共游泳池',name:'Frogner Bad',tourism:'theme_park','addr:city':'Oslo',opening_hours:'Mo-Su 07:00-20:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6140,lat:59.8740,lon:10.8046,tags:{nameZh:'图森弗里德游乐园',name:'TusenFryd Fornøyelsespark',tourism:'theme_park','addr:city':'Vinterbro',opening_hours:'Mo-Su 10:00-19:00',rating:'4.5',reviews:'18900'}},
+{type:'node',id:6141,lat:60.3941,lon:5.3212,tags:{nameZh:'卑尔根科学探索馆',name:'VilVite Bergen',tourism:'museum','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-17:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:6142,lat:60.3923,lon:5.3245,tags:{nameZh:'卑尔根汉萨区',name:'Bryggen',tourism:'attraction','addr:city':'Bergen',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'18900'}},
+{type:'node',id:6143,lat:60.4042,lon:5.3291,tags:{nameZh:'卑尔根山区缆车',name:'Ulriken Cable Car',tourism:'attraction','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-21:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:6144,lat:60.3913,lon:5.3251,tags:{nameZh:'卑尔根汉萨博物馆',name:'Hanseatic Museum Bergen',tourism:'museum','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-17:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6145,lat:60.3980,lon:5.3225,tags:{nameZh:'卑尔根市立博物馆',name:'Bergen Bymuseum',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 10:00-16:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6146,lat:63.4316,lon:10.3978,tags:{nameZh:'特隆赫姆民俗博物馆',name:'Trøndelag Folkemuseum',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6147,lat:63.4362,lon:10.3928,tags:{nameZh:'特隆赫姆水族馆',name:'Trondheimsfjord Dykking',tourism:'aquarium','addr:city':'Trondheim',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:6148,lat:63.4260,lon:10.3945,tags:{nameZh:'特隆赫姆艺术博物馆',name:'Trondheim Kunstmuseum',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 11:00-17:00',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6149,lat:63.4231,lon:10.3968,tags:{nameZh:'特隆赫姆儿童画廊',name:'Gråmølna Trondheim',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6150,lat:58.9658,lon:5.7316,tags:{nameZh:'斯塔万格艺术博物馆',name:'Stavanger Kunstmuseum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6151,lat:58.9637,lon:5.7349,tags:{nameZh:'斯塔万格海事中心',name:'Norwegian Canning Museum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2130'}},
+{type:'node',id:6152,lat:58.9750,lon:5.7358,tags:{nameZh:'斯塔万格儿童科学馆',name:'Vitenfabrikken Stavanger',tourism:'museum','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6153,lat:69.6495,lon:18.9624,tags:{nameZh:'特罗姆瑟极地博物馆',name:'Ishavskatedralen',tourism:'attraction','addr:city':'Tromsø',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6154,lat:69.6511,lon:18.9598,tags:{nameZh:'特罗姆瑟缆车',name:'Fjellheisen Tromsø',tourism:'attraction','addr:city':'Tromsø',opening_hours:'Mo-Su 10:00-23:00',rating:'4.7',reviews:'8920'}},
+{type:'node',id:6155,lat:67.2845,lon:14.3817,tags:{nameZh:'博多儿童博物馆',name:'Salten Museum Bodø',tourism:'museum','addr:city':'Bodø',opening_hours:'Tu-Su 11:00-16:00',rating:'4.3',reviews:'640'}},
+{type:'node',id:6156,lat:59.1280,lon:11.3880,tags:{nameZh:'萨普斯堡历史遗址',name:'Borgarsyssel Museum',tourism:'museum','addr:city':'Sarpsborg',opening_hours:'Tu-Su 10:00-16:00',rating:'4.2',reviews:'560'}},
+{type:'node',id:6157,lat:59.2710,lon:10.4212,tags:{nameZh:'通斯贝格博物馆',name:'Slottsfjellets Museum',tourism:'museum','addr:city':'Tønsberg',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6158,lat:59.7454,lon:10.2091,tags:{nameZh:'德拉门艺术博物馆',name:'Drammens Museum',tourism:'museum','addr:city':'Drammen',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:6159,lat:59.0965,lon:9.8583,tags:{nameZh:'斯基恩自然遗址',name:'Telemark Canal',tourism:'attraction','addr:city':'Skien',opening_hours:'Mo-Su 08:00-20:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6160,lat:62.4733,lon:6.1507,tags:{nameZh:'奥勒松艺术博物馆',name:'KUBE Kunstmuseum Ålesund',tourism:'museum','addr:city':'Ålesund',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6161,lat:62.4746,lon:6.1523,tags:{nameZh:'奥勒松观景山',name:'Aksla Ålesund',tourism:'park','addr:city':'Ålesund',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'8920'}},
+{type:'node',id:6162,lat:59.9115,lon:10.7438,tags:{nameZh:'奥斯陆港口游船',name:'Oslo Fjord Cruise',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-20:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6163,lat:59.9065,lon:10.7162,tags:{nameZh:'挪威木偶剧场',name:'Dukketeatret Oslo',tourism:'theatre','addr:city':'Oslo',opening_hours:'varies',rating:'4.4',reviews:'1120'}},
+{type:'node',id:6164,lat:59.9111,lon:10.7527,tags:{nameZh:'奥斯陆阿克尔布里格',name:'Aker Brygge',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'9870'}},
+{type:'node',id:6165,lat:59.9115,lon:10.7289,tags:{nameZh:'奥斯陆音乐剧院',name:'Chateau Neuf Oslo',tourism:'theatre','addr:city':'Oslo',opening_hours:'varies',rating:'4.3',reviews:'780'}},
+{type:'node',id:6166,lat:60.3948,lon:5.3178,tags:{nameZh:'卑尔根迷你火车',name:'Bergenbanen',tourism:'attraction','addr:city':'Bergen',opening_hours:'Mo-Su 08:00-22:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6167,lat:60.4028,lon:5.3305,tags:{nameZh:'卑尔根城堡',name:'Bergenhus Festning',tourism:'castle','addr:city':'Bergen',opening_hours:'Mo-Su 06:00-23:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6168,lat:63.4322,lon:10.4001,tags:{nameZh:'特隆赫姆中世纪公园',name:'Erkebispegården',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6169,lat:63.4278,lon:10.3957,tags:{nameZh:'特隆赫姆老河港',name:'Nedre Elvehavn Trondheim',tourism:'attraction','addr:city':'Trondheim',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6170,lat:58.9718,lon:5.7240,tags:{nameZh:'斯塔万格儿童博物馆',name:'Stavanger Barnemuseum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 10:00-16:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:6171,lat:59.4461,lon:10.4619,tags:{nameZh:'霍尔滕博物馆',name:'Marinemuseet Horten',tourism:'museum','addr:city':'Horten',opening_hours:'Tu-Su 11:00-16:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6172,lat:59.0482,lon:10.0201,tags:{nameZh:'桑德菲约德游乐公园',name:'Framnes Park',tourism:'park','addr:city':'Sandefjord',opening_hours:'Mo-Su 07:00-22:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:6173,lat:58.1479,lon:7.9956,tags:{nameZh:'克里斯蒂安桑动物园',name:'Kristiansand Dyrepark',tourism:'zoo','addr:city':'Kristiansand',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'18900'}},
+{type:'node',id:6174,lat:58.1472,lon:7.9942,tags:{nameZh:'克里斯蒂安桑儿童公园',name:'Abra Havn',tourism:'theme_park','addr:city':'Kristiansand',opening_hours:'Mo-Su 10:00-19:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:6175,lat:58.1463,lon:7.9927,tags:{nameZh:'克里斯蒂安桑博物馆',name:'Vest-Agder Museum',tourism:'museum','addr:city':'Kristiansand',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:6176,lat:58.1481,lon:8.0003,tags:{nameZh:'克里斯蒂安桑老城区',name:'Posebyen',tourism:'attraction','addr:city':'Kristiansand',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6177,lat:59.3484,lon:10.3907,tags:{nameZh:'腓特烈斯塔博物馆',name:'Fredrikstad Museum',tourism:'museum','addr:city':'Fredrikstad',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:6178,lat:59.3504,lon:10.3971,tags:{nameZh:'腓特烈斯塔要塞',name:'Gamlebyen Fredrikstad',tourism:'castle','addr:city':'Fredrikstad',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6179,lat:59.7405,lon:10.1826,tags:{nameZh:'霍尔姆斯特兰德博物馆',name:'Holmestrand Museum',tourism:'museum','addr:city':'Holmestrand',opening_hours:'Tu-Su 11:00-16:00',rating:'4.1',reviews:'340'}},
+{type:'node',id:6180,lat:59.5556,lon:10.5993,tags:{nameZh:'莫斯城市博物馆',name:'Moss By Museum',tourism:'museum','addr:city':'Moss',opening_hours:'Tu-Su 11:00-16:00',rating:'4.1',reviews:'420'}},
+{type:'node',id:6181,lat:59.9084,lon:10.7355,tags:{nameZh:'奥斯陆诺贝尔和平中心',name:'Nobels Fredssenter',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:6182,lat:59.9088,lon:10.7392,tags:{nameZh:'奥斯陆美术博物馆',name:'Nasjonalmuseet Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-18:00',rating:'4.7',reviews:'9870'}},
+{type:'node',id:6183,lat:59.9125,lon:10.7290,tags:{nameZh:'奥斯陆绘画博物馆',name:'Munch Museum',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-21:00',rating:'4.5',reviews:'8920'}},
+{type:'node',id:6184,lat:59.9129,lon:10.7441,tags:{nameZh:'奥斯陆犹太博物馆',name:'Jødisk Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'560'}},
+{type:'node',id:6185,lat:60.3931,lon:5.3262,tags:{nameZh:'卑尔根玩偶剧院',name:'Fana Folkehøgskole',tourism:'theatre','addr:city':'Bergen',opening_hours:'varies',rating:'4.3',reviews:'780'}},
+{type:'node',id:6186,lat:60.4019,lon:5.3238,tags:{nameZh:'卑尔根水族馆附馆',name:'Øygarden Akvariet',tourism:'aquarium','addr:city':'Bergen',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6187,lat:63.4358,lon:10.4011,tags:{nameZh:'特隆赫姆儿童博物馆',name:'Barnernes Museum Trondheim',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6188,lat:58.9675,lon:5.7302,tags:{nameZh:'斯塔万格城市公园',name:'Mosvatnet Stavanger',tourism:'park','addr:city':'Stavanger',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6189,lat:69.6500,lon:18.9720,tags:{nameZh:'特罗姆瑟城市博物馆',name:'Tromsø Museum',tourism:'museum','addr:city':'Tromsø',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'2560'}},
+{type:'node',id:6190,lat:59.9143,lon:10.7355,tags:{nameZh:'奥斯陆当代艺术中心',name:'Samtidskunst Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'780'}},
+
+{type:'node',id:7201,lat:59.9157,lon:10.7412,tags:{nameZh:'奥斯陆儿童游泳馆',name:'Bislett Stadion Oslo',tourism:'theme_park','addr:city':'Oslo',opening_hours:'Mo-Su 07:00-21:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7202,lat:59.9071,lon:10.7543,tags:{nameZh:'奥斯陆峡湾岛屿游',name:'Bygdøy badestrand',tourism:'park','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-20:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:7203,lat:60.3971,lon:5.3263,tags:{nameZh:'卑尔根水族馆分馆',name:'Akvariet Bergen annex',tourism:'aquarium','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:7204,lat:63.4246,lon:10.3983,tags:{nameZh:'特隆赫姆科学公园',name:'Nedre Elvehavn Park',tourism:'park','addr:city':'Trondheim',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'2560'}},
+{type:'node',id:7205,lat:58.1490,lon:7.9916,tags:{nameZh:'克里斯蒂安桑艺术馆',name:'Sørlandets Kunstmuseum',tourism:'museum','addr:city':'Kristiansand',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:7206,lat:59.3527,lon:10.3959,tags:{nameZh:'腓特烈斯塔岛游览',name:'Isegran Fredrikstad',tourism:'attraction','addr:city':'Fredrikstad',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'1890'}},
+{type:'node',id:7207,lat:59.9042,lon:10.7248,tags:{nameZh:'奥斯陆海洋科学馆',name:'Sjøfartsmuseet Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2130'}},
+{type:'node',id:7208,lat:60.3947,lon:5.3193,tags:{nameZh:'卑尔根艺术博物馆',name:'Kunsthall Bergen',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 11:00-18:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:7209,lat:58.9699,lon:5.7362,tags:{nameZh:'斯塔万格航空博物馆',name:'Flymuseum Stavanger',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:7210,lat:69.6473,lon:18.9592,tags:{nameZh:'特罗姆瑟滨海公园',name:'Telegrafbukta Tromsø',tourism:'park','addr:city':'Tromsø',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'3120'}},
+{type:'node',id:7211,lat:59.9103,lon:10.7392,tags:{nameZh:'奥斯陆国家大剧院',name:'Nationaltheatret Oslo',tourism:'theatre','addr:city':'Oslo',opening_hours:'varies',rating:'4.7',reviews:'5670'}},
+{type:'node',id:7212,lat:63.4298,lon:10.3892,tags:{nameZh:'特隆赫姆现代艺术馆',name:'Trondheim Kunsthall',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 12:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:7213,lat:60.4029,lon:5.3201,tags:{nameZh:'卑尔根老港口',name:'Bryggen kvartal',tourism:'attraction','addr:city':'Bergen',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'9870'}},
+{type:'node',id:7214,lat:58.9725,lon:5.7319,tags:{nameZh:'斯塔万格现代艺术馆',name:'Stavanger Kunsthall',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:7215,lat:59.9148,lon:10.7333,tags:{nameZh:'奥斯陆市中心购物广场',name:'Karl Johans gate',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-21:00',rating:'4.4',reviews:'8920'}},
+{type:'node',id:7216,lat:63.4358,lon:10.3956,tags:{nameZh:'特隆赫姆科技大学博物馆',name:'NTNU Vitenskapsmuseet',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 11:00-16:00',rating:'4.4',reviews:'1120'}},
+{type:'node',id:7217,lat:59.9053,lon:10.7307,tags:{nameZh:'奥斯陆彩虹桥公园',name:'Tjuvholmen Oslo',tourism:'park','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:7218,lat:60.3917,lon:5.3229,tags:{nameZh:'卑尔根历史档案馆',name:'Bergen Riksarkivet',tourism:'museum','addr:city':'Bergen',opening_hours:'Mo-Fr 09:00-16:00',rating:'4.1',reviews:'340'}},
+{type:'node',id:7219,lat:58.1456,lon:7.9960,tags:{nameZh:'克里斯蒂安桑海洋博物馆',name:'Gimle Gård',tourism:'museum','addr:city':'Kristiansand',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:7220,lat:59.9121,lon:10.7505,tags:{nameZh:'奥斯陆港口餐饮广场',name:'Oslo Barcode',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'5670'}},
+];
+
+function translateHours(str) { if (!str) return str; if (LANG.current === 'zh') { return str.replace(/\bMo\b/g,'周一').replace(/\bTu\b/g,'周二').replace(/\bWe\b/g,'周三').replace(/\bTh\b/g,'周四').replace(/\bFr\b/g,'周五').replace(/\bSa\b/g,'周六').replace(/\bSu\b/g,'周日').replace(/\(seasonal\)/g,'(季节性开放)').replace(/Check schedule/gi,'请查看官网'); } if (LANG.current === 'no') { return str.replace(/\bMo\b/g,'Δε').replace(/\bTu\b/g,'Τρ').replace(/\bWe\b/g,'Τε').replace(/\bTh\b/g,'Πε').replace(/\bFr\b/g,'Πα').replace(/\bSa\b/g,'Σα').replace(/\bSu\b/g,'Κυ').replace(/\(seasonal\)/g,'(εποχιακο)').replace(/Check schedule/gi,'Ελεγξτε το προγραμμα'); } return str; }
+function getCategoryForVenue(tags) { for (const cat of CATEGORIES) { for (const [key, vals] of Object.entries(cat.tags)) { const val = tags[key]; if (val && vals.includes(val)) return cat; } } if (tags.man_made === 'windmill') return CATEGORIES.find(c => c.id === 'historic'); if (tags.historic) return CATEGORIES.find(c => c.id === 'historic'); if (tags.natural === 'beach') return CATEGORIES.find(c => c.id === 'beach'); if (tags.tourism === 'visitor_centre') return CATEGORIES.find(c => c.id === 'visitor'); if (tags.amenity === 'arts_centre') return CATEGORIES.find(c => c.id === 'theatre'); return CATEGORIES[CATEGORIES.length - 1]; }
+function getCategoryById(id) { return CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1]; }
+let state = { allVenues:[], filtered:[], displayed:0, activeCategory:null, activeCardId:null, currentRegion:'', markers:new Map(), favorites:JSON.parse(localStorage.getItem('no-kids-explorer-favorites') || '[]'), showFavoritesOnly:false, userLocation:null, userLocationMarker:null   viewportSync: true,
+};
+const PAGE_SIZE = 30;
+const map = L.map('map', { zoomControl: true }).setView([64.0, 14.0], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19 }).addTo(map);
+// Viewport sync listener
+let _vpSyncTimer = null;
+map.on('moveend', () => {
+  if (!state.viewportSync) return;
+  clearTimeout(_vpSyncTimer);
+  _vpSyncTimer = setTimeout(() => applyFilter(), 200);
+});
+
+const markersLayer = L.markerClusterGroup({ maxClusterRadius:45, spiderfyOnMaxZoom:true, showCoverageOnHover:false, zoomToBoundsOnClick:true, disableClusteringAtZoom:14, chunkedLoading:true, chunkInterval:100, chunkDelay:10 }).addTo(map);
+
+function buildFilterBar(){const bar=document.getElementById('filterBar');const label=document.getElementById('filterLabel');bar.innerHTML='';bar.appendChild(label);label.textContent=T[LANG.current].filterLabel;const catCounts={};state.allVenues.forEach(v=>{catCounts[v.category.id]=(catCounts[v.category.id]||0)+1;});const totalCount=state.allVenues.length;const favCount=state.favorites.length;const favChip=document.createElement('button');favChip.className='filter-chip'+(state.showFavoritesOnly?' active':'');if(state.showFavoritesOnly){favChip.style.background='#E05A1E';favChip.style.borderColor='#E05A1E';}favChip.innerHTML=`❤️ ${T[LANG.current].favoritesLabel}${favCount>0?` <span class="filter-chip-count">${favCount}</span>`:''}`;favChip.onclick=()=>toggleFavoritesFilter();bar.appendChild(favChip);const allChip=document.createElement('button');allChip.className='filter-chip'+(!state.showFavoritesOnly&&state.activeCategory===null?' active':'');allChip.style.background=!state.showFavoritesOnly&&state.activeCategory===null?'#1A2B4A':'';allChip.style.borderColor=!state.showFavoritesOnly&&state.activeCategory===null?'#1A2B4A':'';allChip.innerHTML=totalCount>0?`${T[LANG.current].allLabel} <span class="filter-chip-count">${totalCount}</span>`:T[LANG.current].allLabel;allChip.onclick=()=>setFilter(null);bar.appendChild(allChip);CATEGORIES.forEach(cat=>{const count=catCounts[cat.id]||0;const chip=document.createElement('button');const isActive=!state.showFavoritesOnly&&state.activeCategory===cat.id;chip.className='filter-chip'+(isActive?' active':'')+(totalCount>0&&count===0?' no-data':'');if(isActive){chip.style.background=cat.color;chip.style.borderColor=cat.color;}const countBadge=totalCount>0?` <span class="filter-chip-count">${count}</span>`:'';chip.innerHTML=`${cat.emoji} ${cat[LANG.current]||cat.en}${countBadge}`;chip.onclick=()=>setFilter(cat.id);bar.appendChild(chip);});if(typeof buildAgeFilterPills==='function')buildAgeFilterPills();}
+function setFilter(catId){state.activeCategory=catId;state.showFavoritesOnly=false;state.displayed=0;if(state.allVenues.length===0){buildFilterBar();const cat=catId?CATEGORIES.find(c=>c.id===catId):null;const catName=cat?(cat[LANG.current]||cat.en):'';if(catId&&cat){document.getElementById('emptyTitle').textContent=T[LANG.current].browseCategory(catName);document.getElementById('emptyDesc').textContent=T[LANG.current].browseCategoryDesc;}else{updateEmptyStateText();}searchInput.focus();return;}applyFilter();buildFilterBar();}
+function applyFilter(){let list=state.activeCategory?state.allVenues.filter(v=>v.category.id===state.activeCategory):[...state.allVenues];if(state.showFavoritesOnly){list=list.filter(v=>state.favorites.includes(v.id));}if(typeof activeAgeFilter!=='undefined'&&activeAgeFilter!=='all'){const ageRange=typeof AGE_FILTER_RANGES!=='undefined'?AGE_FILTER_RANGES.find(a=>a.id===activeAgeFilter):null;if(ageRange&&ageRange.categories){list=list.filter(v=>ageRange.categories.includes(v.category.id));}}if(state.userLocation){list.forEach(v=>{v._userDist=haversine(state.userLocation[0],state.userLocation[1],v.lat,v.lon);});list.sort((a,b)=>a._userDist-b._userDist);}state.filtered=list;renderList();renderMarkers();}
+const searchInput=document.getElementById('searchInput');const autocompleteEl=document.getElementById('autocomplete');let focusedIdx=-1;
+searchInput.addEventListener('input',()=>{const q=searchInput.value.trim().toLowerCase();if(!q){autocompleteEl.classList.remove('open');return;}const regionMatches=NO_REGIONS.filter(r=>r.name.toLowerCase().includes(q)||(r.nameZh&&r.nameZh.includes(q))).slice(0,5);const staticVenueMatches=STATIC_NO_VENUES.filter(v=>v.tags.name&&(v.tags.name.toLowerCase().includes(q)||(v.tags.nameZh&&v.tags.nameZh.includes(q)))).map(v=>({name:v.tags.name,nameZh:v.tags.nameZh||'',type:'venue',lat:v.lat,lon:v.lon,emoji:getCategoryForVenue(v.tags).emoji,catLabel:getCategoryForVenue(v.tags)[LANG.current]||getCategoryForVenue(v.tags).en,city:v.tags['addr:city']||'',id:`${v.type}/${v.id}`}));const loadedVenueMatches=(state.allVenues.length>0?state.allVenues:[]).filter(v=>(v.name.toLowerCase().includes(q)||(v.nameZh&&v.nameZh.includes(q)))&&!staticVenueMatches.find(s=>s.name===v.name)).map(v=>({name:v.name,nameZh:v.nameZh||'',type:'venue',lat:v.lat,lon:v.lon,emoji:v.category.emoji,catLabel:v.category[LANG.current]||v.category.en,city:v.address?v.address.split(',').pop().trim():'',id:v.id}));const allVenueMatches=[...staticVenueMatches,...loadedVenueMatches].slice(0,5);renderAutocomplete(regionMatches,q,allVenueMatches);});
+searchInput.addEventListener('keydown',e=>{const items=autocompleteEl.querySelectorAll('.autocomplete-item');if(e.key==='ArrowDown'){e.preventDefault();focusedIdx=Math.min(focusedIdx+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('focused',i===focusedIdx));}else if(e.key==='ArrowUp'){e.preventDefault();focusedIdx=Math.max(focusedIdx-1,0);items.forEach((el,i)=>el.classList.toggle('focused',i===focusedIdx));}else if(e.key==='Enter'){e.preventDefault();if(focusedIdx>=0&&items[focusedIdx]){items[focusedIdx].click();}else if(searchInput.value.trim()){searchRegion(searchInput.value.trim());}}else if(e.key==='Escape'){autocompleteEl.classList.remove('open');}});
+document.addEventListener('click',e=>{if(!e.target.closest('.header-search'))autocompleteEl.classList.remove('open');});
+function renderAutocomplete(regionMatches,q,venueMatches){focusedIdx=-1;venueMatches=venueMatches||[];if(!regionMatches.length&&!venueMatches.length){autocompleteEl.classList.remove('open');return;}const safeQ=q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');let html='';if('near me'.includes(q)||'我附近'.includes(q)){html+=`<div class="autocomplete-item" onclick="activateNearMe()"><span class="venue-emoji">📍</span><span>${T[LANG.current].nearMe}</span><span class="region-type">${T[LANG.current].nearMeLocationType}</span></div>`;}if(venueMatches.length>0){html+=`<div class="autocomplete-section-label">${T[LANG.current].venuesSection}</div>`;html+=venueMatches.map(v=>{const safeName=escapeHtml(v.name);const highlighted=safeName.replace(new RegExp(`(${safeQ})`,'gi'),'<strong style="color:var(--primary)">$1</strong>');return`<div class="autocomplete-item" onclick="searchVenueFromAutocomplete(${v.lat},${v.lon},'${v.id.replace(/'/g,"\\'")}','${v.name.replace(/'/g,"\\'")}')"><span class="venue-emoji">${v.emoji}</span><span>${highlighted}<span class="venue-result-detail"> &middot; ${v.city}</span></span><span class="region-type">${v.catLabel}</span></div>`;}).join('');}if(regionMatches.length>0){html+=`<div class="autocomplete-section-label">${T[LANG.current].regionsSection}</div>`;html+=regionMatches.map(r=>{const safeName=escapeHtml(r.name);const highlighted=safeName.replace(new RegExp(`(${safeQ})`,'gi'),'<strong style="color:var(--primary)">$1</strong>');const zhLabel=r.nameZh?` ${r.nameZh}`:'';const escapedName=r.name.replace(/'/g,"\\'").replace(/[<>"]/g,'');return`<div class="autocomplete-item" onclick="searchRegion('${escapedName}')"><span>${highlighted}${zhLabel}</span><span class="region-type">${r.type==='province'?'Region':'City'}</span></div>`;}).join('');}autocompleteEl.innerHTML=html;autocompleteEl.classList.add('open');}
+function clearSearch(){searchInput.value='';autocompleteEl.classList.remove('open');searchInput.focus();fullReset();}
+function resetHome(){searchInput.value='';autocompleteEl.classList.remove('open');state.activeCategory=null;state.activeCardId=null;state.showFavoritesOnly=false;state.displayed=0;if(typeof activeAgeFilter!=='undefined')activeAgeFilter='all';markersLayer.clearLayers();state.markers.clear();map.setView([64.0,14.0],5);showOverlay(false);if(typeof closeDetailPanel==='function')closeDetailPanel();loadStaticVenues();}
+function fullReset(){state.allVenues=[];state.filtered=[];state.displayed=0;state.activeCategory=null;state.activeCardId=null;state.currentRegion='';state.showFavoritesOnly=false;if(typeof activeAgeFilter!=='undefined')activeAgeFilter='all';markersLayer.clearLayers();state.markers.clear();searchInput.value='';autocompleteEl.classList.remove('open');map.setView([64.0,14.0],5);showOverlay(false);document.getElementById('resultCountText').textContent=T[LANG.current].resultLabel;document.getElementById('emptyState').style.display='flex';document.getElementById('venueList').style.display='none';document.getElementById('venueList').innerHTML='';document.getElementById('categorySummary').innerHTML='';closeDetailPanel();updateEmptyStateText();buildFilterBar();}
+function showToast(message,duration=3000){const toast=document.getElementById('toast');toast.textContent=message;toast.classList.add('show');clearTimeout(toast._timer);toast._timer=setTimeout(()=>toast.classList.remove('show'),duration);}
+const scrollTopBtn=document.getElementById('scrollTopBtn');document.getElementById('venueList').addEventListener('scroll',function(){scrollTopBtn.classList.toggle('visible',this.scrollTop>200);});scrollTopBtn.addEventListener('click',()=>{document.getElementById('venueList').scrollTo({top:0,behavior:'smooth'});});
+async function searchRegion(name){searchInput.value=name;autocompleteEl.classList.remove('open');state.currentRegion=name;showOverlay(true);document.getElementById('resultCountText').innerHTML=T[LANG.current].searching;try{const nominatimUrl=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(name+' Norway')}&format=json&limit=1&addressdetails=1`;const geoRes=await fetch(nominatimUrl);const geoData=await geoRes.json();if(!geoData.length){showToast(T[LANG.current].regionNotFound);showOverlay(false);return;}const place=geoData[0];const[s,n,w,e]=place.boundingbox.map(Number);const bbox=`${s},${w},${n},${e}`;map.fitBounds([[s,w],[n,e]],{padding:[20,20]});const overpassQuery=buildOverpassQuery(bbox);const osmData=await fetchOverpass(overpassQuery);processOSMData(osmData.elements);showOverlay(false);}catch(err){console.error('Search error:',err);showOverlay(false);document.getElementById('resultCountText').innerHTML=`&#9888;&#65039; Error: ${err.message||err} - please check your connection and retry`;}}
+const OVERPASS_ENDPOINTS=['https://overpass.kumi.systems/api/interpreter','https://overpass.openstreetmap.fr/api/interpreter','https://overpass-api.de/api/interpreter'];
+function buildOverpassQuery(bbox){return`[out:json][timeout:60];\n(\n  node["name"]["tourism"~"museum|gallery|aquarium|zoo|theme_park|attraction|visitor_centre"](${bbox});\n  node["name"]["leisure"~"playground|water_park|ice_rink|miniature_golf|nature_reserve|marina"](${bbox});\n  node["name"]["amenity"~"theatre|cinema"](${bbox});\n  node["name"]["natural"="beach"](${bbox});\n  node["name"]["historic"~"castle|ruins|monument|fort|mill"](${bbox});\n  way["name"]["tourism"~"museum|gallery|aquarium|zoo|theme_park|attraction|visitor_centre"](${bbox});\n  way["name"]["leisure"~"playground|water_park|nature_reserve"](${bbox});\n  way["name"]["amenity"~"theatre|cinema"](${bbox});\n  way["name"]["natural"="beach"](${bbox});\n  way["name"]["historic"~"castle|ruins|fort|mill"](${bbox});\n  relation["name"]["tourism"~"museum|zoo|theme_park"](${bbox});\n  relation["name"]["leisure"="nature_reserve"](${bbox});\n  relation["name"]["natural"="beach"](${bbox});\n);\nout center;`;}
+const NO_BBOX='57.7,4.5,71.2,31.1';
+function buildCategoryQuery(catId,bbox){const cat=CATEGORIES.find(c=>c.id===catId);if(!cat)return buildOverpassQuery(bbox);const stmts=[];Object.entries(cat.tags).forEach(([key,vals])=>{const op=vals.length===1?'=':'~';const val=vals.join('|');['node','way','relation'].forEach(t=>stmts.push(`  ${t}["name"]["${key}"${op}"${val}"](${bbox});`));});return`[out:json][timeout:90];\n(\n${stmts.join('\n')}\n);\nout center;`;}
+async function fetchOverpass(query){let lastErr;for(let i=0;i<OVERPASS_ENDPOINTS.length;i++){const url=OVERPASS_ENDPOINTS[i]+'?data='+encodeURIComponent(query);const controller=new AbortController();const tid=setTimeout(()=>controller.abort(),35000);try{const res=await fetch(url,{signal:controller.signal});clearTimeout(tid);if(res.ok){const json=await res.json();if(json.remark&&/timed out|timeout/i.test(json.remark)){lastErr=new Error('Server timeout');continue;}return json;}lastErr=new Error(`HTTP ${res.status}`);}catch(e){clearTimeout(tid);lastErr=e;}}throw lastErr||new Error('All Overpass endpoints failed');}
+function formatRating(venue){if(!venue.rating)return null;const r=parseFloat(venue.rating);const fullStars=Math.floor(r);const rem=r%1;const halfStar=rem>=0.25&&rem<0.75;const stars='\u2605'.repeat(fullStars)+(halfStar?'\u00BD':(rem>=0.75?'\u2605':''));const count=parseInt(venue.reviews||'0');const countStr=count>=1000?(count/1000).toFixed(1)+'K':String(count);const countFull=count>=1000?count.toLocaleString():String(count);return{stars,rating:venue.rating,countShort:countStr,countFull};}
+function ratingCardHtml(venue){const r=formatRating(venue);if(!r)return'';return`<span class="venue-rating"><span class="rating-stars">\u2B50</span> <span class="rating-num">${r.rating}</span> <span class="rating-count">(${r.countShort})</span></span>`;}
+function ratingDetailHtml(venue){const r=formatRating(venue);if(!r)return'';return`<div class="detail-rating"><span class="detail-rating-stars">${r.stars}</span><span class="detail-rating-num">${r.rating}</span><span class="detail-rating-sep">\u00B7</span><span class="detail-rating-count">${r.countFull} reviews</span></div>`;}
+function applySortOrder(mode){state.sortMode=mode;const list=state.filtered;if(mode==='rating'){list.sort((a,b)=>{const ra=parseFloat(a.rating||'0');const rb=parseFloat(b.rating||'0');if(rb!==ra)return rb-ra;return(parseInt(b.reviews||'0'))-(parseInt(a.reviews||'0'));});}else if(mode==='name'){list.sort((a,b)=>a.name.localeCompare(b.name));}else if(mode==='distance'&&state.userLocation){list.sort((a,b)=>(a._userDist||9999)-(b._userDist||9999));}else{const orderMap=new Map();state.allVenues.forEach((v,i)=>orderMap.set(v.id,i));list.sort((a,b)=>(orderMap.get(a.id)||0)-(orderMap.get(b.id)||0));}state.displayed=0;renderList();}
+function processOSMData(elements){const venues=[];const seen=new Set();for(const el of elements){const tags=el.tags||{};const name=tags.name||tags['name:el']||tags['name:en'];if(!name)continue;const lat=el.lat??el.center?.lat;const lon=el.lon??el.center?.lon;if(!lat||!lon)continue;const key=`${name.toLowerCase()}-${Math.round(lat*1000)}-${Math.round(lon*1000)}`;if(seen.has(key))continue;seen.add(key);const cat=getCategoryForVenue(tags);const rawWebsite=tags.website||tags['contact:website']||tags['url']||'';const website=rawWebsite?(rawWebsite.startsWith('http')?rawWebsite:'https://'+rawWebsite):'';const city=tags['addr:city']||tags['addr:town']||tags['addr:village']||'';const street=[tags['addr:street'],tags['addr:housenumber']].filter(Boolean).join(' ');const address=[street,city].filter(Boolean).join(', ');venues.push({id:`${el.type}/${el.id}`,name,nameZh:tags['name:zh']||tags['name:zh-Hans']||tags.nameZh||'',lat,lon,category:cat,website,address,phone:tags.phone||tags['contact:phone']||'',openingHours:tags.opening_hours||'',rating:tags.rating||'',reviews:tags.reviews||'',osmType:el.type,osmId:el.id});}venues.sort((a,b)=>{if(a.category.id!=='attraction'&&b.category.id==='attraction')return-1;if(a.category.id==='attraction'&&b.category.id!=='attraction')return 1;return a.name.localeCompare(b.name);});state.allVenues=venues;state.displayed=0;applyFilter();buildFilterBar();document.getElementById('resultCountText').innerHTML=venues.length?T[LANG.current].found(venues.length,state.currentRegion):T[LANG.current].notFound;const sortCtrl=document.getElementById('sortControl');if(sortCtrl){sortCtrl.style.display=venues.length?'inline-flex':'none';const sortSel=document.getElementById('sortSelect');if(sortSel)sortSel.value='default';}state.sortMode='default';renderCategorySummary();}
+function renderList(){const list=document.getElementById('venueList');const empty=document.getElementById('emptyState');if(state.allVenues.length===0){empty.style.display='flex';list.style.display='none';updateEmptyStateText();if(state.activeCategory){const cat=CATEGORIES.find(c=>c.id===state.activeCategory);const catName=cat?(cat[LANG.current]||cat.en):'';document.getElementById('emptyTitle').textContent=T[LANG.current].searchRegionFirst;document.getElementById('emptyDesc').textContent=T[LANG.current].searchRegionFirstDesc(catName);}return;}if(state.filtered.length===0){empty.style.display='flex';list.style.display='none';const cat=CATEGORIES.find(c=>c.id===state.activeCategory);const catName=cat?(cat[LANG.current]||cat.en):'';document.getElementById('emptyTitle').textContent=T[LANG.current].noInRegion(catName,state.currentRegion);document.getElementById('emptyDesc').textContent=T[LANG.current].tryOtherCategory;return;}empty.style.display='none';list.style.display='flex';const toShow=state.filtered.slice(0,state.displayed+PAGE_SIZE);state.displayed=toShow.length;const frag=document.createDocumentFragment();toShow.forEach(v=>{const card=document.createElement('div');card.className='venue-card'+(v.id===state.activeCardId?' active':'');card.id='card-'+v.id.replace(/[^a-z0-9]/gi,'-');const isFav=state.favorites.includes(v.id);const distHtml=v._userDist!=null?`<span class="venue-distance">📍 ${v._userDist.toFixed(1)} km</span>`:'';card.innerHTML=`<button class="venue-fav-btn ${isFav?'favorited':''}" onclick="event.stopPropagation(); toggleFavorite('${v.id.replace(/'/g,"\\'")}', this)" title="${isFav?'Remove':'Add'}">${isFav?'❤️':'♡'}</button><div class="venue-card-top"><div class="venue-icon" style="background:${v.category.bg}">${v.category.emoji}</div><div class="venue-info"><div class="venue-name">${v.name}</div>${v.nameZh?`<div class="venue-name-zh">${v.nameZh}</div>`:''}${ratingCardHtml(v)}<div class="venue-meta"><span class="venue-tag" style="background:${v.category.bg};color:${v.category.color}">${v.category[LANG.current]||v.category.en}</span>${distHtml}${v.address?`<span class="venue-address"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 10 C2 7 0.5 5.5 0.5 4a4.5 4.5 0 019 0c0 1.5-1.5 3-4.5 6z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>${v.address}</span>`:''}</div>${v.openingHours?`<div class="venue-detail-row">\u{1F552} ${translateHours(v.openingHours)}</div>`:''}${v.phone?`<div class="venue-detail-row">\u{1F4DE} <a href="tel:${v.phone}">${v.phone}</a></div>`:''}</div></div><div class="venue-actions">${v.website?`<a class="btn-website" href="${v.website}" target="_blank" rel="noopener">${T[LANG.current].website}</a>`:`<span class="btn-website" style="opacity:.45;cursor:default">${T[LANG.current].noWebsite}</span>`}<a class="btn-nav" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">${T[LANG.current].navigate}</a><button class="btn-map" onclick="flyToVenue('${v.id}')">${T[LANG.current].flyTo}</button></div>`;card.addEventListener('click',e=>{if(e.target.closest('a,button'))return;selectVenue(v.id);});frag.appendChild(card);});list.innerHTML='';list.appendChild(frag);if(state.displayed<state.filtered.length){const btn=document.createElement('button');btn.className='load-more-btn';btn.textContent=`${T[LANG.current].loadMore} (${state.filtered.length-state.displayed} more)`;btn.onclick=()=>{renderList();};list.appendChild(btn);}}
+function renderCategorySummary(){const el=document.getElementById('categorySummary');if(!state.allVenues.length){el.innerHTML='';return;}const counts={};state.allVenues.forEach(v=>{counts[v.category.id]=(counts[v.category.id]||0)+1;});el.innerHTML=CATEGORIES.filter(cat=>counts[cat.id]).map(cat=>`<span class="category-summary-chip" style="background:${cat.bg};color:${cat.color}">${cat.emoji} ${counts[cat.id]}</span>`).join('');}
+function updateEmptyStateText(){document.getElementById('emptyTitle').textContent=T[LANG.current].emptyTitle;document.getElementById('emptyDesc').textContent=T[LANG.current].emptyDesc;}
+const _iconCache={};function getIcon(cat){if(!_iconCache[cat.id]){_iconCache[cat.id]=L.divIcon({html:`<div class="map-marker" style="background:${cat.color}"><div class="map-marker-inner">${cat.emoji}</div></div>`,className:'',iconSize:[34,34],iconAnchor:[17,34],popupAnchor:[0,-36]});}return _iconCache[cat.id];}
+function renderMarkers(){markersLayer.clearLayers();state.markers.clear();const batch=[];state.filtered.forEach(v=>{const marker=L.marker([v.lat,v.lon],{icon:getIcon(v.category)});marker.bindPopup(()=>buildPopup(v),{maxWidth:280,minWidth:260});marker.on('click',()=>selectVenue(v.id));state.markers.set(v.id,marker);batch.push(marker);});markersLayer.addLayers(batch);}
+function buildPopup(v){return`<div class="popup-content"><div class="popup-header"><div class="popup-icon" style="background:${v.category.bg}">${v.category.emoji}</div><div><div class="popup-name">${v.name}</div>${v.nameZh?`<div class="popup-name-zh">${v.nameZh}</div>`:''}</div></div>${v.address?`<div class="popup-address">\u{1F4CD} ${v.address}</div>`:''}${v.openingHours?`<div class="popup-address">\u{1F552} ${translateHours(v.openingHours)}</div>`:''}${v.phone?`<div class="popup-address">\u{1F4DE} <a href="tel:${v.phone}" style="color:var(--primary);text-decoration:none">${v.phone}</a></div>`:''}<div style="display:flex;gap:6px">${v.website?`<a class="popup-website" href="${v.website}" target="_blank" rel="noopener" style="flex:1">${T[LANG.current].website}</a>`:''}<a class="popup-website" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener" style="flex:1;background:#4285F4">${T[LANG.current].navigate}</a></div></div>`;}
+function selectVenue(id){state.activeCardId=id;document.querySelectorAll('.venue-card').forEach(c=>c.classList.remove('active'));const cardEl=document.getElementById('card-'+id.replace(/[^a-z0-9]/gi,'-'));if(cardEl){cardEl.classList.add('active');cardEl.scrollIntoView({behavior:'smooth',block:'nearest'});}const marker=state.markers.get(id);if(marker){marker.openPopup();}}
+function flyToVenue(id){const v=state.allVenues.find(x=>x.id===id);if(!v)return;map.flyTo([v.lat,v.lon],16,{duration:1});selectVenue(id);}
+function showOverlay(show){const overlay=document.getElementById('mapOverlay');document.getElementById('loadingText').textContent=T[LANG.current].loadingVenues;document.getElementById('loadingHint').textContent=show?T[LANG.current].loadingHint:'';overlay.classList.toggle('hidden',!show);}
+function setLang(lang){LANG.current=lang;document.querySelectorAll('.lang-btn').forEach(b=>{b.classList.toggle('active',b.dataset.lang===lang);});document.getElementById('searchInput').placeholder=T[lang].searchPlaceholder;updateEmptyStateText();buildFilterBar();if(state.allVenues.length){document.getElementById('resultCountText').innerHTML=T[lang].found(state.filtered.length,state.currentRegion);renderList();renderMarkers();renderCategorySummary();}else{document.getElementById('resultCountText').textContent=T[lang].resultLabel;}const wb=document.getElementById('weatherBanner');if(wb&&wb.style.display!=='none'){document.getElementById('weatherBannerText').textContent=T[lang].weatherBannerText;document.getElementById('weatherBannerBtn').textContent=T[lang].weatherBannerBtn;}}
+function showSkeletons(){const list=document.getElementById('venueList');document.getElementById('emptyState').style.display='none';list.style.display='flex';list.innerHTML=Array(4).fill(0).map(()=>`<div class="skeleton-card"><div style="display:flex;gap:11px;align-items:center"><div class="skeleton" style="width:36px;height:36px;border-radius:50%;flex-shrink:0"></div><div style="flex:1"><div class="skeleton" style="height:12px;margin-bottom:8px;width:70%"></div><div class="skeleton" style="height:10px;width:45%"></div></div></div></div>`).join('');}
+const _origSearch=searchRegion;window.searchRegion=async function(name){showSkeletons();return _origSearch(name);};
+function loadStaticVenues(){state.currentRegion=T[LANG.current].featuredRegion;processOSMData(STATIC_NO_VENUES);}
+
+const CITY_COORDS={athens:[37.97,23.73],thessaloniki:[40.63,22.95],santorini:[36.42,25.43],mykonos:[37.45,25.33],heraklion:[35.34,25.13],rhodes:[36.43,28.22],corfu:[39.62,19.92],nafplio:[37.57,22.80],olympia:[37.64,21.63],delphi:[38.48,22.50],meteora:[39.72,21.63],zakynthos:[37.79,20.90],chania:[35.52,24.02],rethymno:[35.37,24.47],patras:[38.25,21.73],volos:[39.37,22.95],kefalonia:[38.19,20.51],naxos:[37.10,25.38],paros:[37.08,25.15],crete:[35.24,24.90],kalamata:[37.04,22.11],ioannina:[39.66,20.85],kavala:[40.94,24.41],雅典:[37.97,23.73],塞萨洛尼基:[40.63,22.95],圣托里尼:[36.42,25.43],米科诺斯:[37.45,25.33],克里特:[35.24,24.90],伊拉克利翁:[35.34,25.13],罗得岛:[36.43,28.22],科孚:[39.62,19.92],纳夫普利翁:[37.57,22.80],奥林匹亚:[37.64,21.63],德尔菲:[38.48,22.50],梅黛奥拉:[39.72,21.63],扎金索斯:[37.79,20.90]};
+const INTEREST_MAP={'动物':['zoo','children_farm'],'动物园':['zoo'],'农场':['children_farm'],'博物馆':['museum'],'游乐园':['theme_park'],'室内':['indoor_playground','museum','aquarium'],'下雨':['indoor_playground','museum','aquarium'],'海滩':['beach'],'海边':['beach'],'沙滩':['beach'],'城堡':['historic'],'历史':['historic'],'古迹':['historic'],'自然':['nature'],'水族馆':['aquarium'],'运动':['sports'],'中餐':['chinese_restaurant'],'自助餐':['buffet'],'animal':['zoo','children_farm'],'zoo':['zoo'],'farm':['children_farm'],'museum':['museum'],'theme park':['theme_park'],'indoor':['indoor_playground','museum','aquarium'],'rain':['indoor_playground','museum','aquarium'],'beach':['beach'],'sea':['beach'],'castle':['historic'],'history':['historic'],'nature':['nature'],'aquarium':['aquarium'],'sport':['sports'],'chinese':['chinese_restaurant'],'buffet':['buffet'],'playground':['indoor_playground','playground'],};
+const AGE_HINTS={'婴儿':1,'宝宝':2,'1岁':1,'2岁':2,'3岁':3,'幼儿':3,'小朋友':5,'4岁':4,'5岁':5,'6岁':6,'7岁':7,'8岁':8,'9岁':9,'10岁':10,'学龄':7,'toddler':2,'baby':1,'teenager':13};
+function haversine(lat1,lon1,lat2,lon2){const R=6371;const dLat=(lat2-lat1)*Math.PI/180;const dLon=(lon2-lon1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function parseUserMessage(msg){const lower=msg.toLowerCase();const result={city:null,coords:null,categories:new Set(),age:null,maxDist:null,raw:msg};for(const[name,coords]of Object.entries(CITY_COORDS)){if(lower.includes(name.toLowerCase())){result.city=name;result.coords=coords;break;}}for(const[kw,cats]of Object.entries(INTEREST_MAP)){if(lower.includes(kw.toLowerCase())){cats.forEach(c=>result.categories.add(c));}}for(const[kw,age]of Object.entries(AGE_HINTS)){if(lower.includes(kw)){result.age=age;break;}}const distMatch=lower.match(/(\d+)\s*(km|公里|min)/);if(distMatch){const num=parseInt(distMatch[1]);result.maxDist=(distMatch[2]==='min')?num*1.2:num;}return result;}
+function recommendVenues(parsed){let venues=[...STATIC_NO_VENUES].map(v=>{const tags=v.tags||{};const cat=getCategoryForVenue(tags);return{...v,_cat:cat,_name:tags.name,_city:tags['addr:city']||''};});if(parsed.categories.size>0){venues=venues.filter(v=>parsed.categories.has(v._cat.id));}if(parsed.coords){venues.forEach(v=>{v._dist=haversine(parsed.coords[0],parsed.coords[1],v.lat,v.lon);});if(parsed.maxDist){venues=venues.filter(v=>v._dist<=parsed.maxDist);}venues.sort((a,b)=>a._dist-b._dist);}else{venues.sort(()=>Math.random()-0.5);}if(parsed.age!==null){if(parsed.age<=3){const priority=['children_farm','indoor_playground','playground','zoo'];venues.sort((a,b)=>{const aP=priority.indexOf(a._cat.id);const bP=priority.indexOf(b._cat.id);if(aP>=0&&bP<0)return-1;if(aP<0&&bP>=0)return 1;return(a._dist||0)-(b._dist||0);});}else if(parsed.age>=8){const priority=['theme_park','sports','museum','historic'];venues.sort((a,b)=>{const aP=priority.indexOf(a._cat.id);const bP=priority.indexOf(b._cat.id);if(aP>=0&&bP<0)return-1;if(aP<0&&bP>=0)return 1;return(a._dist||0)-(b._dist||0);});}}return venues.slice(0,6);}
+function buildChatResponse(parsed,venues){const isZh=/[\u4e00-\u9fff]/.test(parsed.raw);const isNO=false;const chatLang=isZh?'zh':(isNO?'no':'en');let parts=[];if(venues.length===0){const noMatch={en:"Sorry, no exact matches found. Try different keywords?",zh:'抱歉，没有找到完全匹配的场地。试试换个关键词？',no:'', nl:''};return noMatch[chatLang];}if(chatLang==='zh'){let opener='为你推荐以下场地';if(parsed.city)opener=`在 ${parsed.city} 附近为你推荐`;if(parsed.age)opener+=`（适合${parsed.age}岁孩子）`;opener+='：';parts.push(opener);}else if(chatLang==='el'){let opener='Εδω ειναι οι προτασεις μου';if(parsed.city)opener=`Κοντα στο ${parsed.city}, εδω ειναι οι προτασεις μου`;if(parsed.age)opener+=` (για παιδια ${parsed.age} ετων)`;opener+=':';parts.push(opener);}else{let opener='Here are my recommendations';if(parsed.city)opener=`Near ${parsed.city}, here are my picks`;if(parsed.age)opener+=` (for age ${parsed.age})`;opener+=':';parts.push(opener);}venues.forEach((v)=>{const dist=v._dist?` (${v._dist.toFixed(1)}km)`:'';const catLabel=v._cat[chatLang]||v._cat.en;parts.push(`\n${v._cat.emoji} <strong>${v._name}</strong>${dist}\n<span style="color:var(--text-muted);font-size:11px">${catLabel} &middot; ${v._city}</span>`);});if(chatLang==='zh'){parts.push('\n点击场地名称可在地图上查看位置。');}else if(chatLang==='el'){parts.push('\nΚαντε κλικ σε μια τοποθεσια για να τη δειτε στο χαρτη.');}else{parts.push('\nClick a venue name to see it on the map.');}return parts.join('');}
+
+let chatOpen=false;
+function toggleChat(open){chatOpen=open;document.getElementById('chatPanel').classList.toggle('open',open);document.getElementById('chatFab').classList.toggle('hidden',open);if(open&&document.getElementById('chatMessages').children.length===0){initChat();}if(open)document.getElementById('chatInput').focus();}
+function initChat(){const chatGreetings={en:"Hi! I'm your Norway family outing assistant.\n\nTell me:\n\u2022 Which city or island?\n\u2022 Kids' ages?\n\u2022 Indoor or outdoor?\n\u2022 Any interests?\n\nI'll recommend the best places!",zh:'你好！我是挪威亲子出行助手。\n\n告诉我你的情况：\n\u2022 你在哪个城市或岛屿？\n\u2022 孩子多大？\n\u2022 想要室内还是室外？\n\u2022 对什么感兴趣？\n\n我会推荐最合适的去处！',no:'', nl:''};addBotMessage(chatGreetings[LANG.current]||chatGreetings.en);showQuickActions();}
+function showQuickActions(){const el=document.getElementById('chatQuickActions');const allActions={en:[['🏠 Indoor Athens','Indoor activities in Athens'],['🏖️ Beach Crete','Beach in Crete for kids'],['🏛️ Museum Athens','Museum for 8 year old near Athens'],['🦁 Zoo Athens','Zoo near Athens for 3 year old']],zh:[['🏠 雅典室内玩','我在雅典，想找室内活动'],['🏖️ 克里特海滩','想带孩子去克里特海滩'],['🏛️ 雅典博物馆','想带8岁孩子去博物馆，在雅典'],['🦁 带宝宝看动物','我孩子3岁，想去看动物']],no:[['🏠 Εσωτερικα Αθηνα','Εσωτερικες δραστηριοτητες στην Αθηνα'],['🏖️ Παραλια Κρητη','Παραλια στην Κρητη για παιδια'],['🏛️ Μουσειο Αθηνα','Μουσειο κοντα στην Αθηνα'],['🦁 Ζωο Αθηνα','Ζωολογικος κηπος κοντα στην Αθηνα']]};const actions=allActions[LANG.current]||allActions.en;el.innerHTML=actions.map(([label,msg])=>`<button class="chat-quick-btn" onclick="sendQuickMsg('${msg.replace(/'/g,"\\'")}')">${label}</button>`).join('');}
+function sendQuickMsg(msg){document.getElementById('chatInput').value=msg;handleChatSend();}
+function escapeHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function addBotMessage(text){const el=document.getElementById('chatMessages');const div=document.createElement('div');div.className='chat-msg bot';div.innerHTML=text.replace(/\n/g,'<br>');el.appendChild(div);el.scrollTop=el.scrollHeight;}
+function addUserMessage(text){const el=document.getElementById('chatMessages');const div=document.createElement('div');div.className='chat-msg user';div.textContent=text;el.appendChild(div);el.scrollTop=el.scrollHeight;}
+function showTyping(){const el=document.getElementById('chatMessages');const div=document.createElement('div');div.className='chat-typing';div.id='chatTyping';div.innerHTML='<span></span><span></span><span></span>';el.appendChild(div);el.scrollTop=el.scrollHeight;}
+function removeTyping(){const t=document.getElementById('chatTyping');if(t)t.remove();}
+function handleChatSend(){const input=document.getElementById('chatInput');const msg=input.value.trim();if(!msg)return;addUserMessage(msg);input.value='';document.getElementById('chatQuickActions').innerHTML='';showTyping();setTimeout(()=>{removeTyping();const parsed=parseUserMessage(msg);const venues=recommendVenues(parsed);const response=buildChatResponse(parsed,venues);let venueChips='';if(venues.length>0){venueChips='<div style="margin-top:8px">'+venues.map(v=>`<span class="chat-venue-chip" onclick="chatShowVenue(${v.lat},${v.lon},'${v._name.replace(/'/g,"\\'")}')">${v._cat.emoji} ${v._name}</span>`).join('')+'</div>';}addBotMessage(response+venueChips);},600+Math.random()*400);}
+function chatShowVenue(lat,lon,name){map.flyTo([lat,lon],14,{duration:1});const v=state.allVenues.find(x=>x.name===name);if(v)selectVenue(v.id);if(window.innerWidth<=768)toggleChat(false);}
+document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();handleChatSend();}});
+
+function toggleFavorite(venueId,btnEl){const idx=state.favorites.indexOf(venueId);if(idx>=0){state.favorites.splice(idx,1);if(btnEl){btnEl.classList.remove('favorited');btnEl.textContent='\u2661';}}else{state.favorites.push(venueId);if(btnEl){btnEl.classList.add('favorited');btnEl.textContent='\u2764\uFE0F';}}if(btnEl){btnEl.classList.remove('bounce');void btnEl.offsetWidth;btnEl.classList.add('bounce');}localStorage.setItem('no-kids-explorer-favorites',JSON.stringify(state.favorites));buildFilterBar();if(state.showFavoritesOnly){state.displayed=0;applyFilter();}}
+function toggleFavoritesFilter(){state.showFavoritesOnly=!state.showFavoritesOnly;if(state.showFavoritesOnly){state.activeCategory=null;}state.displayed=0;applyFilter();buildFilterBar();}
+function setMobileView(mode){
+  if(mode==='list'){document.body.classList.add('mobile-list-mode');document.getElementById('mapToggleBtn').classList.remove('active');document.getElementById('listToggleBtn').classList.add('active');}
+  else{document.body.classList.remove('mobile-list-mode');document.getElementById('mapToggleBtn').classList.add('active');document.getElementById('listToggleBtn').classList.remove('active');if(typeof map!=='undefined')setTimeout(()=>map.invalidateSize(),50);}
+}
+
+function searchVenueFromAutocomplete(lat,lon,venueId,venueName){autocompleteEl.classList.remove('open');searchInput.value=venueName;map.flyTo([lat,lon],16,{duration:1});const v=state.allVenues.find(x=>x.id===venueId);if(v){selectVenue(v.id);}else{L.popup().setLatLng([lat,lon]).setContent(`<div class="popup-content"><div class="popup-name">${escapeHtml(venueName)}</div></div>`).openOn(map);}}
+function activateNearMe(){autocompleteEl.classList.remove('open');const btn=document.getElementById('nearmeBtn');if(!navigator.geolocation){showToast(T[LANG.current].nearMeError);return;}btn.classList.add('active');showToast(T[LANG.current].nearMeSearching,2000);navigator.geolocation.getCurrentPosition((pos)=>{const lat=pos.coords.latitude;const lon=pos.coords.longitude;state.userLocation=[lat,lon];if(state.userLocationMarker){map.removeLayer(state.userLocationMarker);}state.userLocationMarker=L.circleMarker([lat,lon],{radius:10,color:'#4285F4',fillColor:'#4285F4',fillOpacity:0.5,weight:3,opacity:0.8}).addTo(map).bindPopup(T[LANG.current].yourLocation);state.displayed=0;applyFilter();buildFilterBar();map.flyTo([lat,lon],11,{duration:1});showToast(T[LANG.current].sortedByDistance,2000);},(err)=>{btn.classList.remove('active');if(err.code===1){showToast(T[LANG.current].nearMePermDenied,4000);}else{showToast(T[LANG.current].nearMeError);}},{enableHighAccuracy:true,timeout:10000});}
+
+(function initBottomSheet(){const sidebar=document.getElementById('sidebarSheet');const handle=document.getElementById('bottomSheetHandle');if(!handle)return;const SNAP_COLLAPSED=25;const SNAP_HALF=50;const SNAP_FULL=90;let sheetPos=SNAP_COLLAPSED;let startY=0,startPos=0,dragging=false;function isMobile(){return window.innerWidth<=768;}function setSheetPosition(pct){if(!isMobile()){sidebar.style.transform='';sidebar.style.height='';return;}sheetPos=pct;const h=Math.min(pct,90);sidebar.style.height=h+'dvh';sidebar.style.transform='translateY(0)';}handle.addEventListener('touchstart',(e)=>{if(!isMobile())return;dragging=true;startY=e.touches[0].clientY;startPos=sheetPos;sidebar.style.transition='none';},{passive:true});handle.addEventListener('touchmove',(e)=>{if(!dragging||!isMobile())return;const dy=startY-e.touches[0].clientY;const dvh=(dy/window.innerHeight)*100;const newPos=Math.max(10,Math.min(90,startPos+dvh));sidebar.style.height=newPos+'dvh';},{passive:true});handle.addEventListener('touchend',()=>{if(!dragging||!isMobile())return;dragging=false;sidebar.style.transition='height 0.3s cubic-bezier(.4,0,.2,1)';const currentH=parseFloat(sidebar.style.height)||SNAP_COLLAPSED;const snaps=[SNAP_COLLAPSED,SNAP_HALF,SNAP_FULL];let closest=snaps[0];let minDist=Math.abs(currentH-snaps[0]);for(const s of snaps){const d=Math.abs(currentH-s);if(d<minDist){minDist=d;closest=s;}}setSheetPosition(closest);});function initMobileSheet(){if(isMobile()){sidebar.style.transition='height 0.3s cubic-bezier(.4,0,.2,1)';const startSnap = state.allVenues.length === 0 ? SNAP_HALF : SNAP_COLLAPSED;
+      setSheetPosition(startSnap);}else{sidebar.style.transform='';sidebar.style.height='';sidebar.style.transition='';}}window.addEventListener('resize',initMobileSheet);initMobileSheet();})();
+
+function openDetailPanel(venueId){const v=state.allVenues.find(x=>x.id===venueId);if(!v)return;const panel=document.getElementById('venueDetailPanel');const body=document.getElementById('detailPanelBody');const titleEl=document.getElementById('detailPanelTitle');const t=T[LANG.current];titleEl.textContent=t.venueDetails;const isFav=state.favorites.includes(v.id);let html='';html+=`<div class="detail-venue-icon" style="background:${v.category.bg}">${v.category.emoji}</div>`;html+=`<div class="detail-venue-name">${escapeHtml(v.name)}</div>`;if(v.nameZh&&LANG.current==="zh")html+=`<div class="detail-venue-name-zh">${escapeHtml(v.nameZh)}</div>`;html+=`<span class="detail-category-badge" style="background:${v.category.bg};color:${v.category.color}">${v.category.emoji} ${v.category[LANG.current]||v.category.en}</span>`;html+=ratingDetailHtml(v);if(v.address)html+=`<div class="detail-info-row"><span class="detail-icon">📍</span><span>${escapeHtml(v.address)}</span></div>`;if(v.openingHours)html+=`<div class="detail-info-row"><span class="detail-icon">\u{1F552}</span><span>${escapeHtml(translateHours(v.openingHours))}</span></div>`;if(v.phone)html+=`<div class="detail-info-row"><span class="detail-icon">\u{1F4DE}</span><a href="tel:${v.phone}">${escapeHtml(v.phone)}</a></div>`;html+='<div class="detail-actions">';if(v.website)html+=`<a class="detail-btn detail-btn-website" href="${v.website}" target="_blank" rel="noopener">🔗 ${t.visitWebsite}</a>`;html+=`<a class="detail-btn detail-btn-navigate" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">🧭 ${t.navigateTo}</a>`;html+=`<button class="detail-btn detail-btn-favorite ${isFav?'favorited':''}" id="detailFavBtn" onclick="toggleDetailFavorite('${v.id.replace(/'/g,"\\'")}')"> ${isFav?'❤️':'♡'} ${isFav?t.favorited:t.addFavorite}</button>`;html+='</div>';body.innerHTML=html;panel.classList.add('open');}
+function closeDetailPanel(){document.getElementById('venueDetailPanel').classList.remove('open');}
+function toggleDetailFavorite(venueId){toggleFavorite(venueId,null);const btn=document.getElementById('detailFavBtn');const t=T[LANG.current];const isFav=state.favorites.includes(venueId);if(btn){btn.className='detail-btn detail-btn-favorite'+(isFav?' favorited':'');btn.innerHTML=`${isFav?'❤️':'♡'} ${isFav?t.favorited:t.addFavorite}`;}renderList();}
+const _origSelectVenue=selectVenue;window.selectVenue=function(id){_origSelectVenue(id);openDetailPanel(id);};
+document.addEventListener('keydown',(e)=>{if(e.key==='Escape')closeDetailPanel();});
+
+const AGE_FILTER_RANGES=[
+  {id:'all',en:'All ages',zh:'所有年龄',no:'', nl:'',emoji:'',categories:null},
+  {id:'0-3',en:'0-3',zh:'0-3岁',no:'', nl:'',emoji:'👶',categories:['children_farm','playground','indoor_playground','beach','chinese_restaurant','buffet']},
+  {id:'3-6',en:'3-6',zh:'3-6岁',no:'', nl:'',emoji:'🧒',categories:['children_farm','playground','indoor_playground','beach','chinese_restaurant','buffet','zoo','aquarium','theme_park','nature','museum']},
+  {id:'6-12',en:'6-12',zh:'6-12岁',no:'', nl:'',emoji:'🧒',categories:null},
+];
+let activeAgeFilter='all';
+function setAgeFilter(ageId){activeAgeFilter=ageId;if(ageId!=='all'){state.activeCategory=null;state.showFavoritesOnly=false;}state.displayed=0;applyFilter();buildFilterBar();buildAgeFilterPills();}
+function buildAgeFilterPills(){const existing=document.getElementById('ageFilterGroup');if(existing)existing.remove();const bar=document.getElementById('filterBar');const group=document.createElement('div');group.className='age-filter-group';group.id='ageFilterGroup';AGE_FILTER_RANGES.forEach(age=>{const pill=document.createElement('button');pill.className='age-pill'+(activeAgeFilter===age.id?' active':'');const label=age[LANG.current]||age.en;pill.innerHTML=age.emoji?`${age.emoji} ${label}`:label;pill.onclick=()=>setAgeFilter(age.id);group.appendChild(pill);});bar.appendChild(group);}
+
+const INDOOR_CATEGORIES=['indoor_playground','museum','aquarium','theatre','buffet','chinese_restaurant','sports'];
+let weatherBannerDismissed=false;
+async function fetchWeather(){try{const res=await fetch('https://api.open-meteo.com/v1/forecast?latitude=59.91&longitude=10.75&current=temperature_2m,rain,weather_code');const data=await res.json();if(!data.current)return;const temp=Math.round(data.current.temperature_2m);const rain=data.current.rain||0;const code=data.current.weather_code||0;let emoji='\u2600\uFE0F';if(code>=61)emoji='🌧️';else if(code>=51)emoji='🌦️';else if(code>=45)emoji='🌫️';else if(code>=3)emoji='\u26C5';const badge=document.getElementById('weatherBadge');badge.innerHTML=`${emoji} ${temp}&deg;C`;badge.style.display='flex';if((rain>0||code>=61)&&!weatherBannerDismissed){const banner=document.getElementById('weatherBanner');document.getElementById('weatherBannerText').textContent=T[LANG.current].weatherBannerText;document.getElementById('weatherBannerBtn').textContent=T[LANG.current].weatherBannerBtn;banner.style.display='flex';}}catch(e){console.log('Weather fetch failed:',e.message);}}
+function filterIndoorWeather(){activeAgeFilter='all';state.showFavoritesOnly=false;state.activeCategory=null;state.displayed=0;let list=state.allVenues.filter(v=>INDOOR_CATEGORIES.includes(v.category.id));if(state.userLocation){list.forEach(v=>{v._userDist=haversine(state.userLocation[0],state.userLocation[1],v.lat,v.lon);});list.sort((a,b)=>a._userDist-b._userDist);}state.filtered=list;renderList();renderMarkers();buildFilterBar();buildAgeFilterPills();showToast(T[LANG.current].showingIndoor,2000);dismissWeatherBanner();}
+function dismissWeatherBanner(){weatherBannerDismissed=true;document.getElementById('weatherBanner').style.display='none';}
+
+buildFilterBar();buildAgeFilterPills();setLang('en');loadStaticVenues();fetchWeather();
+</script>
+
+<!-- COUNTRY PICKER -->
+<div class="country-picker" id="countryPicker" onclick="if(event.target===this)closeCountryPicker()">
+  <div class="country-picker-panel">
+    <div class="cp-title"><span id="cpTitle">Switch Country</span>
+      <button class="cp-close" onclick="closeCountryPicker()">✕</button></div>
+    <div class="cp-grid" id="cpGrid"></div>
+  </div>
+</div>
+<!-- ZOOM FABs -->
+<div class="fab-zoom">
+  <button class="fab-zoom-btn" onclick="map.zoomIn()" aria-label="Zoom in">+</button>
+  <button class="fab-zoom-btn" onclick="map.zoomOut()" aria-label="Zoom out">−</button>
+</div>
+<script>
+const CP_COUNTRIES=[
+  {slug:'nl',flag:'🇳🇱',en:'Netherlands',zh:'荷兰',nl:'Nederland',count:672},
+  {slug:'be',flag:'🇧🇪',en:'Belgium',zh:'比利时',nl:'België',count:464},
+  {slug:'de',flag:'🇩🇪',en:'Germany',zh:'德国',nl:'Duitsland',count:593},
+  {slug:'at',flag:'🇦🇹',en:'Austria',zh:'奥地利',nl:'Oostenrijk',count:293},
+  {slug:'ch',flag:'🇨🇭',en:'Switzerland',zh:'瑞士',nl:'Zwitserland',count:257},
+  {slug:'fr',flag:'🇫🇷',en:'France',zh:'法国',nl:'Frankrijk',count:607},
+  {slug:'uk',flag:'🇬🇧',en:'United Kingdom',zh:'英国',nl:'VK',count:515},
+  {slug:'ie',flag:'🇮🇪',en:'Ireland',zh:'爱尔兰',nl:'Ierland',count:176},
+  {slug:'es',flag:'🇪🇸',en:'Spain',zh:'西班牙',nl:'Spanje',count:576},
+  {slug:'pt',flag:'🇵🇹',en:'Portugal',zh:'葡萄牙',nl:'Portugal',count:533},
+  {slug:'it',flag:'🇮🇹',en:'Italy',zh:'意大利',nl:'Italië',count:570},
+  {slug:'gr',flag:'🇬🇷',en:'Greece',zh:'希腊',nl:'Griekenland',count:249},
+  {slug:'pl',flag:'🇵🇱',en:'Poland',zh:'波兰',nl:'Polen',count:300},
+  {slug:'se',flag:'🇸🇪',en:'Sweden',zh:'瑞典',nl:'Zweden',count:300},
+  {slug:'dk',flag:'🇩🇰',en:'Denmark',zh:'丹麦',nl:'Denemarken',count:300},
+  {slug:'no',flag:'🇳🇴',en:'Norway',zh:'挪威',nl:'Noorwegen',count:300},
+  {slug:'cz',flag:'🇨🇿',en:'Czech Republic',zh:'捷克',nl:'Tsjechië',count:300},
+  {slug:'hu',flag:'🇭🇺',en:'Hungary',zh:'匈牙利',nl:'Hongarije',count:300},
+  {slug:'hr',flag:'🇭🇷',en:'Croatia',zh:'克罗地亚',nl:'Kroatië',count:300},
+];
+const CURRENT_CC='no';
+
+function openCountryPicker(){
+  const lang=typeof LANG!=='undefined'?LANG.current:'en';
+  document.getElementById('cpTitle').textContent=lang==='zh'?'选择国家':lang==='nl'?'Kies land':'Switch Country';
+  document.getElementById('cpGrid').innerHTML=CP_COUNTRIES.map(c=>`<a href="https://kidsexplorer.eu/${c.slug}/" class="cp-item${c.slug===CURRENT_CC?' current':''}"><span class="cp-flag">${c.flag}</span><span class="cp-name">${lang==='zh'?c.zh:lang==='nl'?c.nl:c.en}</span><span class="cp-count">${c.count}+</span></a>`).join('');
+  document.getElementById('countryPicker').classList.add('open');
+}
+function closeCountryPicker(){document.getElementById('countryPicker').classList.remove('open');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCountryPicker();});
+</script>
+
+<!-- Mobile filter dimmer -->
+<div class="mobile-filter-dimmer" id="mobileFilterDimmer" style="display:none;" onclick="closeMobileFilter()"></div>
+
+<script>
+// ── MOBILE ACTION BAR ──────────────────────────────────────────────────
+let mobileFilterOpen = false;
+
+function toggleMobileFilter() {
+  mobileFilterOpen = !mobileFilterOpen;
+  document.getElementById('filterBar').classList.toggle('mobile-open', mobileFilterOpen);
+  document.getElementById('mobileFilterDimmer').style.display = mobileFilterOpen ? 'block' : 'none';
+  updateMobileActionBar();
+}
+
+function closeMobileFilter() {
+  mobileFilterOpen = false;
+  document.getElementById('filterBar').classList.remove('mobile-open');
+  document.getElementById('mobileFilterDimmer').style.display = 'none';
+  updateMobileActionBar();
+}
+
+function toggleMobileFavs() {
+  toggleFavoritesFilter();
+  if (mobileFilterOpen) closeMobileFilter();
+  setTimeout(updateMobileActionBar, 50);
+}
+
+function toggleMobileSort() {
+  const sc = document.getElementById('sortControl');
+  if (!sc) return;
+  const isVisible = sc.style.display !== 'none';
+  sc.style.display = isVisible ? 'none' : 'flex';
+  if (!isVisible) document.getElementById('sortSelect')?.focus();
+  updateMobileActionBar();
+}
+
+function updateMobileActionBar() {
+  const favBtn = document.getElementById('mobFavBtn');
+  const catBtn = document.getElementById('mobCatBtn');
+  const sortBtn = document.getElementById('mobSortBtn');
+  if (!favBtn) return;
+  favBtn.classList.toggle('active', !!state.showFavoritesOnly);
+  catBtn.classList.toggle('active', mobileFilterOpen || state.activeCategory !== null || (state.activeAgeGroup && state.activeAgeGroup !== 'all'));
+  const sortSel = document.getElementById('sortSelect');
+  sortBtn.classList.toggle('active', !!(sortSel && sortSel.value !== 'default'));
+}
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

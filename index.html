@@ -4,19 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kids Explorer · Family-friendly venues across Europe</title>
-<meta name="description" content="Bilingual map of 5,000+ family-friendly venues across 12 European countries. For parents planning weekend trips, school holidays, or family vacations.">
+<meta name="description" content="Bilingual map of 7,600+ family-friendly venues across 19 European countries. For parents planning weekend trips, school holidays, or family vacations.">
 <link rel="canonical" href="https://kidsexplorer.eu/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://kidsexplorer.eu/">
 <meta property="og:title" content="Kids Explorer · Family-friendly venues across Europe">
-<meta property="og:description" content="5,347+ family-friendly venues across 12 European countries on one interactive map. Bilingual, free, built for families with kids.">
+<meta property="og:description" content="7,600+ family-friendly venues across 19 European countries on one interactive map. Bilingual, free, built for families with kids.">
 <meta property="og:image" content="https://kidsexplorer.eu/og/default.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:site_name" content="KidsExplorer.eu">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Kids Explorer · Family-friendly venues across Europe">
-<meta name="twitter:description" content="5,347+ family-friendly venues across 12 European countries on one interactive map.">
+<meta name="twitter:description" content="7,600+ family-friendly venues across 19 European countries on one interactive map.">
 <meta name="twitter:image" content="https://kidsexplorer.eu/og/default.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:wght@500;600&display=swap" rel="stylesheet">
 <style>
@@ -124,18 +124,18 @@ footer a{color:var(--terracotta);font-weight:500}
 </nav>
 
 <header class="hero container">
-  <div class="eyebrow"><span class="en">12 countries · bilingual · free</span><span class="zh">12 国 · 中英双语 · 免费</span></div>
+  <div class="eyebrow"><span class="en">19 countries · bilingual · free</span><span class="zh">19 国 · 中英双语 · 免费</span></div>
   <h1>
     <span class="en">Family-friendly places across <em>Europe</em>, mapped.</span>
     <span class="zh">欧洲 12 国 <em>亲子好去处</em>，一张地图全收录</span>
   </h1>
   <p class="sub">
-    <span class="en">5,000+ theme parks, zoos, museums, playgrounds, and nature spots — with verified coordinates, opening hours, and Chinese-language support indicators. Built by a Dutch-Chinese mom for families planning weekend trips and school holidays.</span>
-    <span class="zh">5,000+ 主题乐园、动物园、博物馆、游乐场、自然景点——含精确坐标、开放时间、中文向导可用标识。由荷兰华人妈妈为度假规划的家庭打造。</span>
+    <span class="en">7,600+ theme parks, zoos, museums, playgrounds, and nature spots across 19 countries — with verified coordinates, opening hours, and Chinese-language support indicators. Built by a Dutch-Chinese mom for families planning weekend trips and school holidays.</span>
+    <span class="zh">7,600+ 主题乐园、动物园、博物馆、游乐场、自然景点，覆盖19国——含精确坐标、开放时间、中文向导可用标识。由荷兰华人妈妈为度假规划的家庭打造。</span>
   </p>
   <div class="stat-strip">
-    <div><strong>5,000+</strong><span class="en">venues</span><span class="zh">场所</span></div>
-    <div><strong>12</strong><span class="en">countries</span><span class="zh">国家</span></div>
+    <div><strong>7,600+</strong><span class="en">venues</span><span class="zh">场所</span></div>
+    <div><strong>19</strong><span class="en">countries</span><span class="zh">国家</span></div>
     <div><strong>16</strong><span class="en">categories</span><span class="zh">品类</span></div>
     <div><strong>EN · 中</strong><span class="en">bilingual</span><span class="zh">双语</span></div>
   </div>
@@ -168,11 +168,11 @@ const COUNTRIES = [
   {slug:'be', flag:'🇧🇪', en:'Belgium',     native:'België',     zh:'比利时',   count:464, region:'benelux'},
   // DACH (German-speaking)
   {slug:'de', flag:'🇩🇪', en:'Germany',     native:'Deutschland',zh:'德国',     count:593, region:'dach'},
-  {slug:'at', flag:'🇦🇹', en:'Austria',     native:'Österreich', zh:'奥地利',   count:255, region:'dach'},
+  {slug:'at', flag:'🇦🇹', en:'Austria',     native:'Österreich', zh:'奥地利',   count:293, region:'dach'},
   {slug:'ch', flag:'🇨🇭', en:'Switzerland', native:'Schweiz',    zh:'瑞士',     count:257, region:'dach'},
   // France
   {slug:'fr', flag:'🇫🇷', en:'France',      native:'France',     zh:'法国',     count:607, region:'fr'},
-  // British Isles (keep IE and UK adjacent — often visited together)
+  // British Isles
   {slug:'uk', flag:'🇬🇧', en:'United Kingdom',native:'UK',       zh:'英国',     count:515, region:'british'},
   {slug:'ie', flag:'🇮🇪', en:'Ireland',     native:'Éire',       zh:'爱尔兰',   count:176, region:'british'},
   // Iberia
@@ -180,7 +180,16 @@ const COUNTRIES = [
   {slug:'pt', flag:'🇵🇹', en:'Portugal',    native:'Portugal',   zh:'葡萄牙',   count:533, region:'iberia'},
   // Southern Europe
   {slug:'it', flag:'🇮🇹', en:'Italy',       native:'Italia',     zh:'意大利',   count:570, region:'south'},
-  {slug:'gr', flag:'🇬🇷', en:'Greece',      native:'Ελλάδα',     zh:'希腊',     count:129, region:'south'},
+  {slug:'gr', flag:'🇬🇷', en:'Greece',      native:'Ελλάδα',     zh:'希腊',     count:249, region:'south'},
+  {slug:'hr', flag:'🇭🇷', en:'Croatia',     native:'Hrvatska',   zh:'克罗地亚', count:300, region:'south'},
+  // Northern Europe
+  {slug:'se', flag:'🇸🇪', en:'Sweden',      native:'Sverige',    zh:'瑞典',     count:300, region:'nordic'},
+  {slug:'dk', flag:'🇩🇰', en:'Denmark',     native:'Danmark',    zh:'丹麦',     count:300, region:'nordic'},
+  {slug:'no', flag:'🇳🇴', en:'Norway',      native:'Norge',      zh:'挪威',     count:300, region:'nordic'},
+  // Central & Eastern Europe
+  {slug:'pl', flag:'🇵🇱', en:'Poland',      native:'Polska',     zh:'波兰',     count:300, region:'central'},
+  {slug:'cz', flag:'🇨🇿', en:'Czech Republic',native:'Česká republika',zh:'捷克',count:300, region:'central'},
+  {slug:'hu', flag:'🇭🇺', en:'Hungary',     native:'Magyarország',zh:'匈牙利',  count:300, region:'central'},
 ];
 
 function render() {
@@ -212,7 +221,8 @@ render();
 // Map country code → slug
 const CC_TO_SLUG = {
   NL:'nl', BE:'be', DE:'de', FR:'fr', GB:'uk', UK:'uk', IE:'ie',
-  ES:'es', PT:'pt', IT:'it', CH:'ch', AT:'at', GR:'gr'
+  ES:'es', PT:'pt', IT:'it', CH:'ch', AT:'at', GR:'gr',
+  PL:'pl', SE:'se', DK:'dk', NO:'no', CZ:'cz', HU:'hu', HR:'hr'
 };
 
 async function detectCountry() {
@@ -223,7 +233,9 @@ async function detectCountry() {
   const TZ_TO_CC = {
     'Europe/Amsterdam':'NL','Europe/Brussels':'BE','Europe/Berlin':'DE','Europe/Paris':'FR',
     'Europe/London':'GB','Europe/Dublin':'IE','Europe/Madrid':'ES','Europe/Lisbon':'PT',
-    'Europe/Rome':'IT','Europe/Zurich':'CH','Europe/Vienna':'AT','Europe/Athens':'GR'
+    'Europe/Rome':'IT','Europe/Zurich':'CH','Europe/Vienna':'AT','Europe/Athens':'GR',
+    'Europe/Warsaw':'PL','Europe/Stockholm':'SE','Europe/Copenhagen':'DK',
+    'Europe/Oslo':'NO','Europe/Prague':'CZ','Europe/Budapest':'HU','Europe/Zagreb':'HR'
   };
   let cc = TZ_TO_CC[tz];
   // Try IP lookup for more accuracy

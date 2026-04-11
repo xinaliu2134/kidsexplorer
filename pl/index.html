@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#E05A1E">
+  <title>Poland Kids Explorer &middot; 波兰亲子探索</title>
+  <meta name="description" content="Family-friendly venues across Poland. Interactive trilingual map for families with kids. 波兰亲子友好场地互动地图。">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧒</text></svg>">
+  <link rel="canonical" href="https://kidsexplorer.eu/pl/">
+  <meta property="og:title" content="Poland Kids Explorer &middot; 波兰亲子探索">
+  <meta property="og:description" content="Family-friendly venues across Poland. Interactive trilingual map for families with kids. 波兰亲子友好场地互动地图。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://kidsexplorer.eu/pl/">
+  <meta property="og:site_name" content="Poland Kids Explorer">
+  <meta name="twitter:card" content="summary">
+  <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" as="script">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&family=Noto+Sans+SC:wght@500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <style>
+    :root { --bg:#F2F4F8;--surface:#FFFFFF;--primary:#E05A1E;--primary-light:#FFF0E9;--primary-dark:#B84515;--navy:#1A2B4A;--teal:#0EA5A0;--text:#1A2B4A;--text-secondary:#5A6A84;--text-muted:#9AA5B8;--border:#CBD5E1;--border-light:#E2E8F0;--shadow-sm:0 1px 3px rgba(26,43,74,.12),0 0 0 1px rgba(26,43,74,.04);--shadow-md:0 4px 12px rgba(26,43,74,.16),0 0 0 1px rgba(26,43,74,.06);--shadow-lg:0 8px 24px rgba(26,43,74,.20),0 0 0 1px rgba(26,43,74,.08);--radius-sm:6px;--radius-md:12px;--radius-lg:18px;--radius-xl:24px;font-family:'Inter','Noto Sans SC',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}body{background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
+    .cross-nav{background:#111827;padding:6px 20px;display:flex;align-items:center;justify-content:center;gap:16px;font-size:12px;font-weight:600;flex-shrink:0;z-index:101;flex-wrap:wrap;}.cross-nav a{color:rgba(255,255,255,.6);text-decoration:none;transition:color .15s;}.cross-nav a:hover{color:#fff;}.cross-nav .active-site{color:#fff;border-bottom:2px solid var(--primary);padding-bottom:1px;}
+    header{background:var(--navy);padding:0 20px;height:60px;display:flex;align-items:center;gap:16px;flex-shrink:0;z-index:100;}.logo{display:flex;align-items:center;gap:10px;text-decoration:none;}.logo-icon{width:36px;height:36px;background:var(--primary);border-radius:10px;display:grid;place-items:center;font-size:18px;flex-shrink:0;}.logo-text{display:flex;flex-direction:column;line-height:1.1;}.logo-text-en{font-size:13px;font-weight:700;color:#FFFFFF;letter-spacing:.5px;}.logo-text-zh{font-size:11px;font-weight:400;color:rgba(255,255,255,.55);}
+    .header-search{flex:1;max-width:480px;position:relative;}.header-search input{width:100%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.2);border-radius:var(--radius-md);padding:8px 40px 8px 36px;font-size:14px;color:#fff;outline:none;transition:background .2s,border-color .2s;}.header-search input::placeholder{color:rgba(255,255,255,.5);}.header-search input:focus{background:rgba(255,255,255,.18);border-color:var(--primary);box-shadow:0 0 0 3px rgba(224,90,30,.25);}.header-search .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.45);font-size:15px;pointer-events:none;}.header-search .clear-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,.4);font-size:16px;padding:2px 4px;display:none;transition:color .15s;}.header-search .clear-btn:hover{color:rgba(255,255,255,.8);}.header-search input:not(:placeholder-shown)~.clear-btn{display:block;}
+    .autocomplete{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);max-height:240px;overflow-y:auto;z-index:200;display:none;}.autocomplete.open{display:block;}.autocomplete-item{padding:10px 14px;cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px;transition:background .12s;}.autocomplete-item:hover,.autocomplete-item.focused{background:var(--primary-light);}.autocomplete-item .region-type{margin-left:auto;font-size:11px;color:var(--text-muted);}
+    .header-spacer{flex:1;}.lang-toggle{display:flex;background:rgba(255,255,255,.1);border-radius:8px;padding:3px;gap:2px;}.lang-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.5);font-size:12px;font-weight:600;padding:4px 10px;border-radius:6px;transition:background .15s,color .15s;}.lang-btn.active{background:var(--primary);color:#fff;}
+    .filter-bar{background:var(--surface);border-bottom:2px solid var(--border);padding:0 20px;height:48px;display:flex;align-items:center;gap:8px;overflow-x:auto;flex-shrink:0;scrollbar-width:none;}.filter-bar::-webkit-scrollbar{display:none;}.filter-label{font-size:12px;font-weight:600;color:var(--text-muted);white-space:nowrap;flex-shrink:0;}.filter-chip{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-size:12px;font-weight:600;color:var(--text-secondary);white-space:nowrap;flex-shrink:0;transition:all .15s;user-select:none;}.filter-chip:hover{border-color:var(--primary);color:var(--primary);}.filter-chip.active{color:#fff;border-color:transparent;}.filter-chip.no-data{opacity:0.45;cursor:default;pointer-events:none;}
+    .main{flex:1;display:grid;grid-template-columns:380px 1fr;overflow:hidden;}.sidebar{background:var(--bg);display:flex;flex-direction:column;overflow:hidden;border-right:2px solid var(--border);}.sidebar-header{padding:16px 20px 12px;background:var(--surface);border-bottom:2px solid var(--border-light);flex-shrink:0;}.result-count{font-size:13px;color:var(--text-secondary);}.result-count strong{color:var(--text);}
+    .venue-list{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;contain:layout style;will-change:scroll-position;}.venue-list::-webkit-scrollbar{width:4px;}.venue-list::-webkit-scrollbar-track{background:transparent;}.venue-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+    .venue-card{background:var(--surface);border-radius:var(--radius-md);padding:14px;border:none;cursor:pointer;transition:box-shadow .15s,transform .12s;box-shadow:var(--shadow-sm);contain:content;position:relative;}.venue-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px);}.venue-card.active{box-shadow:0 0 0 2px var(--primary),var(--shadow-md);}
+    .venue-card-top{display:flex;align-items:flex-start;gap:11px;}.venue-icon{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:20px;flex-shrink:0;}.venue-info{flex:1;min-width:0;}.venue-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}.venue-name-zh{font-size:12px;color:var(--text-secondary);margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;}.venue-meta{margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}.venue-tag{font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;display:inline-block;}.venue-address{font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}.venue-address svg{flex-shrink:0;}
+    .venue-actions{margin-top:10px;display:flex;gap:6px;}.btn-website{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--primary);background:var(--primary-light);border:none;border-radius:6px;padding:5px 10px;cursor:pointer;text-decoration:none;transition:background .15s;}.btn-website:hover{background:#fde0cd;}.btn-map{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--text-secondary);background:var(--bg);border:2px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;transition:background .15s,border-color .15s;}.btn-map:hover{border-color:var(--primary);color:var(--primary);}.btn-nav{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#fff;background:#4285F4;border:none;border-radius:6px;padding:5px 10px;cursor:pointer;text-decoration:none;transition:background .15s;}.btn-nav:hover{background:#3367D6;}
+    .load-more-btn{margin:8px 0 16px;width:100%;padding:10px;background:var(--surface);border:2px solid var(--border);border-radius:var(--radius-md);font-size:13px;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all .15s;}.load-more-btn:hover{border-color:var(--primary);color:var(--primary);}
+    .skeleton{background:linear-gradient(90deg,var(--bg) 25%,#f0f2f5 50%,var(--bg) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:6px;}@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}.skeleton-card{padding:14px;}
+    .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;gap:12px;}.empty-state-icon{font-size:48px;}.empty-state h3{font-size:16px;font-weight:600;color:var(--text);}.empty-state p{font-size:13px;color:var(--text-secondary);line-height:1.5;}.empty-suggestions{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px;}.empty-suggestion{background:var(--primary-light);color:var(--primary);border:none;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:500;cursor:pointer;transition:background .15s;}.empty-suggestion:hover{background:#fde0cd;}
+    #map{width:100%;height:100%;z-index:1;}.leaflet-popup-content-wrapper{border-radius:var(--radius-md)!important;box-shadow:var(--shadow-lg)!important;border:2px solid var(--border);padding:0!important;overflow:hidden;}.leaflet-popup-content{margin:0!important;width:260px!important;}.leaflet-popup-tip-container{margin-top:-1px;}
+    .popup-content{padding:14px;}.popup-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}.popup-icon{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:18px;flex-shrink:0;}.popup-name{font-size:14px;font-weight:700;color:var(--text);line-height:1.3;}.popup-name-zh{font-size:12px;color:var(--text-secondary);}.popup-address{font-size:12px;color:var(--text-muted);margin-bottom:10px;line-height:1.4;}.popup-website{display:block;text-align:center;background:var(--primary);color:white;border-radius:8px;padding:7px;font-size:12px;font-weight:600;text-decoration:none;transition:background .15s;}.popup-website:hover{background:var(--primary-dark);}
+    .map-marker{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35),0 0 0 1px rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .2s;}.map-marker:hover{transform:rotate(-45deg) scale(1.3);z-index:1000!important;}.map-marker-inner{transform:rotate(45deg);font-size:14px;line-height:1;}
+    .map-overlay{position:absolute;inset:0;background:rgba(242,244,248,.85);backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:500;gap:12px;transition:opacity .3s;}.map-overlay.hidden{opacity:0;pointer-events:none;}.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;}@keyframes spin{to{transform:rotate(360deg);}}.map-overlay p{font-size:14px;color:var(--text-secondary);}.map-wrapper{position:relative;}
+    .toast{position:fixed;top:76px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:var(--radius-md);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);z-index:9999;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;}.toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+    .scroll-top-btn{position:absolute;bottom:18px;right:18px;width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;border:none;box-shadow:var(--shadow-md);cursor:pointer;font-size:18px;display:none;align-items:center;justify-content:center;z-index:50;transition:background .15s,transform .15s;}.scroll-top-btn:hover{background:var(--primary-dark);transform:scale(1.1);}.scroll-top-btn.visible{display:flex;}
+    .venue-detail-row{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);margin-top:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}.venue-detail-row a{color:var(--primary);text-decoration:none;}.venue-detail-row a:hover{text-decoration:underline;}
+    .category-summary{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}.category-summary-chip{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:500;padding:2px 7px;border-radius:10px;}
+    .filter-chip-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:9px;font-size:10px;font-weight:700;padding:0 5px;line-height:1;}.filter-chip:not(.active) .filter-chip-count{background:var(--bg);color:var(--text-secondary);}.filter-chip.active .filter-chip-count{background:rgba(255,255,255,.25);color:#fff;}
+    .venue-fav-btn{position:absolute;top:10px;right:10px;background:none;border:none;font-size:20px;cursor:pointer;opacity:0.5;transition:opacity .15s,transform .15s;line-height:1;padding:2px;z-index:2;}.venue-fav-btn:hover{opacity:0.8;}.venue-fav-btn.favorited{opacity:1;}.venue-fav-btn.bounce{animation:favBounce .35s ease;}@keyframes favBounce{0%{transform:scale(1);}40%{transform:scale(1.35);}100%{transform:scale(1);}}
+    .venue-distance{font-size:11px;color:var(--teal);font-weight:600;display:inline-flex;align-items:center;gap:3px;}
+    .venue-rating{font-size:11px;color:#B8860B;font-weight:600;display:inline-flex;align-items:center;gap:3px;margin-left:2px;}.venue-rating .rating-stars{color:#DAA520;letter-spacing:-1px;}.venue-rating .rating-num{color:#B8860B;}.venue-rating .rating-count{color:var(--text-muted);font-weight:400;}.detail-rating{display:flex;align-items:center;gap:8px;margin:8px 0 12px;padding:8px 12px;background:#FFFBF0;border:1px solid #F0E6CC;border-radius:var(--radius-sm);}.detail-rating-stars{font-size:18px;color:#DAA520;letter-spacing:-1px;}.detail-rating-num{font-size:16px;font-weight:700;color:#B8860B;}.detail-rating-count{font-size:12px;color:var(--text-muted);}.detail-rating-sep{color:var(--text-muted);font-size:14px;}.sort-control{display:inline-flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0;}.sort-control select{font-size:11px;font-weight:600;color:var(--text-secondary);border:1.5px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--surface);cursor:pointer;outline:none;}.sort-control select:focus{border-color:var(--primary);}.sort-control label{font-size:11px;color:var(--text-muted);white-space:nowrap;}
+    .nearme-btn{background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:8px;transition:color .15s,background .15s;flex-shrink:0;}.nearme-btn:hover{color:#fff;background:rgba(255,255,255,.1);}.nearme-btn.active{color:#4FC3F7;}
+    .autocomplete-item .venue-result-detail{font-size:11px;color:var(--text-muted);margin-left:4px;}.autocomplete-item .venue-emoji{font-size:16px;flex-shrink:0;}.autocomplete-section-label{padding:6px 14px 2px;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;}
+    @media(max-width:768px){.header-search{max-width:100%;}.logo-text{display:none;}}
+    .chat-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--primary),#F39C12);color:#fff;border:none;box-shadow:0 4px 16px rgba(224,90,30,.4);cursor:pointer;font-size:24px;display:flex;align-items:center;justify-content:center;z-index:9000;transition:transform .2s,box-shadow .2s;}.chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 24px rgba(224,90,30,.5);}.chat-fab.hidden{display:none;}
+    .chat-panel{position:fixed;bottom:24px;right:24px;width:380px;max-height:520px;background:var(--surface);border-radius:var(--radius-lg);box-shadow:0 12px 48px rgba(26,43,74,.25);z-index:9001;display:none;flex-direction:column;overflow:hidden;}.chat-panel.open{display:flex;}.chat-header{background:var(--navy);padding:14px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;}.chat-header-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--primary),#F39C12);border-radius:50%;display:grid;place-items:center;font-size:16px;}.chat-header-text{flex:1;color:#fff;font-size:14px;font-weight:700;}.chat-header-sub{color:rgba(255,255,255,.5);font-size:11px;font-weight:400;}.chat-close{background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;padding:4px;transition:color .15s;}.chat-close:hover{color:#fff;}
+    .chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:200px;max-height:340px;}.chat-messages::-webkit-scrollbar{width:4px;}.chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}.chat-msg{max-width:88%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.5;word-break:break-word;}.chat-msg.bot{background:var(--bg);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;}.chat-msg.user{background:var(--primary);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}.chat-msg.bot a{color:var(--primary);text-decoration:none;font-weight:600;}.chat-msg.bot a:hover{text-decoration:underline;}
+    .chat-venue-chip{display:inline-flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px 8px;margin:3px 2px;font-size:12px;cursor:pointer;transition:border-color .15s,background .15s;}.chat-venue-chip:hover{border-color:var(--primary);background:var(--primary-light);}
+    .chat-typing{align-self:flex-start;padding:10px 14px;background:var(--bg);border-radius:16px;border-bottom-left-radius:4px;display:flex;gap:4px;}.chat-typing span{width:6px;height:6px;background:var(--text-muted);border-radius:50%;animation:typingBounce .8s ease-in-out infinite;}.chat-typing span:nth-child(2){animation-delay:.15s;}.chat-typing span:nth-child(3){animation-delay:.3s;}@keyframes typingBounce{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-4px);}}
+    .chat-quick-actions{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 8px;}.chat-quick-btn{background:var(--primary-light);color:var(--primary);border:none;border-radius:16px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;}.chat-quick-btn:hover{background:#fde0cd;}
+    .chat-input-area{padding:12px 16px;border-top:2px solid var(--border-light);display:flex;gap:8px;flex-shrink:0;}.chat-input{flex:1;border:2px solid var(--border);border-radius:20px;padding:8px 14px;font-size:13px;color:var(--text);outline:none;font-family:inherit;transition:border-color .2s;}.chat-input:focus{border-color:var(--primary);}.chat-input::placeholder{color:var(--text-muted);}.chat-send{width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;}.chat-send:hover{background:var(--primary-dark);}
+    @media(max-width:768px){.chat-panel{width:calc(100vw - 24px);right:12px;bottom:12px;max-height:70vh;}.chat-fab{bottom:16px;right:16px;width:50px;height:50px;font-size:22px;}}
+    @media(max-width:768px){.main{grid-template-columns:1fr;grid-template-rows:1fr;position:relative;}.map-wrapper{order:-1;grid-row:1;grid-column:1;}.sidebar{position:fixed;bottom:0;left:0;right:0;z-index:800;border-radius:16px 16px 0 0;border-right:none;border-top:none;box-shadow:0 -4px 24px rgba(26,43,74,.18);transition:transform 0.3s cubic-bezier(.4,0,.2,1);max-height:90dvh;will-change:transform;}.bottom-sheet-handle{display:flex;justify-content:center;padding:10px 0 4px;cursor:grab;flex-shrink:0;}.bottom-sheet-handle::after{content:'';width:36px;height:4px;background:var(--border);border-radius:2px;}.bottom-sheet-handle:active{cursor:grabbing;}}@media(min-width:769px){.bottom-sheet-handle{display:none;}}
+    .venue-detail-panel{position:fixed;top:0;right:0;bottom:0;width:400px;background:var(--surface);box-shadow:-4px 0 24px rgba(26,43,74,.18);z-index:900;transform:translateX(100%);transition:transform 0.3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;}.venue-detail-panel.open{transform:translateX(0);}.detail-panel-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:2px solid var(--border-light);flex-shrink:0;}.detail-panel-close{background:none;border:none;cursor:pointer;font-size:22px;color:var(--text-secondary);padding:4px 8px;border-radius:8px;transition:background .15s;}.detail-panel-close:hover{background:var(--bg);}.detail-panel-body{flex:1;overflow-y:auto;padding:20px;}.detail-venue-icon{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:28px;margin-bottom:16px;}.detail-venue-name{font-size:20px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:4px;}.detail-venue-name-zh{font-size:15px;color:var(--text-secondary);margin-bottom:12px;}.detail-category-badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;margin-bottom:16px;}.detail-info-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border-light);font-size:14px;color:var(--text);}.detail-info-row .detail-icon{font-size:16px;flex-shrink:0;width:20px;text-align:center;padding-top:1px;}.detail-info-row a{color:var(--primary);text-decoration:none;}.detail-info-row a:hover{text-decoration:underline;}.detail-actions{display:flex;flex-direction:column;gap:10px;margin-top:20px;}.detail-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:var(--radius-md);font-size:14px;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:background .15s,transform .1s;}.detail-btn:hover{transform:translateY(-1px);}.detail-btn:active{transform:translateY(0);}.detail-btn-website{background:var(--primary);color:#fff;}.detail-btn-website:hover{background:var(--primary-dark);}.detail-btn-navigate{background:#4285F4;color:#fff;}.detail-btn-navigate:hover{background:#3367D6;}.detail-btn-favorite{background:var(--bg);color:var(--text);border:2px solid var(--border);}.detail-btn-favorite:hover{border-color:var(--primary);color:var(--primary);}.detail-btn-favorite.favorited{background:#FEE2E2;color:#DC2626;border-color:#FECACA;}
+    @media(max-width:768px){.venue-detail-panel{width:100%;top:auto;bottom:0;max-height:90dvh;border-radius:16px 16px 0 0;transform:translateY(100%);}.venue-detail-panel.open{transform:translateY(0);}}
+    .age-filter-group{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:4px;padding-left:8px;border-left:2px solid var(--border-light);}.age-pill{display:flex;align-items:center;gap:3px;padding:4px 10px;border-radius:20px;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-size:11px;font-weight:600;color:var(--text-secondary);white-space:nowrap;flex-shrink:0;transition:all .15s;user-select:none;}.age-pill:hover{border-color:var(--primary);color:var(--primary);}.age-pill.active{background:#7C3AED;color:#fff;border-color:#7C3AED;}
+    .weather-badge{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:rgba(255,255,255,.8);background:rgba(255,255,255,.1);border-radius:8px;padding:4px 10px;flex-shrink:0;white-space:nowrap;}.weather-banner{background:linear-gradient(135deg,#1e3a5f,#2d5a8e);color:#fff;padding:8px 20px;display:flex;align-items:center;gap:12px;font-size:13px;font-weight:500;flex-shrink:0;z-index:99;}.weather-banner-text{flex:1;}.weather-banner-btn{background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap;}.weather-banner-btn:hover{background:rgba(255,255,255,.3);}.weather-banner-close{background:none;border:none;color:rgba(255,255,255,.6);font-size:18px;cursor:pointer;padding:2px 6px;transition:color .15s;}.weather-banner-close:hover{color:#fff;}
+  
+    /* ── COUNTRY PICKER BUTTON ──────────────────── */
+    .country-btn {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: #fff;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background .15s;
+    }
+    .country-btn:hover { background: rgba(255,255,255,.18); }
+    .country-btn .cb-arrow { opacity: .5; font-size: 10px; }
+    .country-picker {
+      position: fixed; inset: 0; z-index: 11000;
+      background: rgba(0,0,0,.55);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .country-picker.open { opacity: 1; pointer-events: auto; }
+    .country-picker-panel {
+      background: var(--surface); border-radius: var(--radius-xl);
+      padding: 24px; width: 100%; max-width: 480px; max-height: 80vh;
+      overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,.3);
+    }
+    .cp-title { font-size: 16px; font-weight: 700; color: var(--text);
+      margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .cp-close { background: none; border: none; cursor: pointer;
+      font-size: 20px; color: var(--text-muted); line-height: 1; padding: 4px; }
+    .cp-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .cp-item { display: flex; flex-direction: column; align-items: center; gap: 6px;
+      background: var(--bg); border: 2px solid var(--border-light);
+      border-radius: var(--radius-md); padding: 14px 8px; cursor: pointer;
+      text-decoration: none; color: var(--text); transition: all .15s; text-align: center; }
+    .cp-item:hover { border-color: var(--primary); background: var(--primary-light); }
+    .cp-item.current { border-color: var(--primary); background: var(--primary-light); }
+    .cp-flag { font-size: 28px; } .cp-name { font-size: 11px; font-weight: 600; }
+    .cp-count { font-size: 10px; color: var(--text-muted); }
+    .fab-zoom { position: fixed; right: 14px; top: 50%; transform: translateY(-50%);
+      z-index: 8000; display: flex; flex-direction: column; gap: 4px; }
+    .fab-zoom-btn { width: 36px; height: 36px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 20px; font-weight: 300; cursor: pointer;
+      display: grid; place-items: center; color: var(--text);
+      box-shadow: var(--shadow-sm); transition: background .15s; line-height: 1; }
+    .fab-zoom-btn:hover { background: var(--bg); }
+    @media(max-width:768px){.fab-zoom{right:10px;top:45%}}
+  
+    /* ── EMPTY STATE NEAR ME BUTTON ─────────────────────── */
+    .empty-nearme-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin: 8px 0 4px;
+      padding: 10px 24px;
+      background: var(--primary);
+      color: #fff;
+      border: none; border-radius: 999px;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer;
+      transition: background .15s;
+      box-shadow: 0 2px 8px rgba(224,90,30,.3);
+    }
+    .empty-nearme-btn:hover { background: #c44e1a; }
+    @media (max-width: 768px) {
+      .empty-nearme-btn { font-size: 15px; padding: 12px 32px; }
+      .empty-suggestion { padding: 9px 14px; font-size: 13px; }
+    }
+
+    /* ── MOBILE-ONLY: hide cross-nav + filter bar, show action bar ──────── */
+    @media (max-width: 768px) {
+      #crossNav, .cross-nav { display: none !important; }
+      #filterBar { display: none; }
+      #filterBar.mobile-open {
+        display: block !important;
+        position: fixed;
+        top: 56px;
+        left: 0; right: 0;
+        z-index: 9500;
+        background: var(--surface);
+        border-bottom: 2px solid var(--border-light);
+        box-shadow: 0 6px 24px rgba(0,0,0,.2);
+        padding-bottom: 4px;
+      }
+      .mobile-filter-dimmer {
+        position: fixed; inset: 0;
+        z-index: 9499;
+        background: rgba(0,0,0,.3);
+      }
+      .mobile-action-bar {
+        display: flex;
+        gap: 8px;
+        padding: 8px 16px 6px;
+        border-bottom: 1px solid var(--border-light);
+      }
+      .mob-action-btn {
+        flex: 1;
+        padding: 7px 6px;
+        border-radius: 8px;
+        border: 1.5px solid var(--border);
+        background: var(--bg);
+        font-size: 12px; font-weight: 600;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all .15s;
+        text-align: center;
+      }
+      .mob-action-btn.active {
+        border-color: var(--primary);
+        background: var(--primary-light);
+        color: var(--primary);
+      }
+    }
+    @media (min-width: 769px) {
+      .mobile-action-bar { display: none !important; }
+      .mobile-filter-dimmer { display: none !important; }
+    }
+  </style>
+</head>
+<body><!-- kidsexplorer-back -->
+<style>#ke-back{position:fixed;top:14px;left:14px;z-index:99999;padding:8px 14px;background:rgba(255,255,255,.94);border:1px solid #e8e6dc;border-radius:999px;font-family:-apple-system,Inter,sans-serif;font-size:12px;font-weight:600;color:#141413;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.08);backdrop-filter:blur(8px);transition:all .15s}#ke-back:hover{background:#fff;border-color:#c96442;color:#c96442}</style>
+<a id="ke-back" href="https://kidsexplorer.eu/">← KidsExplorer</a>
+
+
+<div class="cross-nav">
+  <a href="https://xinaliu2134.github.io/nana-hub/holland-kids-explorer.html">Holland 🇳🇱</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/belgium-kids-explorer/">Belgium 🇧🇪</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/germany-kids-explorer/">Germany 🇩🇪</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/france-kids-explorer/">France 🇫🇷</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/portugal-kids-explorer/">Portugal 🇵🇹</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/spain-kids-explorer/">Spain 🇪🇸</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/italy-kids-explorer/">Italy 🇮🇹</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/uk-kids-explorer/">UK 🇬🇧</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/switzerland-kids-explorer/">Switzerland 🇨🇭</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/austria-kids-explorer/">Austria 🇦🇹</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <a href="https://xinaliu2134.github.io/ireland-kids-explorer/">Ireland 🇮🇪</a>
+  <span style="color:rgba(255,255,255,.25)">|</span>
+  <span class="active-site">Greece 🇬🇷</span>
+</div>
+
+<header>
+  <a class="logo" href="#" onclick="event.preventDefault(); resetHome();">
+    <div class="logo-icon">🧒</div>
+    <div class="logo-text">
+      <span class="logo-text-en">Poland Kids Explorer</span>
+      <span class="logo-text-zh">波兰亲子探索</span>
+    </div>
+  </a>
+  <div class="header-search">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Search venue or region... e.g. Warsaw, Krakow" autocomplete="off">
+    <button class="clear-btn" id="clearBtn" onclick="clearSearch()">&#10005;</button>
+    <div class="autocomplete" id="autocomplete"></div>
+  </div>
+  <button class="nearme-btn" id="nearmeBtn" onclick="activateNearMe()" title="Near Me 我附近">📍</button>
+  <div class="weather-badge" id="weatherBadge" style="display:none;"></div>
+  <button class="country-btn" onclick="openCountryPicker()" aria-label="Switch country">
+    🇵🇱 <span class="cb-arrow">▾</span>
+  </button>
+
+    <div class="header-spacer"></div>
+  <div class="lang-toggle">
+    <button class="lang-btn active" data-lang="en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" data-lang="zh" onclick="setLang('zh')">中文</button>
+    <button class="lang-btn" data-lang="pl" onclick="setLang('pl')">PL</button>
+  </div>
+</header>
+
+<div class="weather-banner" id="weatherBanner" style="display:none;">
+  <span class="weather-banner-text" id="weatherBannerText"></span>
+  <button class="weather-banner-btn" id="weatherBannerBtn" onclick="filterIndoorWeather()"></button>
+  <button class="weather-banner-close" onclick="dismissWeatherBanner()">&times;</button>
+</div>
+
+<div class="filter-bar" id="filterBar"><span class="filter-label" id="filterLabel">Filter:</span></div>
+
+<div class="main">
+  <div class="toast" id="toast"></div>
+  <aside class="sidebar" id="sidebarSheet" style="position:relative;">
+    <div class="bottom-sheet-handle" id="bottomSheetHandle"></div>
+    <div class="sidebar-header">
+      <div class="result-count" id="resultCount" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span id="resultCountText">Search a region to discover kids venues</span>
+        <div class="sort-control" id="sortControl" style="display:none;"><label for="sortSelect">Sort:</label><select id="sortSelect" onchange="applySortOrder(this.value)"><option value="default">Default</option><option value="rating">Top rated</option><option value="name">A-Z</option></select></div>
+      </div>
+      <div class="category-summary" id="categorySummary"></div>
+    </div>
+    <!-- Mobile action bar (hidden on desktop via CSS) -->
+    <div class="mobile-action-bar" id="mobileActionBar">
+      <button class="mob-action-btn" id="mobFavBtn" onclick="toggleMobileFavs()">♡ Favs</button>
+      <button class="mob-action-btn" id="mobCatBtn" onclick="toggleMobileFilter()">🏷 Category</button>
+      <button class="mob-action-btn" id="mobSortBtn" onclick="toggleMobileSort()">⇅ Sort</button>
+    </div>
+    <div class="empty-state" id="emptyState">
+      <div class="empty-state-icon">🗺️</div>
+      <h3 id="emptyTitle">Explore Poland</h3>
+      <p id="emptyDesc">Search a city or region to find museums, playgrounds, zoos and more.</p>
+      <button class="empty-nearme-btn" onclick="activateNearMe()">📍 Near me</button>
+      <div class="empty-suggestions">
+        <button class="empty-suggestion" onclick="searchRegion('Warsaw')">Warsaw</button>
+        <button class="empty-suggestion" onclick="searchRegion('Krakow')">Krakow</button>
+        <button class="empty-suggestion" onclick="searchRegion('Gdansk')">Gdansk</button>
+        <button class="empty-suggestion" onclick="searchRegion('Wroclaw')">Wroclaw</button>
+        <button class="empty-suggestion" onclick="searchRegion('Poznan')">Poznan</button>
+      </div>
+    </div>
+    <div class="venue-list" id="venueList" style="display:none"></div>
+    <button class="scroll-top-btn" id="scrollTopBtn" title="Scroll to top">&#8593;</button>
+  </aside>
+  <div class="map-list-toggle" id="mapListToggle">
+    <button class="map-list-btn active" id="mapToggleBtn" onclick="setMobileView('map')">🗺 Map</button>
+    <button class="map-list-btn" id="listToggleBtn" onclick="setMobileView('list')">📋 List</button>
+  </div>
+    <div class="map-wrapper">
+    <div id="map"></div>
+    <div class="map-overlay hidden" id="mapOverlay"><div class="spinner"></div><p id="loadingText">Loading venues...</p><p id="loadingHint" style="font-size:12px;color:var(--text-muted);margin-top:4px;"></p></div>
+  </div>
+</div>
+
+<div class="venue-detail-panel" id="venueDetailPanel"><div class="detail-panel-header"><span style="font-weight:700;font-size:15px;" id="detailPanelTitle">Venue Details</span><button class="detail-panel-close" onclick="closeDetailPanel()">&times;</button></div><div class="detail-panel-body" id="detailPanelBody"></div></div>
+
+<button class="chat-fab" id="chatFab" onclick="toggleChat(true)" title="AI Assistant">🧸</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header"><div class="chat-header-icon">🧸</div><div><div class="chat-header-text">Kids Explorer AI</div><div class="chat-header-sub" id="chatSubtitle">智能亲子出行助手</div></div><button class="chat-close" onclick="toggleChat(false)">&#10005;</button></div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-quick-actions" id="chatQuickActions"></div>
+  <div class="chat-input-area"><input class="chat-input" id="chatInput" placeholder="Describe what you need... e.g. beach near Athens, kids age 5" autocomplete="off"><button class="chat-send" id="chatSend" onclick="handleChatSend()">&#10148;</button></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" integrity="sha384-pmjIAcz2bAn0xukfxADbZIb3t8oRT9Sv0rvO+BR5Csr6Dhqq+nZs59P0pPKQJkEV" crossorigin="anonymous">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" integrity="sha384-wgw+aLYNQ7dlhK47ZPK7FRACiq7ROZwgFNg0m04avm4CaXS+Z9Y7nMu8yNjBKYC+" crossorigin="anonymous">
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
+<style>.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background:rgba(224,90,30,.15)!important;}.marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background:var(--primary)!important;color:#fff!important;font-weight:700!important;font-family:'Inter',system-ui,sans-serif!important;}</style>
+<script>
+const LANG = { current: 'en' };
+const T = {
+  en: { filterLabel:'Category:',allLabel:'All',searching:'Searching... (may take 10-40s)',loadingVenues:'Loading venues...',loadingHint:'Querying OpenStreetMap, usually 10-40s',found:(n,region)=>`<strong>${n}</strong> venues in <strong>${region}</strong>`,notFound:'No venues found. Try a different region.',emptyTitle:'Explore Poland',emptyDesc:'Search a city or region to find museums, playgrounds, zoos and more.',noWebsite:'No website',website:'🔗 Official Website',navigate:'🧭 Navigate',flyTo:'📍 Show on map',loadMore:'Load more',regionNotFound:'Region not found. Try a Polish city or region name.',searchPlaceholder:'Search venue or region... e.g. Acropolis, Athens',resultLabel:'Search a region to discover kids venues',favoritesLabel:'Favorites',nearMe:'Near Me',nearMeSearching:'Getting your location...',nearMePermDenied:'Location access denied. Enable it in browser settings to use Near Me.',nearMeError:'Could not get your location. Please try again.',weatherBannerText:'Hot day? Try indoor activities!',weatherBannerBtn:'Show indoor venues',searchRegionFirst:'Search a region first',searchRegionFirstDesc:(c)=>`Type a city or region in the search bar above, then filter by "${c}"`,browseCategory:(c)=>`Search a region to browse ${c}`,browseCategoryDesc:'Type a city or region above - results will be filtered to this category.',noInRegion:(c,r)=>`No ${c} in ${r}`,tryOtherCategory:'Try a different category or search another region.',venuesSection:'Venues',regionsSection:'Regions',nearMeLocationType:'Location',featuredRegion:'Featured Poland Venues',allCountry:'All Poland',allCountryCat:(c)=>`${c} - All Greece`,yourLocation:'Your location',sortedByDistance:'Sorted by distance',showingIndoor:'Showing indoor venues',venueDetails:'Venue Details',visitWebsite:'Visit Website',navigateTo:'Navigate',favorited:'Favorited',addFavorite:'Add to Favorites' },
+  zh: { filterLabel:'种类：',allLabel:'全部',searching:'搜索中... (通常需要10-40秒)',loadingVenues:'正在加载场地...',loadingHint:'正在查询 OpenStreetMap，通常需要 10-40 秒',found:(n,region)=>`<strong>${region}</strong> 共找到 <strong>${n}</strong> 个亲子场地`,notFound:'未找到相关场地，请尝试其他地区。',emptyTitle:'探索波兰亲子场地',emptyDesc:'在上方搜索城市或地区，找到波兰亲子活动场所。',noWebsite:'暂无官网',website:'🔗 官方网站',navigate:'🧭 导航',flyTo:'📍 在地图上显示',loadMore:'加载更多',regionNotFound:'未找到该地区，请输入波兰城市或地区名称。',searchPlaceholder:'搜索场地或地区... 如 雅典, Athens',resultLabel:'搜索地区以发现亲子场地',favoritesLabel:'收藏',nearMe:'我附近',nearMeSearching:'正在获取位置...',nearMePermDenied:'位置访问被拒绝，请在浏览器设置中允许以使用"我附近"功能。',nearMeError:'无法获取位置，请重试。',weatherBannerText:'大热天？试试室内活动！',weatherBannerBtn:'查看室内场地',searchRegionFirst:'请先搜索地区',searchRegionFirstDesc:(c)=>`在上方搜索框输入城市或地区，再按「${c}」筛选`,browseCategory:(c)=>`搜索地区，查看全部${c}`,browseCategoryDesc:'在上方搜索框输入城市或地区，立即筛选该种类',noInRegion:(c,r)=>`${r} 暂无${c}`,tryOtherCategory:'试试其他分类，或搜索其他地区。',venuesSection:'场地',regionsSection:'地区',nearMeLocationType:'定位',featuredRegion:'波兰精选场地',allCountry:'波兰全境',allCountryCat:(c)=>`${c} - 希腊全境`,yourLocation:'你的位置',sortedByDistance:'已按距离排序',showingIndoor:'已筛选室内活动场地',venueDetails:'场地详情',visitWebsite:'访问官方网站',navigateTo:'导航前往',favorited:'已收藏',addFavorite:'收藏' },
+  pl: { filterLabel:'Kategoria:',allLabel:'Wszystkie',searching:'Szukanie... (10-40s)',loadingVenues:'Loading...',loadingHint:'Loading...',found:(n,region)=>`<strong>${n}</strong> venues in <strong>${region}</strong>`,notFound:'Nie znaleziono. Spróbuj innego regionu.',emptyTitle:'Odkryj Polskę',emptyDesc:'Wyszukaj region lub miasto powyżej, aby znaleźć miejsca dla dzieci.',noWebsite:'Brak strony',website:'🔗 Oficjalna strona',navigate:'🧭 Nawigacja',flyTo:'📍 Pokaż na mapie',loadMore:'Załaduj więcej',regionNotFound:'Nie znaleziono regionu. Spróbuj polskiego miasta.',searchPlaceholder:'Szukaj... np. Warszawa, Kraków',resultLabel:'Wyszukaj region, aby odkryć miejsca dla dzieci',favoritesLabel:'Favorites',nearMe:'W pobliżu',nearMeSearching:'Pobieranie lokalizacji...',nearMePermDenied:'Dostęp do lokalizacji odmówiony.',nearMeError:'Nie można uzyskać lokalizacji.',weatherBannerText:'Gorący dzień? Spróbuj aktywności w pomieszczeniach!',weatherBannerBtn:'Pokaż miejsca w pomieszczeniach',searchRegionFirst:'Najpierw wyszukaj region',searchRegionFirstDesc:(c)=>`Search above, then filter by: "${c}"`  ,browseCategory:(c)=>`${c}`,browseCategoryDesc:'Search above.',noInRegion:(c,r)=>`No ${c} in ${r}`,tryOtherCategory:'Try another category.',venuesSection:'Venues',regionsSection:'Regions',nearMeLocationType:'Location',featuredRegion:'Polecane miejsca w Polsce',allCountry:'Cała Polska',allCountryCat:(c)=>`${c}`,yourLocation:'Your location',sortedByDistance:'Sorted by distance',showingIndoor:'Showing indoor venues',venueDetails:'Venue Details',visitWebsite:'Visit Website',navigateTo:'Navigate',favorited:'Favorited',addFavorite:'Add to Favorites' }
+};
+const CATEGORIES = [
+  { id:'museum',emoji:'🏛️',color:'#4ECDC4',bg:'#E8FAF8',en:'Museum',zh:'博物馆',pl:'', nl:'',tags:{tourism:['museum','gallery']}},
+  { id:'aquarium',emoji:'🐠',color:'#0077B6',bg:'#E0F4FF',en:'Aquarium',zh:'水族馆',pl:'', nl:'',tags:{tourism:['aquarium']}},
+  { id:'zoo',emoji:'🦁',color:'#82B74B',bg:'#EEF7E6',en:'Zoo',zh:'动物园',pl:'', nl:'',tags:{tourism:['zoo']}},
+  { id:'children_farm',emoji:'🐑',color:'#A0C878',bg:'#F0F7E6',en:"Children's Farm",zh:'儿童农场',pl:'', nl:'',tags:{tourism:['children_farm']}},
+  { id:'theme_park',emoji:'🎡',color:'#E05A1E',bg:'#FFF0E9',en:'Theme Park',zh:'主题公园',pl:'', nl:'',tags:{tourism:['theme_park'],leisure:['water_park','amusement_arcade']}},
+  { id:'indoor_playground',emoji:'🏠',color:'#FF6B35',bg:'#FFF0E9',en:'Indoor Play',zh:'室内游乐场',pl:'', nl:'',tags:{leisure:['indoor_playground']}},
+  { id:'playground',emoji:'🛝',color:'#F7DC6F',bg:'#FEFCE8',en:'Playground',zh:'游乐场',pl:'', nl:'',tags:{leisure:['playground']}},
+  { id:'beach',emoji:'🏖️',color:'#0EA5A0',bg:'#E0F7F6',en:'Beach',zh:'海滩',pl:'', nl:'',tags:{natural:['beach']}},
+  { id:'nature',emoji:'🌳',color:'#27AE60',bg:'#E8F8EE',en:'Nature & Park',zh:'自然公园',pl:'', nl:'',tags:{leisure:['nature_reserve','park','miniature_golf','marina']}},
+  { id:'historic',emoji:'🏰',color:'#8B6914',bg:'#F5EDD5',en:'Historic',zh:'历史古迹',pl:'', nl:'',tags:{historic:['castle','monument','fort','ruins','windmill','ship']}},
+  { id:'sports',emoji:'⛸️',color:'#6C5CE7',bg:'#F0EEFF',en:'Sports',zh:'运动场',pl:'', nl:'',tags:{leisure:['ice_rink','swimming_pool','sports_centre']}},
+  { id:'theatre',emoji:'🎭',color:'#E84393',bg:'#FEE9F4',en:'Theatre & Cinema',zh:'剧院影院',pl:'', nl:'',tags:{amenity:['theatre','cinema','arts_centre']}},
+  { id:'visitor',emoji:'🔭',color:'#0369A1',bg:'#E0F2FE',en:'Visitor Centre',zh:'游客中心',pl:'', nl:'',tags:{tourism:['visitor_centre']}},
+  { id:'attraction',emoji:'⭐',color:'#F39C12',bg:'#FEF5E7',en:'Attraction',zh:'景点',pl:'', nl:'',tags:{tourism:['attraction']}},
+  { id:'chinese_restaurant',emoji:'🥡',color:'#E74C3C',bg:'#FADBD8',en:'Chinese Restaurant',zh:'中餐厅',pl:'', nl:'',tags:{amenity:['chinese_restaurant']}},
+  { id:'buffet',emoji:'🍱',color:'#8E44AD',bg:'#F4ECF7',en:'Buffet / All-You-Can-Eat',zh:'自助餐',pl:'', nl:'',tags:{amenity:['buffet_restaurant']}},
+];
+const PL_REGIONS = [
+  {name:'Warsaw',nameZh:'华沙',type:'city'},
+  {name:'Krakow',nameZh:'克拉科夫',type:'city'},
+  {name:'Gdansk',nameZh:'格但斯克',type:'city'},
+  {name:'Wroclaw',nameZh:'弗罗茨瓦夫',type:'city'},
+  {name:'Poznan',nameZh:'波兹南',type:'city'},
+  {name:'Lodz',nameZh:'罗兹',type:'city'},
+  {name:'Zakopane',nameZh:'扎科帕内',type:'city'},
+  {name:'Katowice',nameZh:'卡托维兹',type:'city'},
+  {name:'Gdynia',nameZh:'格丁尼亚',type:'city'},
+  {name:'Masovian Voivodeship',type:'province'},
+  {name:'Lesser Poland',type:'province'},
+  {name:'Silesian Voivodeship',type:'province'},
+  {name:'Greater Poland',type:'province'},
+];
+const STATIC_PL_VENUES = [
+{type:'node',id:1001,lat:52.2297,lon:21.0122,tags:{nameZh:'哥白尼科学中心',name:'Copernicus Science Centre',tourism:'science_center',website:'https://www.kopernik.org.pl','addr:city':'Warsaw',opening_hours:'Tu-Fr 09:00-18:00; Sa-Su 10:00-19:00',rating:'4.8',reviews:'32000'}},
+  {type:'node',id:1002,lat:52.2354,lon:21.0451,tags:{nameZh:'华沙动物园',name:'Warsaw Zoo',tourism:'zoo',website:'https://www.zoo.waw.pl','addr:city':'Warsaw',opening_hours:'Mo-Su 09:00-18:00',rating:'4.6',reviews:'28000'}},
+  {type:'node',id:1003,lat:52.2317,lon:20.9841,tags:{nameZh:'华沙水族馆',name:'Warsaw Aquarium',tourism:'aquarium','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-20:00',rating:'4.3',reviews:'9000'}},
+  {type:'node',id:1004,lat:52.2480,lon:20.9862,tags:{nameZh:'华沙海洋公园',name:'Oceanarium Warsaw',tourism:'aquarium','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-20:00',rating:'4.5',reviews:'11000'}},
+  {type:'node',id:1005,lat:52.2198,lon:20.9967,tags:{nameZh:'华沙皇家城堡',name:'Royal Castle Warsaw',tourism:'museum',website:'https://www.zamek-krolewski.pl','addr:city':'Warsaw',opening_hours:'Tu-Su 10:00-16:00',rating:'4.6',reviews:'20000'}},
+  {type:'node',id:1006,lat:52.2480,lon:21.0115,tags:{nameZh:'华沙起义博物馆',name:'Warsaw Rising Museum',tourism:'museum',website:'https://www.1944.pl','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-18:00',rating:'4.8',reviews:'24000'}},
+  {type:'node',id:1007,lat:52.2112,lon:21.0055,tags:{nameZh:'维拉诺夫宫博物馆',name:'Wilanów Palace Museum',tourism:'museum',website:'https://www.wilanow-palac.pl','addr:city':'Warsaw',opening_hours:'Tu-Su 09:30-16:00',rating:'4.7',reviews:'18000'}},
+  {type:'node',id:1008,lat:52.2456,lon:21.0412,tags:{nameZh:'波兰犹太人历史博物馆',name:'POLIN Museum of Polish Jews',tourism:'museum',website:'https://www.polin.pl','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'16000'}},
+  {type:'node',id:1009,lat:52.2200,lon:21.0059,tags:{nameZh:'华沙国家博物馆',name:'National Museum Warsaw',tourism:'museum','addr:city':'Warsaw',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'15000'}},
+  {type:'node',id:1010,lat:52.2573,lon:21.0457,tags:{nameZh:'华沙室内游乐园',name:'Bajkowy Świat Indoor Playground',tourism:'indoor_play','addr:city':'Warsaw',opening_hours:'Mo-Su 09:00-21:00',rating:'4.4',reviews:'5600'}},
+  {type:'node',id:1011,lat:52.2415,lon:21.0037,tags:{nameZh:'华沙逃脱室',name:'Exit Escape Room Warsaw',tourism:'escape_room','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-22:00',rating:'4.6',reviews:'6800'}},
+  {type:'node',id:1012,lat:52.2378,lon:21.0178,tags:{nameZh:'华沙游泳中心',name:'Warszawianka Swimming Complex',tourism:'swimming_pool','addr:city':'Warsaw',opening_hours:'Mo-Su 06:00-22:00',rating:'4.3',reviews:'12000'}},
+  {type:'node',id:1013,lat:52.2632,lon:20.9847,tags:{nameZh:'华沙游乐主题公园',name:'Wesoła Park Warsaw',tourism:'theme_park','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-20:00',rating:'4.0',reviews:'7200'}},
+  {type:'node',id:1014,lat:52.2645,lon:21.0356,tags:{nameZh:'华沙自然公园',name:'Kampinos Nature Park',tourism:'nature_park','addr:city':'Warsaw',opening_hours:'Mo-Su 08:00-18:00',rating:'4.4',reviews:'6100'}},
+  {type:'node',id:1015,lat:52.2544,lon:21.0234,tags:{nameZh:'华沙儿童游乐场',name:'Kids Playground Skaryszewski Park',tourism:'playground','addr:city':'Warsaw',opening_hours:'Mo-Su 08:00-20:00',rating:'4.1',reviews:'2800'}},
+  {type:'node',id:1016,lat:52.2490,lon:21.0532,tags:{nameZh:'华沙保龄球俱乐部',name:'Bowling City Warsaw',tourism:'bowling','addr:city':'Warsaw',opening_hours:'Mo-Su 12:00-23:00',rating:'4.2',reviews:'4100'}},
+  {type:'node',id:1017,lat:52.2351,lon:21.0699,tags:{nameZh:'华沙儿童农场',name:'Mini Zoo Farma Warsaw',tourism:'children_farm','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'3900'}},
+  {type:'node',id:1018,lat:52.2213,lon:21.0312,tags:{nameZh:'华沙自然历史博物馆',name:'Museum of Natural History Warsaw',tourism:'museum','addr:city':'Warsaw',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'8900'}},
+  {type:'node',id:1019,lat:52.2301,lon:21.0156,tags:{nameZh:'华沙天文馆',name:'Warsaw Planetarium',tourism:'science_center','addr:city':'Warsaw',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'4500'}},
+  {type:'node',id:1020,lat:52.2456,lon:20.9978,tags:{nameZh:'华沙老城广场',name:'Warsaw Old Town Market Square',tourism:'attraction','addr:city':'Warsaw',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'35000'}},
+  {type:'node',id:1021,lat:50.0647,lon:19.9450,tags:{nameZh:'克拉科夫龙穴',name:'Dragon\'s Den Kraków',tourism:'attraction',website:'https://www.krakow.pl','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'22000'}},
+  {type:'node',id:1022,lat:50.0541,lon:19.9350,tags:{nameZh:'维利奇卡盐矿',name:'Wieliczka Salt Mine',tourism:'attraction',website:'https://www.wieliczka-saltmine.com','addr:city':'Kraków',opening_hours:'Mo-Su 08:00-17:00',rating:'4.8',reviews:'45000'}},
+  {type:'node',id:1023,lat:50.0596,lon:19.9373,tags:{nameZh:'克拉科夫动物园',name:'Kraków Zoo',tourism:'zoo',website:'https://www.zoo.krakow.pl','addr:city':'Kraków',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'19000'}},
+  {type:'node',id:1024,lat:50.0619,lon:19.9366,tags:{nameZh:'克拉科夫国家博物馆',name:'National Museum in Kraków',tourism:'museum','addr:city':'Kraków',opening_hours:'Tu-Su 10:00-18:00',rating:'4.6',reviews:'14000'}},
+  {type:'node',id:1025,lat:50.0489,lon:19.9629,tags:{nameZh:'克拉科夫水上乐园',name:'Kraków Water Park',tourism:'swimming_pool',website:'https://www.parkwodny.pl','addr:city':'Kraków',opening_hours:'Mo-Su 08:00-22:00',rating:'4.5',reviews:'13000'}},
+  {type:'node',id:1026,lat:50.0669,lon:19.9285,tags:{nameZh:'克拉科夫天文馆',name:'Kraków Planetarium',tourism:'science_center',website:'https://www.planetarium.krakow.pl','addr:city':'Kraków',opening_hours:'Tu-Su 09:00-18:00',rating:'4.6',reviews:'6800'}},
+  {type:'node',id:1027,lat:50.0701,lon:19.9615,tags:{nameZh:'克拉科夫室内游乐场',name:'Kraina Zabawy Indoor Play',tourism:'indoor_play','addr:city':'Kraków',opening_hours:'Mo-Su 09:00-21:00',rating:'4.2',reviews:'4300'}},
+  {type:'node',id:1028,lat:50.0660,lon:19.9512,tags:{nameZh:'克拉科夫逃脱密室',name:'Escape Factory Kraków',tourism:'escape_room','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-22:00',rating:'4.7',reviews:'5600'}},
+  {type:'node',id:1029,lat:50.0743,lon:19.9389,tags:{nameZh:'克拉科夫自然公园',name:'Kraków-Częstochowa Upland Park',tourism:'nature_park','addr:city':'Kraków',opening_hours:'Mo-Su 07:00-19:00',rating:'4.5',reviews:'8200'}},
+  {type:'node',id:1030,lat:50.0555,lon:19.9187,tags:{nameZh:'克拉科夫儿童农场',name:'Mini Farma Kraków',tourism:'children_farm','addr:city':'Kraków',opening_hours:'Sa-Su 10:00-17:00',rating:'4.3',reviews:'2900'}},
+  {type:'node',id:1031,lat:50.0580,lon:19.9250,tags:{nameZh:'克拉科夫科学实验室',name:'Kraków Science Lab',tourism:'science_center','addr:city':'Kraków',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'7800'}},
+  {type:'node',id:1032,lat:50.0528,lon:19.9279,tags:{nameZh:'克拉科夫保龄球',name:'Strike Bowling Kraków',tourism:'bowling','addr:city':'Kraków',opening_hours:'Mo-Su 11:00-23:00',rating:'4.1',reviews:'3200'}},
+  {type:'node',id:1033,lat:50.0615,lon:19.9401,tags:{nameZh:'克拉科夫历史博物馆',name:'Historical Museum of Kraków',tourism:'museum','addr:city':'Kraków',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'9500'}},
+  {type:'node',id:1034,lat:50.0494,lon:20.0055,tags:{nameZh:'新胡塔博物馆',name:'Museum of Nowa Huta',tourism:'museum','addr:city':'Kraków',opening_hours:'Tu-Su 09:30-17:00',rating:'4.2',reviews:'4100'}},
+  {type:'node',id:1035,lat:54.3520,lon:18.6466,tags:{nameZh:'格但斯克二战博物馆',name:'Museum of WWII Gdańsk',tourism:'museum',website:'https://www.muzeum1939.pl','addr:city':'Gdańsk',opening_hours:'Tu-Su 10:00-18:00',rating:'4.8',reviews:'20000'}},
+  {type:'node',id:1036,lat:54.3563,lon:18.6527,tags:{nameZh:'格但斯克海洋博物馆',name:'Maritime Museum Gdańsk',tourism:'museum','addr:city':'Gdańsk',opening_hours:'Tu-Su 10:00-16:00',rating:'4.5',reviews:'11000'}},
+  {type:'node',id:1037,lat:54.3801,lon:18.5963,tags:{nameZh:'格但斯克动物园',name:'Gdańsk Zoo',tourism:'zoo',website:'https://www.zoo.gdansk.pl','addr:city':'Gdańsk',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'15000'}},
+  {type:'node',id:1038,lat:54.3640,lon:18.6497,tags:{nameZh:'波罗的海水族馆',name:'Baltic Sea Aquarium Gdańsk',tourism:'aquarium','addr:city':'Gdańsk',opening_hours:'Mo-Su 10:00-20:00',rating:'4.6',reviews:'14000'}},
+  {type:'node',id:1039,lat:54.3476,lon:18.6556,tags:{nameZh:'格但斯克琥珀博物馆',name:'Amber Museum Gdańsk',tourism:'museum','addr:city':'Gdańsk',opening_hours:'Tu-Su 10:00-18:00',rating:'4.6',reviews:'17000'}},
+  {type:'node',id:1040,lat:54.3724,lon:18.6305,tags:{nameZh:'格但斯克室内游乐场',name:'Bajkowa Kraina Play Centre',tourism:'indoor_play','addr:city':'Gdańsk',opening_hours:'Mo-Su 10:00-21:00',rating:'4.2',reviews:'3800'}},
+  {type:'node',id:1041,lat:54.3583,lon:18.5889,tags:{nameZh:'索波特水上乐园',name:'Aqua Park Sopot',tourism:'swimming_pool','addr:city':'Gdańsk',opening_hours:'Mo-Su 08:00-22:00',rating:'4.5',reviews:'9800'}},
+  {type:'node',id:1042,lat:54.3608,lon:18.6412,tags:{nameZh:'格但斯克逃脱密室',name:'Escape Room Gdańsk',tourism:'escape_room','addr:city':'Gdańsk',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'4600'}},
+  {type:'node',id:1043,lat:54.3875,lon:18.6124,tags:{nameZh:'特罗伊米耶斯基自然公园',name:'Trójmiejski Landscape Park',tourism:'nature_park','addr:city':'Gdańsk',opening_hours:'Mo-Su 08:00-20:00',rating:'4.6',reviews:'7300'}},
+  {type:'node',id:1044,lat:54.3547,lon:18.6712,tags:{nameZh:'格但斯克保龄球',name:'Lucky Strike Gdańsk',tourism:'bowling','addr:city':'Gdańsk',opening_hours:'Mo-Su 12:00-23:00',rating:'4.0',reviews:'3100'}},
+  {type:'node',id:1045,lat:54.3498,lon:18.6489,tags:{nameZh:'格但斯克儿童博物馆',name:'Children\'s Museum Gdańsk',tourism:'museum','addr:city':'Gdańsk',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'5200'}},
+  {type:'node',id:1046,lat:51.1089,lon:17.0326,tags:{nameZh:'弗罗茨瓦夫动物园',name:'Wrocław Zoo',tourism:'zoo',website:'https://www.zoo.wroclaw.pl','addr:city':'Wrocław',opening_hours:'Mo-Su 09:00-17:00',rating:'4.6',reviews:'23000'}},
+  {type:'node',id:1047,lat:51.1063,lon:17.0452,tags:{nameZh:'弗罗茨瓦夫水族馆',name:'Aquarium Wrocław',tourism:'aquarium','addr:city':'Wrocław',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'12000'}},
+  {type:'node',id:1048,lat:51.1145,lon:17.0213,tags:{nameZh:'弗罗茨瓦夫科学中心',name:'Centrum Nauki Odkryj Wrocław',tourism:'science_center','addr:city':'Wrocław',opening_hours:'Tu-Su 09:00-18:00',rating:'4.6',reviews:'9500'}},
+  {type:'node',id:1049,lat:51.1120,lon:17.0390,tags:{nameZh:'弗罗茨瓦夫历史博物馆',name:'Historical Museum Wrocław',tourism:'museum','addr:city':'Wrocław',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'8200'}},
+  {type:'node',id:1050,lat:51.1178,lon:17.0291,tags:{nameZh:'弗罗茨瓦夫木偶剧院',name:'Wrocław Puppet Theatre',tourism:'attraction','addr:city':'Wrocław',opening_hours:'Tu-Su 10:00-18:00',rating:'4.7',reviews:'6500'}},
+  {type:'node',id:1051,lat:51.1098,lon:17.0568,tags:{nameZh:'弗罗茨瓦夫室内游乐场',name:'Fun Park Wrocław',tourism:'indoor_play','addr:city':'Wrocław',opening_hours:'Mo-Su 10:00-21:00',rating:'4.3',reviews:'4700'}},
+  {type:'node',id:1052,lat:51.1056,lon:17.0134,tags:{nameZh:'弗罗茨瓦夫水上乐园',name:'Aquapark Wrocław',tourism:'swimming_pool',website:'https://www.aquapark.wroc.pl','addr:city':'Wrocław',opening_hours:'Mo-Su 08:00-22:00',rating:'4.5',reviews:'16000'}},
+  {type:'node',id:1053,lat:51.1134,lon:17.0489,tags:{nameZh:'弗罗茨瓦夫逃脱密室',name:'Enterhaken Escape Room',tourism:'escape_room','addr:city':'Wrocław',opening_hours:'Mo-Su 10:00-22:00',rating:'4.6',reviews:'4200'}},
+  {type:'node',id:1054,lat:51.1201,lon:17.0321,tags:{nameZh:'弗罗茨瓦夫自然公园',name:'Szczytnicki Park Wrocław',tourism:'nature_park','addr:city':'Wrocław',opening_hours:'Mo-Su 07:00-20:00',rating:'4.5',reviews:'9800'}},
+  {type:'node',id:1055,lat:51.1167,lon:17.0445,tags:{nameZh:'弗罗茨瓦夫侏儒寻宝',name:'Wrocław Dwarfs Trail',tourism:'attraction','addr:city':'Wrocław',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'14000'}},
+  {type:'node',id:1056,lat:52.4064,lon:16.9252,tags:{nameZh:'波兹南动物园',name:'Poznań Zoo',tourism:'zoo',website:'https://www.zoo.poznan.pl','addr:city':'Poznań',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'18000'}},
+  {type:'node',id:1057,lat:52.4082,lon:16.9419,tags:{nameZh:'波兹南科学中心',name:'Brama Poznania Science Centre',tourism:'science_center','addr:city':'Poznań',opening_hours:'Tu-Su 09:00-18:00',rating:'4.6',reviews:'8900'}},
+  {type:'node',id:1058,lat:52.4069,lon:16.9335,tags:{nameZh:'波兹南历史博物馆',name:'City Museum Poznań',tourism:'museum','addr:city':'Poznań',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'6200'}},
+  {type:'node',id:1059,lat:52.4125,lon:16.9187,tags:{nameZh:'波兹南水上乐园',name:'Aquapark Malta Poznań',tourism:'swimming_pool',website:'https://www.maltapark.pl','addr:city':'Poznań',opening_hours:'Mo-Su 08:00-22:00',rating:'4.5',reviews:'14000'}},
+  {type:'node',id:1060,lat:52.3978,lon:16.9274,tags:{nameZh:'波兹南马尔塔湖公园',name:'Malta Park Poznań',tourism:'nature_park','addr:city':'Poznań',opening_hours:'Mo-Su 07:00-20:00',rating:'4.4',reviews:'11000'}},
+  {type:'node',id:1061,lat:52.4089,lon:16.9256,tags:{nameZh:'波兹南室内游乐场',name:'Kraina Radości Indoor Playground',tourism:'indoor_play','addr:city':'Poznań',opening_hours:'Mo-Su 09:00-21:00',rating:'4.2',reviews:'4500'}},
+  {type:'node',id:1062,lat:52.4015,lon:16.9342,tags:{nameZh:'波兹南逃脱密室',name:'Escape Room Poznań',tourism:'escape_room','addr:city':'Poznań',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'3900'}},
+  {type:'node',id:1063,lat:52.4156,lon:16.9298,tags:{nameZh:'波兹南儿童农场',name:'Mini Zoo Poznań',tourism:'children_farm','addr:city':'Poznań',opening_hours:'Sa-Su 10:00-17:00',rating:'4.1',reviews:'2400'}},
+  {type:'node',id:1064,lat:51.7592,lon:19.4560,tags:{nameZh:'罗兹动物园',name:'Łódź Zoo',tourism:'zoo',website:'https://www.zoo.lodz.pl','addr:city':'Łódź',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'16000'}},
+  {type:'node',id:1065,lat:51.7768,lon:19.4563,tags:{nameZh:'罗兹科学中心',name:'EC1 Łódź Science Center',tourism:'science_center',website:'https://www.ec1lodz.pl','addr:city':'Łódź',opening_hours:'Tu-Su 09:00-18:00',rating:'4.5',reviews:'7600'}},
+  {type:'node',id:1066,lat:51.7688,lon:19.4577,tags:{nameZh:'罗兹纺织博物馆',name:'Central Textile Museum Łódź',tourism:'museum','addr:city':'Łódź',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'5800'}},
+  {type:'node',id:1067,lat:51.7813,lon:19.4468,tags:{nameZh:'罗兹水上乐园',name:'Aquapark Łódź',tourism:'swimming_pool','addr:city':'Łódź',opening_hours:'Mo-Su 07:00-22:00',rating:'4.4',reviews:'11000'}},
+  {type:'node',id:1068,lat:51.7732,lon:19.4623,tags:{nameZh:'罗兹室内游乐场',name:'FunCity Indoor Playground Łódź',tourism:'indoor_play','addr:city':'Łódź',opening_hours:'Mo-Su 10:00-21:00',rating:'4.1',reviews:'3700'}},
+  {type:'node',id:1069,lat:51.7654,lon:19.4512,tags:{nameZh:'罗兹逃脱密室',name:'Escape Room Łódź',tourism:'escape_room','addr:city':'Łódź',opening_hours:'Mo-Su 10:00-22:00',rating:'4.4',reviews:'3200'}},
+  {type:'node',id:1070,lat:51.7889,lon:19.4534,tags:{nameZh:'罗兹公园游乐场',name:'Łódź Lagiewniki Park',tourism:'nature_park','addr:city':'Łódź',opening_hours:'Mo-Su 07:00-20:00',rating:'4.3',reviews:'6400'}},
+  {type:'node',id:1071,lat:50.2999,lon:18.9559,tags:{nameZh:'卡托维兹尼卡科学中心',name:'Silesian Planetarium Chorzów',tourism:'science_center','addr:city':'Katowice',opening_hours:'Tu-Su 09:00-17:00',rating:'4.5',reviews:'9200'}},
+  {type:'node',id:1072,lat:50.2880,lon:18.9654,tags:{nameZh:'西里西亚公园',name:'Silesian Park Chorzów',tourism:'nature_park','addr:city':'Katowice',opening_hours:'Mo-Su 07:00-22:00',rating:'4.5',reviews:'14000'}},
+  {type:'node',id:1073,lat:50.2645,lon:19.0238,tags:{nameZh:'卡托维兹水上乐园',name:'Aqua Park Katowice',tourism:'swimming_pool','addr:city':'Katowice',opening_hours:'Mo-Su 07:00-23:00',rating:'4.3',reviews:'8900'}},
+  {type:'node',id:1074,lat:50.2714,lon:19.0278,tags:{nameZh:'卡托维兹博物馆',name:'Silesian Museum Katowice',tourism:'museum',website:'https://www.muzeumslaskie.pl','addr:city':'Katowice',opening_hours:'Tu-Su 10:00-18:00',rating:'4.6',reviews:'12000'}},
+  {type:'node',id:1075,lat:50.2756,lon:18.9846,tags:{nameZh:'卡托维兹室内游乐场',name:'FunZone Indoor Play Katowice',tourism:'indoor_play','addr:city':'Katowice',opening_hours:'Mo-Su 09:00-21:00',rating:'4.1',reviews:'3400'}},
+  {type:'node',id:1076,lat:53.7784,lon:20.4801,tags:{nameZh:'奥尔什丁动物园',name:'Olsztyn Zoo',tourism:'zoo','addr:city':'Olsztyn',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'7800'}},
+  {type:'node',id:1077,lat:53.7798,lon:20.4936,tags:{nameZh:'奥尔什丁骑士城堡',name:'Olsztyn Castle Museum',tourism:'museum','addr:city':'Olsztyn',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'6300'}},
+  {type:'node',id:1078,lat:53.7623,lon:20.4734,tags:{nameZh:'马祖里湖自然公园',name:'Mazury Lakes Landscape Park',tourism:'nature_park','addr:city':'Olsztyn',opening_hours:'Mo-Su 07:00-20:00',rating:'4.7',reviews:'11000'}},
+  {type:'node',id:1079,lat:54.1757,lon:16.1726,tags:{nameZh:'科沙林水上乐园',name:'Aquapark Koszalin',tourism:'swimming_pool','addr:city':'Koszalin',opening_hours:'Mo-Su 08:00-22:00',rating:'4.3',reviews:'5600'}},
+  {type:'node',id:1080,lat:50.8118,lon:19.1203,tags:{nameZh:'琴斯托霍瓦动物园',name:'Częstochowa Zoo',tourism:'zoo','addr:city':'Częstochowa',opening_hours:'Mo-Su 09:00-17:00',rating:'4.1',reviews:'6200'}},
+  {type:'node',id:1081,lat:50.0413,lon:21.9990,tags:{nameZh:'热舒夫水上乐园',name:'Aquapark Rzeszów',tourism:'swimming_pool','addr:city':'Rzeszów',opening_hours:'Mo-Su 07:00-22:00',rating:'4.4',reviews:'7900'}},
+  {type:'node',id:1082,lat:50.0381,lon:22.0041,tags:{nameZh:'热舒夫科学中心',name:'Science Center Rzeszów',tourism:'science_center','addr:city':'Rzeszów',opening_hours:'Tu-Su 09:00-18:00',rating:'4.4',reviews:'4100'}},
+  {type:'node',id:1083,lat:53.1325,lon:23.1688,tags:{nameZh:'比亚威斯托克动物园',name:'Białystok Zoo',tourism:'zoo','addr:city':'Białystok',opening_hours:'Mo-Su 09:00-17:00',rating:'4.2',reviews:'8400'}},
+  {type:'node',id:1084,lat:53.1213,lon:23.1561,tags:{nameZh:'比亚沃维耶扎原始森林',name:'Białowieża Primeval Forest Visitor Centre',tourism:'nature_park','addr:city':'Białystok',opening_hours:'Mo-Su 08:00-17:00',rating:'4.8',reviews:'14000'}},
+  {type:'node',id:1085,lat:54.5189,lon:18.5305,tags:{nameZh:'格丁尼亚海洋水族馆',name:'Gdynia Aquarium',tourism:'aquarium',website:'https://www.akwarium.gdynia.pl','addr:city':'Gdynia',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'12000'}},
+  {type:'node',id:1086,lat:54.5216,lon:18.5320,tags:{nameZh:'格丁尼亚博物馆',name:'Sea Museum Gdynia',tourism:'museum','addr:city':'Gdynia',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'7600'}},
+  {type:'node',id:1087,lat:50.0413,lon:19.9389,tags:{nameZh:'能源地亚游乐园',name:'Energylandia Amusement Park',tourism:'theme_park',website:'https://www.energylandia.pl','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-20:00',rating:'4.5',reviews:'28000'}},
+  {type:'node',id:1088,lat:51.2465,lon:22.5684,tags:{nameZh:'卢布林动物园',name:'Lublin Zoo',tourism:'zoo','addr:city':'Lublin',opening_hours:'Mo-Su 09:00-17:00',rating:'4.1',reviews:'6700'}},
+  {type:'node',id:1089,lat:51.2498,lon:22.5773,tags:{nameZh:'卢布林露天博物馆',name:'Lublin Open Air Museum',tourism:'museum','addr:city':'Lublin',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'5400'}},
+  {type:'node',id:1090,lat:50.6751,lon:17.9213,tags:{nameZh:'奥波莱动物园',name:'Opole Zoo',tourism:'zoo','addr:city':'Opole',opening_hours:'Mo-Su 09:00-17:00',rating:'4.2',reviews:'5900'}},
+  {type:'node',id:1091,lat:53.4285,lon:14.5528,tags:{nameZh:'什切青动物园',name:'Szczecin Zoo',tourism:'zoo',website:'https://www.zoo.szczecin.pl','addr:city':'Szczecin',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'12000'}},
+  {type:'node',id:1092,lat:53.4312,lon:14.5611,tags:{nameZh:'什切青海洋博物馆',name:'National Museum Szczecin',tourism:'museum','addr:city':'Szczecin',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'5600'}},
+  {type:'node',id:1093,lat:53.4245,lon:14.5489,tags:{nameZh:'什切青水上乐园',name:'Aquapark Szczecin',tourism:'swimming_pool','addr:city':'Szczecin',opening_hours:'Mo-Su 07:00-22:00',rating:'4.3',reviews:'9200'}},
+  {type:'node',id:1094,lat:50.2890,lon:18.9234,tags:{nameZh:'西里西亚动物园',name:'Silesian Zoo Chorzów',tourism:'zoo','addr:city':'Katowice',opening_hours:'Mo-Su 09:00-17:00',rating:'4.5',reviews:'20000'}},
+  {type:'node',id:1095,lat:52.2234,lon:21.0189,tags:{nameZh:'华沙科学宫',name:'Palace of Culture and Science Warsaw',tourism:'attraction','addr:city':'Warsaw',opening_hours:'Mo-Su 09:00-20:00',rating:'4.4',reviews:'22000'}},
+  {type:'node',id:1096,lat:52.2151,lon:21.0437,tags:{nameZh:'华沙拉津基公园',name:'Łazienki Park Warsaw',tourism:'nature_park','addr:city':'Warsaw',opening_hours:'Mo-Su 07:00-20:00',rating:'4.7',reviews:'30000'}},
+  {type:'node',id:1097,lat:52.2279,lon:21.0098,tags:{nameZh:'华沙老城',name:'Warsaw Old Town',tourism:'attraction','addr:city':'Warsaw',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'40000'}},
+  {type:'node',id:1098,lat:52.2569,lon:20.9780,tags:{nameZh:'华沙儿童乐园蹦床',name:'Jump In Trampoline Park Warsaw',tourism:'indoor_play','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-22:00',rating:'4.4',reviews:'7800'}},
+  {type:'node',id:1099,lat:51.1158,lon:17.0325,tags:{nameZh:'弗罗茨瓦夫旧市场广场',name:'Wrocław Old Market Square',tourism:'attraction','addr:city':'Wrocław',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'32000'}},
+  {type:'node',id:1100,lat:51.1089,lon:17.0238,tags:{nameZh:'弗罗茨瓦夫华夫饼博物馆',name:'Wrocław Historical Museum',tourism:'museum','addr:city':'Wrocław',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'8100'}},
+  {type:'node',id:1101,lat:52.2318,lon:21.0476,tags:{nameZh:'华沙儿童科技博物馆',name:'Young Technik Museum Warsaw',tourism:'museum','addr:city':'Warsaw',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'6700'}},
+  {type:'node',id:1102,lat:54.3495,lon:18.6532,tags:{nameZh:'格但斯克海洋水族馆',name:'Gdańsk Maritime Science Centre',tourism:'science_center','addr:city':'Gdańsk',opening_hours:'Tu-Su 10:00-18:00',rating:'4.6',reviews:'9400'}},
+  {type:'node',id:1103,lat:52.4098,lon:16.9367,tags:{nameZh:'波兹南植物园',name:'Poznań Botanical Garden',tourism:'nature_park','addr:city':'Poznań',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'7200'}},
+  {type:'node',id:1104,lat:51.1078,lon:17.0503,tags:{nameZh:'弗罗茨瓦夫儿童农场',name:'Mini Farm Wrocław',tourism:'children_farm','addr:city':'Wrocław',opening_hours:'Sa-Su 10:00-17:00',rating:'4.2',reviews:'2800'}},
+  {type:'node',id:1105,lat:52.2502,lon:21.0034,tags:{nameZh:'华沙蹦床公园',name:'Bounce Trampoline Warsaw',tourism:'indoor_play','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'5600'}},
+  {type:'node',id:1106,lat:50.0623,lon:19.9289,tags:{nameZh:'克拉科夫蹦床公园',name:'AirJump Trampoline Kraków',tourism:'indoor_play','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'5100'}},
+  {type:'node',id:1107,lat:54.3611,lon:18.6341,tags:{nameZh:'格但斯克蹦床公园',name:'Jump Arena Gdańsk',tourism:'indoor_play','addr:city':'Gdańsk',opening_hours:'Mo-Su 10:00-22:00',rating:'4.2',reviews:'4200'}},
+  {type:'node',id:1108,lat:52.4144,lon:16.9198,tags:{nameZh:'波兹南蹦床公园',name:'Jump Jump Poznań',tourism:'indoor_play','addr:city':'Poznań',opening_hours:'Mo-Su 10:00-22:00',rating:'4.1',reviews:'3800'}},
+  {type:'node',id:1109,lat:50.2795,lon:19.0312,tags:{nameZh:'卡托维兹蹦床公园',name:'Sky Zone Katowice',tourism:'indoor_play','addr:city':'Katowice',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'6200'}},
+  {type:'node',id:1110,lat:51.7698,lon:19.4645,tags:{nameZh:'罗兹蹦床公园',name:'FunJump Łódź',tourism:'indoor_play','addr:city':'Łódź',opening_hours:'Mo-Su 10:00-22:00',rating:'4.2',reviews:'4600'}},
+  {type:'node',id:1111,lat:52.2387,lon:21.0067,tags:{nameZh:'华沙保龄球',name:'Kręgielnia Bowling Warsaw',tourism:'bowling','addr:city':'Warsaw',opening_hours:'Mo-Su 12:00-24:00',rating:'4.1',reviews:'4300'}},
+  {type:'node',id:1112,lat:50.0601,lon:19.9467,tags:{nameZh:'克拉科夫儿童游乐场',name:'Kids Zone Playground Kraków',tourism:'playground','addr:city':'Kraków',opening_hours:'Mo-Su 09:00-19:00',rating:'4.0',reviews:'3400'}},
+  {type:'node',id:1113,lat:51.1124,lon:17.0378,tags:{nameZh:'弗罗茨瓦夫游乐场',name:'Wrocław Adventure Playground',tourism:'playground','addr:city':'Wrocław',opening_hours:'Mo-Su 08:00-20:00',rating:'4.2',reviews:'3100'}},
+  {type:'node',id:1114,lat:54.3678,lon:18.6423,tags:{nameZh:'格但斯克游乐场',name:'Gdańsk City Playground',tourism:'playground','addr:city':'Gdańsk',opening_hours:'Mo-Su 08:00-20:00',rating:'4.1',reviews:'2600'}},
+  {type:'node',id:1115,lat:52.4167,lon:16.9056,tags:{nameZh:'波兹南游乐场',name:'Poznań City Playground',tourism:'playground','addr:city':'Poznań',opening_hours:'Mo-Su 08:00-20:00',rating:'4.0',reviews:'2900'}},
+  {type:'node',id:1116,lat:51.7745,lon:19.4521,tags:{nameZh:'罗兹游乐场',name:'Łódź City Playground',tourism:'playground','addr:city':'Łódź',opening_hours:'Mo-Su 08:00-20:00',rating:'3.9',reviews:'2200'}},
+  {type:'node',id:1117,lat:52.2401,lon:21.0312,tags:{nameZh:'华沙激光战场',name:'Laser Arena Warsaw',tourism:'indoor_play','addr:city':'Warsaw',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'5800'}},
+  {type:'node',id:1118,lat:50.0634,lon:19.9398,tags:{nameZh:'克拉科夫激光战场',name:'Laser Arena Kraków',tourism:'indoor_play','addr:city':'Kraków',opening_hours:'Mo-Su 11:00-22:00',rating:'4.2',reviews:'4700'}},
+  {type:'node',id:1119,lat:51.1201,lon:17.0412,tags:{nameZh:'弗罗茨瓦夫激光战场',name:'Laser Arena Wrocław',tourism:'indoor_play','addr:city':'Wrocław',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'4900'}},
+  {type:'node',id:1120,lat:53.4278,lon:14.5612,tags:{nameZh:'什切青室内游乐场',name:'FunKids Szczecin',tourism:'indoor_play','addr:city':'Szczecin',opening_hours:'Mo-Su 09:00-21:00',rating:'4.1',reviews:'3200'}},
+  {type:'node',id:1121,lat:53.1289,lon:23.1734,tags:{nameZh:'比亚威斯托克室内游乐场',name:'Kids World Białystok',tourism:'indoor_play','addr:city':'Białystok',opening_hours:'Mo-Su 09:00-21:00',rating:'4.0',reviews:'2700'}},
+  {type:'node',id:1122,lat:51.2478,lon:22.5712,tags:{nameZh:'卢布林水上乐园',name:'Aqua Lublin',tourism:'swimming_pool','addr:city':'Lublin',opening_hours:'Mo-Su 07:00-22:00',rating:'4.2',reviews:'7800'}},
+  {type:'node',id:1123,lat:53.7812,lon:20.4768,tags:{nameZh:'奥尔什丁水上乐园',name:'Aquapark Olsztyn',tourism:'swimming_pool','addr:city':'Olsztyn',opening_hours:'Mo-Su 07:00-22:00',rating:'4.3',reviews:'6500'}},
+  {type:'node',id:1124,lat:50.6712,lon:17.9278,tags:{nameZh:'奥波莱水上乐园',name:'Aquapark Opole',tourism:'swimming_pool','addr:city':'Opole',opening_hours:'Mo-Su 07:00-22:00',rating:'4.2',reviews:'5900'}},
+  {type:'node',id:1125,lat:52.2589,lon:21.0123,tags:{nameZh:'华沙儿童乐园博物馆',name:'Children\'s Museum Warsaw',tourism:'museum','addr:city':'Warsaw',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'8900'}},
+  {type:'node',id:1126,lat:52.2312,lon:20.9934,tags:{nameZh:'华沙皇家道游乐场',name:'Ujazdowski Park Playground',tourism:'playground','addr:city':'Warsaw',opening_hours:'Mo-Su 08:00-20:00',rating:'4.3',reviews:'5600'}},
+  {type:'node',id:1127,lat:50.0689,lon:19.9452,tags:{nameZh:'克拉科夫布卢斯卡森林公园',name:'Wolski Forest Park Kraków',tourism:'nature_park','addr:city':'Kraków',opening_hours:'Mo-Su 07:00-20:00',rating:'4.6',reviews:'9700'}},
+  {type:'node',id:1128,lat:51.1145,lon:16.9978,tags:{nameZh:'弗罗茨瓦夫南部公园',name:'Southern Park Wrocław',tourism:'nature_park','addr:city':'Wrocław',opening_hours:'Mo-Su 07:00-20:00',rating:'4.4',reviews:'8200'}},
+  {type:'node',id:1129,lat:52.4178,lon:16.9423,tags:{nameZh:'波兹南城市农场',name:'City Farm Poznań',tourism:'children_farm','addr:city':'Poznań',opening_hours:'Mo-Su 10:00-18:00',rating:'4.2',reviews:'3100'}},
+  {type:'node',id:1130,lat:54.3521,lon:18.6601,tags:{nameZh:'格但斯克城市农场',name:'Farma Gdańsk',tourism:'children_farm','addr:city':'Gdańsk',opening_hours:'Sa-Su 10:00-17:00',rating:'4.0',reviews:'2300'}},
+
+{type:'node',id:5001,lat:52.2312,lon:21.0045,tags:{nameZh:'华沙国家博物馆儿童工作坊',name:'Warsaw National Museum Kids Workshop',tourism:'museum','addr:city':'Warsaw',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'3400'}},
+{type:'node',id:5002,lat:52.2445,lon:21.0234,tags:{nameZh:'华沙卡丁车',name:'Go Kart Warsaw',tourism:'indoor_play','addr:city':'Warsaw',opening_hours:'Mo-Su 11:00-22:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:5003,lat:52.2189,lon:21.0312,tags:{nameZh:'华沙冒险公园',name:'Adventure Park Warsaw',tourism:'nature_park','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-20:00',rating:'4.3',reviews:'4200'}},
+{type:'node',id:5004,lat:52.2534,lon:20.9923,tags:{nameZh:'华沙迷你高尔夫',name:'Mini Golf Warsaw',tourism:'indoor_play','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-22:00',rating:'4.1',reviews:'3100'}},
+{type:'node',id:5005,lat:52.2289,lon:21.0567,tags:{nameZh:'华沙科学实验室',name:'Science Lab Warsaw',tourism:'science_center','addr:city':'Warsaw',opening_hours:'Tu-Su 09:00-18:00',rating:'4.5',reviews:'6700'}},
+{type:'node',id:5006,lat:52.2678,lon:21.0123,tags:{nameZh:'华沙儿童剧院',name:'Children Theater Warsaw',tourism:'attraction','addr:city':'Warsaw',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'5400'}},
+{type:'node',id:5007,lat:52.2123,lon:20.9845,tags:{nameZh:'华沙攀岩中心',name:'Climbing Wall Warsaw',tourism:'indoor_play','addr:city':'Warsaw',opening_hours:'Mo-Su 09:00-22:00',rating:'4.4',reviews:'4800'}},
+{type:'node',id:5008,lat:52.2389,lon:21.0689,tags:{nameZh:'华沙蝴蝶园',name:'Butterfly Garden Warsaw',tourism:'nature_park','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'3900'}},
+{type:'node',id:5009,lat:52.2501,lon:21.0478,tags:{nameZh:'华沙机器人博物馆',name:'Robot Museum Warsaw',tourism:'science_center','addr:city':'Warsaw',opening_hours:'Tu-Su 10:00-18:00',rating:'4.6',reviews:'8900'}},
+{type:'node',id:5010,lat:52.2345,lon:20.9756,tags:{nameZh:'华沙儿童游泳学校',name:'Swimming School Warsaw',tourism:'swimming_pool','addr:city':'Warsaw',opening_hours:'Mo-Su 07:00-21:00',rating:'4.2',reviews:'4600'}},
+{type:'node',id:5011,lat:50.0712,lon:19.9523,tags:{nameZh:'克拉科夫龙喷火表演',name:'Dragon Show Kraków',tourism:'attraction','addr:city':'Kraków',opening_hours:'Mo-Su 11:00-18:00',rating:'4.6',reviews:'12000'}},
+{type:'node',id:5012,lat:50.0534,lon:19.9412,tags:{nameZh:'克拉科夫冒险攀岩',name:'Rock Climbing Kraków',tourism:'indoor_play','addr:city':'Kraków',opening_hours:'Mo-Su 09:00-22:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:5013,lat:50.0678,lon:19.9167,tags:{nameZh:'克拉科夫儿童陶艺坊',name:'Kids Pottery Workshop Kraków',tourism:'attraction','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'2900'}},
+{type:'node',id:5014,lat:50.0445,lon:19.9578,tags:{nameZh:'克拉科夫激光枪战场',name:'Laser Tag Kraków',tourism:'indoor_play','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'5100'}},
+{type:'node',id:5015,lat:50.0589,lon:19.9034,tags:{nameZh:'克拉科夫蜡像馆',name:'Madame Tussauds Kraków',tourism:'attraction','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-18:00',rating:'4.2',reviews:'7800'}},
+{type:'node',id:5016,lat:50.0701,lon:19.9712,tags:{nameZh:'克拉科夫儿童博物馆',name:'Children\'s Museum Kraków',tourism:'museum','addr:city':'Kraków',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'6700'}},
+{type:'node',id:5017,lat:50.0623,lon:19.9523,tags:{nameZh:'克拉科夫卡丁车',name:'Go Kart Kraków',tourism:'indoor_play','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'4500'}},
+{type:'node',id:5018,lat:50.0512,lon:19.9189,tags:{nameZh:'克拉科夫冰场',name:'Ice Rink Kraków',tourism:'indoor_play','addr:city':'Kraków',opening_hours:'Mo-Su 09:00-21:00',rating:'4.4',reviews:'7200'}},
+{type:'node',id:5019,lat:50.0656,lon:19.9345,tags:{nameZh:'克拉科夫高空绳索公园',name:'High Ropes Course Kraków',tourism:'nature_park','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-19:00',rating:'4.5',reviews:'5800'}},
+{type:'node',id:5020,lat:50.0478,lon:20.0134,tags:{nameZh:'克拉科夫儿童农庄',name:'Kraków Children\'s Eco Farm',tourism:'children_farm','addr:city':'Kraków',opening_hours:'Sa-Su 09:00-17:00',rating:'4.4',reviews:'3200'}},
+{type:'node',id:5021,lat:54.3589,lon:18.6389,tags:{nameZh:'格但斯克科学实验室',name:'Science Lab Gdańsk',tourism:'science_center','addr:city':'Gdańsk',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:5022,lat:54.3712,lon:18.6512,tags:{nameZh:'格但斯克儿童剧场',name:'Children\'s Theatre Gdańsk',tourism:'attraction','addr:city':'Gdańsk',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'4200'}},
+{type:'node',id:5023,lat:54.3456,lon:18.6623,tags:{nameZh:'格但斯克冒险公园',name:'Adventure Park Gdańsk',tourism:'nature_park','addr:city':'Gdańsk',opening_hours:'Mo-Su 10:00-20:00',rating:'4.3',reviews:'5100'}},
+{type:'node',id:5024,lat:54.3634,lon:18.6234,tags:{nameZh:'格但斯克卡丁车',name:'Karting Gdańsk',tourism:'indoor_play','addr:city':'Gdańsk',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'4800'}},
+{type:'node',id:5025,lat:54.3523,lon:18.6478,tags:{nameZh:'格但斯克迷你高尔夫',name:'Mini Golf Park Gdańsk',tourism:'indoor_play','addr:city':'Gdańsk',opening_hours:'Mo-Su 10:00-20:00',rating:'4.1',reviews:'2900'}},
+{type:'node',id:5026,lat:54.3789,lon:18.6189,tags:{nameZh:'格但斯克攀岩中心',name:'Climbing Centre Gdańsk',tourism:'indoor_play','addr:city':'Gdańsk',opening_hours:'Mo-Su 09:00-22:00',rating:'4.3',reviews:'3700'}},
+{type:'node',id:5027,lat:54.3456,lon:18.6389,tags:{nameZh:'格但斯克波罗的海自然中心',name:'Baltic Nature Centre Gdańsk',tourism:'science_center','addr:city':'Gdańsk',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'5200'}},
+{type:'node',id:5028,lat:51.1023,lon:17.0267,tags:{nameZh:'弗罗茨瓦夫冒险公园',name:'Adventure Park Wrocław',tourism:'nature_park','addr:city':'Wrocław',opening_hours:'Mo-Su 10:00-19:00',rating:'4.4',reviews:'6800'}},
+{type:'node',id:5029,lat:51.1189,lon:17.0367,tags:{nameZh:'弗罗茨瓦夫卡丁车',name:'Karting Wrocław',tourism:'indoor_play','addr:city':'Wrocław',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'5200'}},
+{type:'node',id:5030,lat:51.1078,lon:17.0523,tags:{nameZh:'弗罗茨瓦夫儿童剧场',name:'Children\'s Theatre Wrocław',tourism:'attraction','addr:city':'Wrocław',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'4900'}},
+{type:'node',id:5031,lat:51.1234,lon:17.0189,tags:{nameZh:'弗罗茨瓦夫冰场',name:'Ice Rink Wrocław',tourism:'indoor_play','addr:city':'Wrocław',opening_hours:'Mo-Su 09:00-21:00',rating:'4.4',reviews:'8900'}},
+{type:'node',id:5032,lat:51.1045,lon:17.0412,tags:{nameZh:'弗罗茨瓦夫迷你高尔夫',name:'Mini Golf Wrocław',tourism:'indoor_play','addr:city':'Wrocław',opening_hours:'Mo-Su 10:00-22:00',rating:'4.1',reviews:'3100'}},
+{type:'node',id:5033,lat:51.1156,lon:17.0612,tags:{nameZh:'弗罗茨瓦夫儿童科学坊',name:'Science Workshop Kids Wrocław',tourism:'science_center','addr:city':'Wrocław',opening_hours:'Tu-Su 09:00-17:00',rating:'4.5',reviews:'6200'}},
+{type:'node',id:5034,lat:52.4134,lon:16.9078,tags:{nameZh:'波兹南卡丁车',name:'Karting Poznań',tourism:'indoor_play','addr:city':'Poznań',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'4700'}},
+{type:'node',id:5035,lat:52.4056,lon:16.9523,tags:{nameZh:'波兹南冒险公园',name:'Trampoline & Adventure Poznań',tourism:'indoor_play','addr:city':'Poznań',opening_hours:'Mo-Su 10:00-22:00',rating:'4.4',reviews:'6200'}},
+{type:'node',id:5036,lat:52.4178,lon:16.9267,tags:{nameZh:'波兹南冰场',name:'Ice Rink Poznań',tourism:'indoor_play','addr:city':'Poznań',opening_hours:'Mo-Su 09:00-21:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:5037,lat:52.4023,lon:16.9178,tags:{nameZh:'波兹南激光枪战场',name:'Laser Tag Poznań',tourism:'indoor_play','addr:city':'Poznań',opening_hours:'Mo-Su 10:00-22:00',rating:'4.2',reviews:'3900'}},
+{type:'node',id:5038,lat:52.3989,lon:16.9456,tags:{nameZh:'波兹南高空绳索公园',name:'High Ropes Park Poznań',tourism:'nature_park','addr:city':'Poznań',opening_hours:'Mo-Su 10:00-19:00',rating:'4.4',reviews:'4800'}},
+{type:'node',id:5039,lat:51.7812,lon:19.4623,tags:{nameZh:'罗兹蜡像馆',name:'Wax Museum Łódź',tourism:'attraction','addr:city':'Łódź',opening_hours:'Mo-Su 10:00-18:00',rating:'4.1',reviews:'5600'}},
+{type:'node',id:5040,lat:51.7645,lon:19.4534,tags:{nameZh:'罗兹冒险公园',name:'Adventure Park Łódź',tourism:'nature_park','addr:city':'Łódź',opening_hours:'Mo-Su 10:00-19:00',rating:'4.3',reviews:'5800'}},
+{type:'node',id:5041,lat:51.7734,lon:19.4689,tags:{nameZh:'罗兹卡丁车',name:'Karting Łódź',tourism:'indoor_play','addr:city':'Łódź',opening_hours:'Mo-Su 10:00-22:00',rating:'4.2',reviews:'4300'}},
+{type:'node',id:5042,lat:51.7889,lon:19.4412,tags:{nameZh:'罗兹儿童博物馆',name:'Children\'s Museum Łódź',tourism:'museum','addr:city':'Łódź',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'4500'}},
+{type:'node',id:5043,lat:50.2912,lon:18.9134,tags:{nameZh:'卡托维兹冰场',name:'Ice Rink Katowice',tourism:'indoor_play','addr:city':'Katowice',opening_hours:'Mo-Su 09:00-21:00',rating:'4.3',reviews:'7200'}},
+{type:'node',id:5044,lat:50.2756,lon:19.0178,tags:{nameZh:'卡托维兹卡丁车',name:'Karting Katowice',tourism:'indoor_play','addr:city':'Katowice',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'5100'}},
+{type:'node',id:5045,lat:50.2645,lon:18.9456,tags:{nameZh:'卡托维兹儿童科学馆',name:'Science Center Kids Katowice',tourism:'science_center','addr:city':'Katowice',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'6700'}},
+{type:'node',id:5046,lat:50.2834,lon:19.0089,tags:{nameZh:'卡托维兹攀岩墙',name:'Climbing Wall Katowice',tourism:'indoor_play','addr:city':'Katowice',opening_hours:'Mo-Su 09:00-22:00',rating:'4.4',reviews:'4800'}},
+{type:'node',id:5047,lat:50.2567,lon:18.9712,tags:{nameZh:'卡托维兹激光战场',name:'Laser Zone Katowice',tourism:'indoor_play','addr:city':'Katowice',opening_hours:'Mo-Su 11:00-22:00',rating:'4.2',reviews:'4200'}},
+{type:'node',id:5048,lat:53.4312,lon:14.5489,tags:{nameZh:'什切青冒险公园',name:'Adventure Park Szczecin',tourism:'nature_park','addr:city':'Szczecin',opening_hours:'Mo-Su 10:00-19:00',rating:'4.2',reviews:'4100'}},
+{type:'node',id:5049,lat:53.4189,lon:14.5634,tags:{nameZh:'什切青儿童博物馆',name:'Children\'s Museum Szczecin',tourism:'museum','addr:city':'Szczecin',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'5200'}},
+{type:'node',id:5050,lat:53.4256,lon:14.5512,tags:{nameZh:'什切青蹦床公园',name:'Trampoline Park Szczecin',tourism:'indoor_play','addr:city':'Szczecin',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'5800'}},
+{type:'node',id:5051,lat:53.1345,lon:23.1623,tags:{nameZh:'比亚威斯托克科学中心',name:'Science Centre Białystok',tourism:'science_center','addr:city':'Białystok',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'4600'}},
+{type:'node',id:5052,lat:53.1189,lon:23.1789,tags:{nameZh:'比亚威斯托克水上乐园',name:'Aquapark Białystok',tourism:'swimming_pool','addr:city':'Białystok',opening_hours:'Mo-Su 07:00-22:00',rating:'4.4',reviews:'8900'}},
+{type:'node',id:5053,lat:53.7823,lon:20.4912,tags:{nameZh:'奥尔什丁冒险公园',name:'Adventure Park Olsztyn',tourism:'nature_park','addr:city':'Olsztyn',opening_hours:'Mo-Su 10:00-19:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:5054,lat:53.7689,lon:20.4823,tags:{nameZh:'奥尔什丁室内游乐场',name:'FunPark Indoor Olsztyn',tourism:'indoor_play','addr:city':'Olsztyn',opening_hours:'Mo-Su 09:00-21:00',rating:'4.2',reviews:'3800'}},
+{type:'node',id:5055,lat:50.0434,lon:22.0123,tags:{nameZh:'热舒夫冒险公园',name:'Adventure Park Rzeszów',tourism:'nature_park','addr:city':'Rzeszów',opening_hours:'Mo-Su 10:00-19:00',rating:'4.2',reviews:'4200'}},
+{type:'node',id:5056,lat:50.0356,lon:22.0089,tags:{nameZh:'热舒夫室内游乐场',name:'FunKids Rzeszów',tourism:'indoor_play','addr:city':'Rzeszów',opening_hours:'Mo-Su 09:00-21:00',rating:'4.1',reviews:'3600'}},
+{type:'node',id:5057,lat:51.2512,lon:22.5634,tags:{nameZh:'卢布林冒险公园',name:'Adventure Park Lublin',tourism:'nature_park','addr:city':'Lublin',opening_hours:'Mo-Su 10:00-19:00',rating:'4.3',reviews:'4800'}},
+{type:'node',id:5058,lat:51.2434,lon:22.5789,tags:{nameZh:'卢布林蹦床公园',name:'Trampoline Park Lublin',tourism:'indoor_play','addr:city':'Lublin',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'5200'}},
+{type:'node',id:5059,lat:51.2356,lon:22.5512,tags:{nameZh:'卢布林室内游乐场',name:'Kids Zone Lublin',tourism:'indoor_play','addr:city':'Lublin',opening_hours:'Mo-Su 09:00-21:00',rating:'4.1',reviews:'3700'}},
+{type:'node',id:5060,lat:50.6789,lon:17.9134,tags:{nameZh:'奥波莱冒险公园',name:'Trampoline Adventure Opole',tourism:'indoor_play','addr:city':'Opole',opening_hours:'Mo-Su 10:00-22:00',rating:'4.2',reviews:'4100'}},
+{type:'node',id:5061,lat:54.5234,lon:18.5389,tags:{nameZh:'格丁尼亚水上运动中心',name:'Water Sports Gdynia',tourism:'swimming_pool','addr:city':'Gdynia',opening_hours:'Mo-Su 07:00-21:00',rating:'4.4',reviews:'7200'}},
+{type:'node',id:5062,lat:54.5156,lon:18.5278,tags:{nameZh:'格丁尼亚蹦床公园',name:'Jump Arena Gdynia',tourism:'indoor_play','addr:city':'Gdynia',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:5063,lat:54.5312,lon:18.5467,tags:{nameZh:'格丁尼亚室内游乐场',name:'PlayCity Gdynia',tourism:'indoor_play','addr:city':'Gdynia',opening_hours:'Mo-Su 09:00-21:00',rating:'4.2',reviews:'4200'}},
+{type:'node',id:5064,lat:52.2567,lon:21.0389,tags:{nameZh:'华沙儿童陶艺',name:'Clay Workshop Warsaw Kids',tourism:'attraction','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'2800'}},
+{type:'node',id:5065,lat:52.2234,lon:21.0534,tags:{nameZh:'华沙迷你城市馆',name:'Mini World Warsaw',tourism:'museum','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'7800'}},
+{type:'node',id:5066,lat:52.2456,lon:20.9789,tags:{nameZh:'华沙侦探逃脱馆',name:'Mystery Room Warsaw',tourism:'escape_room','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'5600'}},
+{type:'node',id:5067,lat:52.2178,lon:21.0456,tags:{nameZh:'华沙室内攀岩馆',name:'Boulder Hall Warsaw',tourism:'indoor_play','addr:city':'Warsaw',opening_hours:'Mo-Su 09:00-22:00',rating:'4.6',reviews:'8900'}},
+{type:'node',id:5068,lat:52.2612,lon:21.0067,tags:{nameZh:'华沙科技馆互动体验',name:'Interactive Tech Museum Warsaw',tourism:'science_center','addr:city':'Warsaw',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'9200'}},
+{type:'node',id:5069,lat:50.0589,lon:19.9634,tags:{nameZh:'克拉科夫维斯瓦河游船',name:'Vistula River Cruise Kraków',tourism:'nature_park','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'6700'}},
+{type:'node',id:5070,lat:50.0512,lon:19.9312,tags:{nameZh:'克拉科夫逃脱密室2',name:'Reality Escape Room Kraków',tourism:'escape_room','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-22:00',rating:'4.6',reviews:'5800'}},
+{type:'node',id:5071,lat:54.3534,lon:18.6712,tags:{nameZh:'格但斯克室内攀岩',name:'Boulder Wall Gdańsk',tourism:'indoor_play','addr:city':'Gdańsk',opening_hours:'Mo-Su 09:00-22:00',rating:'4.4',reviews:'4100'}},
+{type:'node',id:5072,lat:54.3678,lon:18.6289,tags:{nameZh:'格但斯克卡丁车',name:'Indoor Karting Gdańsk',tourism:'indoor_play','addr:city':'Gdańsk',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:5073,lat:51.1189,lon:17.0145,tags:{nameZh:'弗罗茨瓦夫室内攀岩',name:'Boulder Gym Wrocław',tourism:'indoor_play','addr:city':'Wrocław',opening_hours:'Mo-Su 09:00-22:00',rating:'4.5',reviews:'7200'}},
+{type:'node',id:5074,lat:51.1078,lon:17.0289,tags:{nameZh:'弗罗茨瓦夫逃脱密室2',name:'Great Escape Wrocław',tourism:'escape_room','addr:city':'Wrocław',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'4800'}},
+{type:'node',id:5075,lat:52.4256,lon:16.9134,tags:{nameZh:'波兹南室内攀岩',name:'Boulder World Poznań',tourism:'indoor_play','addr:city':'Poznań',opening_hours:'Mo-Su 09:00-22:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:5076,lat:52.3967,lon:16.9412,tags:{nameZh:'波兹南迷你城市',name:'Mini City Museum Poznań',tourism:'museum','addr:city':'Poznań',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'6200'}},
+{type:'node',id:5077,lat:52.2312,lon:21.0189,tags:{nameZh:'华沙儿童绘画坊',name:'Art Studio for Kids Warsaw',tourism:'attraction','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'2400'}},
+{type:'node',id:5078,lat:52.2489,lon:21.0623,tags:{nameZh:'华沙模型火车博物馆',name:'Model Railway Museum Warsaw',tourism:'museum','addr:city':'Warsaw',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'4500'}},
+{type:'node',id:5079,lat:52.2134,lon:21.0378,tags:{nameZh:'华沙魔术剧场',name:'Magic Theatre Warsaw',tourism:'attraction','addr:city':'Warsaw',opening_hours:'Sa-Su 11:00-17:00',rating:'4.5',reviews:'3800'}},
+{type:'node',id:5080,lat:52.2623,lon:20.9934,tags:{nameZh:'华沙高空探险',name:'High Ropes Forest Warsaw',tourism:'nature_park','addr:city':'Warsaw',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'7200'}},
+{type:'node',id:5081,lat:50.0723,lon:19.9289,tags:{nameZh:'克拉科夫迷你城市',name:'Mini City Kraków',tourism:'museum','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:5082,lat:50.0445,lon:19.9723,tags:{nameZh:'克拉科夫激光战场2',name:'Laser Battle Arena Kraków',tourism:'indoor_play','addr:city':'Kraków',opening_hours:'Mo-Su 11:00-22:00',rating:'4.2',reviews:'4100'}},
+{type:'node',id:5083,lat:54.3612,lon:18.6567,tags:{nameZh:'格但斯克儿童探索中心',name:'Discovery Centre Kids Gdańsk',tourism:'science_center','addr:city':'Gdańsk',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'6800'}},
+{type:'node',id:5084,lat:54.3489,lon:18.6312,tags:{nameZh:'格但斯克历史步行游',name:'Historical Walk Tour Gdańsk',tourism:'attraction','addr:city':'Gdańsk',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'9200'}},
+{type:'node',id:5085,lat:51.1234,lon:17.0456,tags:{nameZh:'弗罗茨瓦夫历史游',name:'Wrocław Walking History Tour',tourism:'attraction','addr:city':'Wrocław',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'8900'}},
+{type:'node',id:5086,lat:51.1056,lon:17.0189,tags:{nameZh:'弗罗茨瓦夫蝴蝶馆',name:'Butterfly House Wrocław',tourism:'nature_park','addr:city':'Wrocław',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'5200'}},
+{type:'node',id:5087,lat:52.4089,lon:16.9612,tags:{nameZh:'波兹南旧市场探索',name:'Old Market Discovery Poznań',tourism:'attraction','addr:city':'Poznań',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'12000'}},
+{type:'node',id:5088,lat:52.4201,lon:16.9078,tags:{nameZh:'波兹南逃脱密室',name:'Exit Escape Poznań',tourism:'escape_room','addr:city':'Poznań',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'4900'}},
+{type:'node',id:5089,lat:51.7812,lon:19.4512,tags:{nameZh:'罗兹室内攀岩',name:'Climbing Hub Łódź',tourism:'indoor_play','addr:city':'Łódź',opening_hours:'Mo-Su 09:00-22:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:5090,lat:51.7656,lon:19.4623,tags:{nameZh:'罗兹逃脱密室2',name:'Lock Me Escape Łódź',tourism:'escape_room','addr:city':'Łódź',opening_hours:'Mo-Su 10:00-22:00',rating:'4.4',reviews:'4200'}},
+{type:'node',id:5091,lat:50.2923,lon:18.9023,tags:{nameZh:'卡托维兹逃脱密室',name:'Escape Room Katowice',tourism:'escape_room','addr:city':'Katowice',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'5800'}},
+{type:'node',id:5092,lat:50.2789,lon:19.0234,tags:{nameZh:'卡托维兹室内攀岩',name:'Climbing Centre Katowice',tourism:'indoor_play','addr:city':'Katowice',opening_hours:'Mo-Su 09:00-22:00',rating:'4.4',reviews:'5200'}},
+{type:'node',id:5093,lat:49.6230,lon:20.7134,tags:{nameZh:'扎科帕内冬日雪橇',name:'Zakopane Sledging Hill',tourism:'nature_park','addr:city':'Zakopane',opening_hours:'Mo-Su 09:00-17:00',rating:'4.7',reviews:'14000'}},
+{type:'node',id:5094,lat:49.2990,lon:19.9490,tags:{nameZh:'扎科帕内跳台滑雪博物馆',name:'Ski Jumping Museum Zakopane',tourism:'museum','addr:city':'Zakopane',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'7800'}},
+{type:'node',id:5095,lat:49.2957,lon:19.9623,tags:{nameZh:'扎科帕内缆车',name:'Zakopane Cable Car Kasprowy',tourism:'nature_park',website:'https://www.pkl.pl','addr:city':'Zakopane',opening_hours:'Mo-Su 07:30-17:00',rating:'4.7',reviews:'22000'}},
+{type:'node',id:5096,lat:49.3034,lon:19.9534,tags:{nameZh:'扎科帕内冒险公园',name:'Adventure Park Zakopane',tourism:'nature_park','addr:city':'Zakopane',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'9800'}},
+{type:'node',id:5097,lat:49.6845,lon:21.7689,tags:{nameZh:'里日纳托波拉国家公园',name:'Bieszczady National Park',tourism:'nature_park','addr:city':'Ustrzyki',opening_hours:'Mo-Su 07:00-19:00',rating:'4.7',reviews:'11000'}},
+{type:'node',id:5098,lat:50.8167,lon:19.1234,tags:{nameZh:'琴斯托霍瓦游乐园',name:'Adventure Park Częstochowa',tourism:'indoor_play','addr:city':'Częstochowa',opening_hours:'Mo-Su 10:00-22:00',rating:'4.1',reviews:'3600'}},
+{type:'node',id:5099,lat:50.8089,lon:19.1189,tags:{nameZh:'琴斯托霍瓦水上乐园',name:'Aquapark Częstochowa',tourism:'swimming_pool','addr:city':'Częstochowa',opening_hours:'Mo-Su 07:00-22:00',rating:'4.3',reviews:'7200'}},
+{type:'node',id:5100,lat:52.2445,lon:21.0134,tags:{nameZh:'华沙VR体验馆',name:'VR Experience Warsaw',tourism:'indoor_play','addr:city':'Warsaw',opening_hours:'Mo-Su 11:00-22:00',rating:'4.4',reviews:'6700'}},
+{type:'node',id:5101,lat:50.0634,lon:19.9178,tags:{nameZh:'克拉科夫VR体验馆',name:'VR Experience Kraków',tourism:'indoor_play','addr:city':'Kraków',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'5200'}},
+{type:'node',id:5102,lat:51.1145,lon:17.0578,tags:{nameZh:'弗罗茨瓦夫VR体验馆',name:'VR World Wrocław',tourism:'indoor_play','addr:city':'Wrocław',opening_hours:'Mo-Su 11:00-22:00',rating:'4.4',reviews:'5800'}},
+{type:'node',id:5103,lat:52.4134,lon:16.9345,tags:{nameZh:'波兹南VR体验馆',name:'VR Zone Poznań',tourism:'indoor_play','addr:city':'Poznań',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'4900'}},
+{type:'node',id:5104,lat:54.3578,lon:18.6445,tags:{nameZh:'格但斯克VR体验馆',name:'VR Center Gdańsk',tourism:'indoor_play','addr:city':'Gdańsk',opening_hours:'Mo-Su 11:00-22:00',rating:'4.2',reviews:'4100'}},
+{type:'node',id:5105,lat:52.2289,lon:21.0445,tags:{nameZh:'华沙儿童烹饪坊',name:'Kids Cooking School Warsaw',tourism:'attraction','addr:city':'Warsaw',opening_hours:'Sa-Su 10:00-17:00',rating:'4.5',reviews:'3200'}},
+{type:'node',id:5106,lat:52.2534,lon:21.0312,tags:{nameZh:'华沙迷你消防站',name:'Mini Fire Station Experience Warsaw',tourism:'attraction','addr:city':'Warsaw',opening_hours:'Tu-Su 10:00-17:00',rating:'4.6',reviews:'5600'}},
+{type:'node',id:5107,lat:50.0512,lon:19.9589,tags:{nameZh:'克拉科夫儿童烹饪坊',name:'Kids Kitchen Kraków',tourism:'attraction','addr:city':'Kraków',opening_hours:'Sa-Su 10:00-17:00',rating:'4.4',reviews:'2800'}},
+{type:'node',id:5108,lat:51.1101,lon:17.0456,tags:{nameZh:'弗罗茨瓦夫天文馆',name:'Wrocław Planetarium',tourism:'science_center','addr:city':'Wrocław',opening_hours:'Tu-Su 09:00-18:00',rating:'4.5',reviews:'8900'}},
+{type:'node',id:5109,lat:52.4067,lon:16.9489,tags:{nameZh:'波兹南天文馆',name:'Poznań Planetarium',tourism:'science_center','addr:city':'Poznań',opening_hours:'Tu-Su 09:00-17:00',rating:'4.5',reviews:'7200'}},
+{type:'node',id:5110,lat:50.2712,lon:19.0145,tags:{nameZh:'卡托维兹天文馆',name:'Katowice Planetarium',tourism:'science_center','addr:city':'Katowice',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'6500'}},
+{type:'node',id:5111,lat:52.2401,lon:21.0678,tags:{nameZh:'华沙自然探索中心',name:'Nature Discovery Centre Warsaw',tourism:'nature_park','addr:city':'Warsaw',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:5112,lat:52.2534,lon:20.9867,tags:{nameZh:'华沙儿童农场2',name:'Eco Farm Warsaw 2',tourism:'children_farm','addr:city':'Warsaw',opening_hours:'Sa-Su 09:00-17:00',rating:'4.3',reviews:'3100'}},
+{type:'node',id:5113,lat:50.0445,lon:19.9845,tags:{nameZh:'克拉科夫自然探索中心',name:'Nature Centre Kraków',tourism:'nature_park','addr:city':'Kraków',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'5200'}},
+{type:'node',id:5114,lat:54.3723,lon:18.6189,tags:{nameZh:'格但斯克索波特海滩',name:'Sopot Beach Family Area',tourism:'nature_park','addr:city':'Gdańsk',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'18000'}},
+{type:'node',id:5115,lat:51.1023,lon:17.0567,tags:{nameZh:'弗罗茨瓦夫儿童农场2',name:'Kids Farm Wrocław',tourism:'children_farm','addr:city':'Wrocław',opening_hours:'Sa-Su 09:00-17:00',rating:'4.2',reviews:'2700'}},
+{type:'node',id:5116,lat:52.4289,lon:16.9234,tags:{nameZh:'波兹南儿童农场2',name:'Eco Farm Poznań',tourism:'children_farm','addr:city':'Poznań',opening_hours:'Sa-Su 09:00-17:00',rating:'4.3',reviews:'2900'}},
+{type:'node',id:5117,lat:51.7789,lon:19.4567,tags:{nameZh:'罗兹天文馆',name:'Łódź Planetarium',tourism:'science_center','addr:city':'Łódź',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'5200'}},
+{type:'node',id:5118,lat:53.1312,lon:23.1645,tags:{nameZh:'比亚威斯托克冒险公园',name:'Adventure Park Białystok',tourism:'nature_park','addr:city':'Białystok',opening_hours:'Mo-Su 10:00-19:00',rating:'4.3',reviews:'4600'}},
+{type:'node',id:5119,lat:53.7756,lon:20.4867,tags:{nameZh:'奥尔什丁儿童博物馆',name:'Children\'s Museum Olsztyn',tourism:'museum','addr:city':'Olsztyn',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'4200'}},
+{type:'node',id:5120,lat:51.2456,lon:22.5845,tags:{nameZh:'卢布林逃脱密室2',name:'Escape Room 2 Lublin',tourism:'escape_room','addr:city':'Lublin',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'3400'}},
+{type:'node',id:5121,lat:52.2567,lon:21.0145,tags:{nameZh:'华沙儿童戏剧工坊',name:'Drama Workshop for Kids Warsaw',tourism:'attraction','addr:city':'Warsaw',opening_hours:'Sa-Su 10:00-17:00',rating:'4.4',reviews:'2600'}},
+{type:'node',id:5122,lat:52.2312,lon:21.0523,tags:{nameZh:'华沙机器人乐园',name:'Robotics Playground Warsaw',tourism:'science_center','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'7200'}},
+{type:'node',id:5123,lat:50.0678,lon:19.9412,tags:{nameZh:'克拉科夫机器人乐园',name:'Robotics Lab Kraków Kids',tourism:'science_center','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:5124,lat:54.3489,lon:18.6567,tags:{nameZh:'格但斯克机器人乐园',name:'Robotics Zone Gdańsk',tourism:'science_center','addr:city':'Gdańsk',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'4800'}},
+{type:'node',id:5125,lat:51.1156,lon:17.0367,tags:{nameZh:'弗罗茨瓦夫机器人乐园',name:'Robot Lab Wrocław Kids',tourism:'science_center','addr:city':'Wrocław',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'5200'}},
+{type:'node',id:5126,lat:52.2178,lon:21.0267,tags:{nameZh:'华沙泥塑工坊',name:'Clay Art Workshop Warsaw',tourism:'attraction','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'2400'}},
+{type:'node',id:5127,lat:52.2623,lon:21.0389,tags:{nameZh:'华沙3D打印馆',name:'3D Print Museum Warsaw',tourism:'science_center','addr:city':'Warsaw',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'5800'}},
+{type:'node',id:5128,lat:54.5189,lon:18.5412,tags:{nameZh:'格丁尼亚科学中心',name:'Gdynia Science Centre',tourism:'science_center','addr:city':'Gdynia',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'6700'}},
+{type:'node',id:5129,lat:54.5234,lon:18.5289,tags:{nameZh:'格丁尼亚逃脱密室',name:'Escape Room Gdynia',tourism:'escape_room','addr:city':'Gdynia',opening_hours:'Mo-Su 10:00-22:00',rating:'4.4',reviews:'4200'}},
+{type:'node',id:5130,lat:49.2923,lon:19.9545,tags:{nameZh:'扎科帕内儿童滑雪学校',name:'Ski School for Kids Zakopane',tourism:'nature_park','addr:city':'Zakopane',opening_hours:'Mo-Su 09:00-16:00',rating:'4.6',reviews:'9800'}},
+{type:'node',id:5131,lat:49.6712,lon:21.7534,tags:{nameZh:'别斯恰迪山地骑行',name:'Bieszczady Mountain Biking',tourism:'nature_park','addr:city':'Ustrzyki',opening_hours:'Mo-Su 08:00-18:00',rating:'4.5',reviews:'5600'}},
+{type:'node',id:5132,lat:52.2489,lon:21.0167,tags:{nameZh:'华沙冬季冰场户外',name:'Outdoor Ice Rink Warsaw',tourism:'indoor_play','addr:city':'Warsaw',opening_hours:'Mo-Su 09:00-21:00',rating:'4.4',reviews:'12000'}},
+{type:'node',id:5133,lat:52.2189,lon:21.0267,tags:{nameZh:'华沙宇宙探索馆',name:'Space Exploration Museum Warsaw',tourism:'science_center','addr:city':'Warsaw',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'8900'}},
+{type:'node',id:5134,lat:50.0456,lon:19.9456,tags:{nameZh:'克拉科夫冬季冰场',name:'Outdoor Ice Rink Kraków',tourism:'indoor_play','addr:city':'Kraków',opening_hours:'Mo-Su 09:00-21:00',rating:'4.4',reviews:'9800'}},
+{type:'node',id:5135,lat:51.1089,lon:17.0634,tags:{nameZh:'弗罗茨瓦夫城市观光车',name:'City Sightseeing Tour Wrocław',tourism:'attraction','addr:city':'Wrocław',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'7200'}},
+{type:'node',id:5136,lat:54.3523,lon:18.6589,tags:{nameZh:'格但斯克城市观光车',name:'City Sightseeing Bus Gdańsk',tourism:'attraction','addr:city':'Gdańsk',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'9200'}},
+{type:'node',id:5137,lat:52.4056,lon:16.9545,tags:{nameZh:'波兹南城市观光车',name:'City Tour Bus Poznań',tourism:'attraction','addr:city':'Poznań',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'6800'}},
+{type:'node',id:5138,lat:51.7723,lon:19.4578,tags:{nameZh:'罗兹科技博物馆',name:'Technology Museum Łódź',tourism:'museum','addr:city':'Łódź',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'6200'}},
+{type:'node',id:5139,lat:51.7845,lon:19.4489,tags:{nameZh:'罗兹自然探索公园',name:'Nature Discovery Park Łódź',tourism:'nature_park','addr:city':'Łódź',opening_hours:'Mo-Su 08:00-20:00',rating:'4.4',reviews:'7800'}},
+{type:'node',id:5140,lat:50.2867,lon:18.9345,tags:{nameZh:'卡托维兹蝴蝶园',name:'Butterfly Park Katowice',tourism:'nature_park','addr:city':'Katowice',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:5141,lat:52.2401,lon:20.9923,tags:{nameZh:'华沙卡丁车2',name:'Speed Karting Warsaw',tourism:'indoor_play','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-22:00',rating:'4.4',reviews:'6700'}},
+{type:'node',id:5142,lat:52.2234,lon:21.0623,tags:{nameZh:'华沙侏罗纪恐龙馆',name:'Jurassic Dinosaur Museum Warsaw',tourism:'museum','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'11000'}},
+{type:'node',id:5143,lat:50.0612,lon:19.9567,tags:{nameZh:'克拉科夫恐龙博物馆',name:'Dinosaur Museum Kraków',tourism:'museum','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'8900'}},
+{type:'node',id:5144,lat:51.1101,lon:17.0212,tags:{nameZh:'弗罗茨瓦夫恐龙公园',name:'Dino Park Wrocław',tourism:'museum','addr:city':'Wrocław',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'7200'}},
+{type:'node',id:5145,lat:52.4178,lon:16.9412,tags:{nameZh:'波兹南恐龙主题馆',name:'Dino Experience Poznań',tourism:'museum','addr:city':'Poznań',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:5146,lat:54.3634,lon:18.6345,tags:{nameZh:'格但斯克海洋探索',name:'Ocean Discovery Gdańsk',tourism:'aquarium','addr:city':'Gdańsk',opening_hours:'Mo-Su 10:00-19:00',rating:'4.5',reviews:'10000'}},
+{type:'node',id:5147,lat:54.5167,lon:18.5345,tags:{nameZh:'格丁尼亚海洋探索',name:'Sea Discovery Centre Gdynia',tourism:'aquarium','addr:city':'Gdynia',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'8900'}},
+{type:'node',id:5148,lat:52.2512,lon:21.0089,tags:{nameZh:'华沙体验博物馆',name:'Immersive Experience Museum Warsaw',tourism:'museum','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-20:00',rating:'4.5',reviews:'14000'}},
+{type:'node',id:5149,lat:50.0489,lon:19.9523,tags:{nameZh:'克拉科夫体验博物馆',name:'Immersive Art Experience Kraków',tourism:'museum','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-20:00',rating:'4.4',reviews:'9800'}},
+{type:'node',id:5150,lat:51.1156,lon:17.0167,tags:{nameZh:'弗罗茨瓦夫体验博物馆',name:'Digital Art Museum Wrocław',tourism:'museum','addr:city':'Wrocław',opening_hours:'Mo-Su 10:00-20:00',rating:'4.4',reviews:'8200'}},
+{type:'node',id:5151,lat:52.2156,lon:21.0478,tags:{nameZh:'华沙泡泡足球',name:'Bubble Football Warsaw',tourism:'indoor_play','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'4200'}},
+{type:'node',id:5152,lat:52.2623,lon:21.0523,tags:{nameZh:'华沙儿童创客空间',name:'Makerspace for Kids Warsaw',tourism:'science_center','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'4800'}},
+{type:'node',id:5153,lat:50.0534,lon:19.9678,tags:{nameZh:'克拉科夫儿童创客空间',name:'FabLab Kids Kraków',tourism:'science_center','addr:city':'Kraków',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'3900'}},
+{type:'node',id:5154,lat:51.1045,lon:17.0523,tags:{nameZh:'弗罗茨瓦夫儿童创客空间',name:'Maker Space Wrocław Kids',tourism:'science_center','addr:city':'Wrocław',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'3600'}},
+{type:'node',id:5155,lat:52.4112,lon:16.9523,tags:{nameZh:'波兹南儿童创客空间',name:'Young Makers Poznań',tourism:'science_center','addr:city':'Poznań',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'3200'}},
+{type:'node',id:5156,lat:52.2178,lon:21.0589,tags:{nameZh:'华沙儿童语言学校',name:'Children Language Center Warsaw',tourism:'attraction','addr:city':'Warsaw',opening_hours:'Mo-Sa 08:00-18:00',rating:'4.3',reviews:'2800'}},
+{type:'node',id:5157,lat:52.2367,lon:21.0034,tags:{nameZh:'华沙独木舟租赁',name:'Canoe Rental Vistula Warsaw',tourism:'nature_park','addr:city':'Warsaw',opening_hours:'Mo-Su 09:00-19:00',rating:'4.4',reviews:'6200'}},
+{type:'node',id:5158,lat:52.2489,lon:21.0256,tags:{nameZh:'华沙自行车游',name:'Family Cycling Tour Warsaw',tourism:'nature_park','addr:city':'Warsaw',opening_hours:'Mo-Su 08:00-20:00',rating:'4.5',reviews:'8900'}},
+{type:'node',id:5159,lat:50.0623,lon:19.9267,tags:{nameZh:'克拉科夫独木舟游',name:'Kayak Tour Kraków',tourism:'nature_park','addr:city':'Kraków',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:5160,lat:54.3512,lon:18.6234,tags:{nameZh:'格但斯克港口游船',name:'Harbour Cruise Gdańsk',tourism:'nature_park','addr:city':'Gdańsk',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'12000'}},
+{type:'node',id:5161,lat:51.1178,lon:17.0389,tags:{nameZh:'弗罗茨瓦夫运河游船',name:'Canal Cruise Wrocław',tourism:'nature_park','addr:city':'Wrocław',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'9800'}},
+{type:'node',id:5162,lat:52.4234,lon:16.9167,tags:{nameZh:'波兹南湖区游船',name:'Lake Cruise Poznań Maltańskie',tourism:'nature_park','addr:city':'Poznań',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'7200'}},
+{type:'node',id:5163,lat:53.7812,lon:20.4623,tags:{nameZh:'马祖里湖独木舟',name:'Mazury Lake Kayak Tour',tourism:'nature_park','addr:city':'Olsztyn',opening_hours:'Mo-Su 08:00-18:00',rating:'4.7',reviews:'14000'}},
+{type:'node',id:5164,lat:53.1267,lon:23.1812,tags:{nameZh:'比亚沃维耶扎野牛保护区',name:'Białowieża Bison Reserve',tourism:'nature_park','addr:city':'Białystok',opening_hours:'Tu-Su 08:00-16:00',rating:'4.8',reviews:'16000'}},
+{type:'node',id:5165,lat:49.2878,lon:19.9678,tags:{nameZh:'扎科帕内马车观光',name:'Horse Carriage Tour Zakopane',tourism:'nature_park','addr:city':'Zakopane',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'7800'}},
+{type:'node',id:5166,lat:49.3078,lon:19.9456,tags:{nameZh:'扎科帕内独特博物馆',name:'Tatra Museum Zakopane',tourism:'museum','addr:city':'Zakopane',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'8200'}},
+{type:'node',id:5167,lat:50.0289,lon:20.9856,tags:{nameZh:'桑多梅日城堡探索',name:'Sandomierz Castle Tour',tourism:'museum','addr:city':'Sandomierz',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'6700'}},
+{type:'node',id:5168,lat:51.4012,lon:21.1489,tags:{nameZh:'拉多姆中世纪城堡',name:'Radom History Museum',tourism:'museum','addr:city':'Radom',opening_hours:'Tu-Su 09:00-17:00',rating:'4.2',reviews:'4200'}},
+{type:'node',id:5169,lat:52.2301,lon:21.0534,tags:{nameZh:'华沙数字互动博物馆',name:'Digital Interactive Museum Warsaw',tourism:'museum','addr:city':'Warsaw',opening_hours:'Mo-Su 10:00-19:00',rating:'4.5',reviews:'10000'}},
+{type:'node',id:5170,lat:52.2189,lon:21.0134,tags:{nameZh:'华沙儿童科技嘉年华',name:'Kids Tech Fair Warsaw',tourism:'science_center','addr:city':'Warsaw',opening_hours:'Sa-Su 10:00-18:00',rating:'4.5',reviews:'7800'}},
+];
+
+function translateHours(str) { if (!str) return str; if (LANG.current === 'zh') { return str.replace(/\bMo\b/g,'周一').replace(/\bTu\b/g,'周二').replace(/\bWe\b/g,'周三').replace(/\bTh\b/g,'周四').replace(/\bFr\b/g,'周五').replace(/\bSa\b/g,'周六').replace(/\bSu\b/g,'周日').replace(/\(seasonal\)/g,'(季节性开放)').replace(/Check schedule/gi,'请查看官网'); } if (LANG.current === 'pl') { return str.replace(/\bMo\b/g,'Δε').replace(/\bTu\b/g,'Τρ').replace(/\bWe\b/g,'Τε').replace(/\bTh\b/g,'Πε').replace(/\bFr\b/g,'Πα').replace(/\bSa\b/g,'Σα').replace(/\bSu\b/g,'Κυ').replace(/\(seasonal\)/g,'(εποχιακο)').replace(/Check schedule/gi,'Ελεγξτε το προγραμμα'); } return str; }
+function getCategoryForVenue(tags) { for (const cat of CATEGORIES) { for (const [key, vals] of Object.entries(cat.tags)) { const val = tags[key]; if (val && vals.includes(val)) return cat; } } if (tags.man_made === 'windmill') return CATEGORIES.find(c => c.id === 'historic'); if (tags.historic) return CATEGORIES.find(c => c.id === 'historic'); if (tags.natural === 'beach') return CATEGORIES.find(c => c.id === 'beach'); if (tags.tourism === 'visitor_centre') return CATEGORIES.find(c => c.id === 'visitor'); if (tags.amenity === 'arts_centre') return CATEGORIES.find(c => c.id === 'theatre'); return CATEGORIES[CATEGORIES.length - 1]; }
+function getCategoryById(id) { return CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1]; }
+let state = { allVenues:[], filtered:[], displayed:0, activeCategory:null, activeCardId:null, currentRegion:'', markers:new Map(), favorites:JSON.parse(localStorage.getItem('pl-kids-explorer-favorites') || '[]'), showFavoritesOnly:false, userLocation:null, userLocationMarker:null   viewportSync: true,
+};
+const PAGE_SIZE = 30;
+const map = L.map('map', { zoomControl: true }).setView([52.1, 19.4], 6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19 }).addTo(map);
+// Viewport sync listener
+let _vpSyncTimer = null;
+map.on('moveend', () => {
+  if (!state.viewportSync) return;
+  clearTimeout(_vpSyncTimer);
+  _vpSyncTimer = setTimeout(() => applyFilter(), 200);
+});
+
+const markersLayer = L.markerClusterGroup({ maxClusterRadius:45, spiderfyOnMaxZoom:true, showCoverageOnHover:false, zoomToBoundsOnClick:true, disableClusteringAtZoom:14, chunkedLoading:true, chunkInterval:100, chunkDelay:10 }).addTo(map);
+
+function buildFilterBar(){const bar=document.getElementById('filterBar');const label=document.getElementById('filterLabel');bar.innerHTML='';bar.appendChild(label);label.textContent=T[LANG.current].filterLabel;const catCounts={};state.allVenues.forEach(v=>{catCounts[v.category.id]=(catCounts[v.category.id]||0)+1;});const totalCount=state.allVenues.length;const favCount=state.favorites.length;const favChip=document.createElement('button');favChip.className='filter-chip'+(state.showFavoritesOnly?' active':'');if(state.showFavoritesOnly){favChip.style.background='#E05A1E';favChip.style.borderColor='#E05A1E';}favChip.innerHTML=`❤️ ${T[LANG.current].favoritesLabel}${favCount>0?` <span class="filter-chip-count">${favCount}</span>`:''}`;favChip.onclick=()=>toggleFavoritesFilter();bar.appendChild(favChip);const allChip=document.createElement('button');allChip.className='filter-chip'+(!state.showFavoritesOnly&&state.activeCategory===null?' active':'');allChip.style.background=!state.showFavoritesOnly&&state.activeCategory===null?'#1A2B4A':'';allChip.style.borderColor=!state.showFavoritesOnly&&state.activeCategory===null?'#1A2B4A':'';allChip.innerHTML=totalCount>0?`${T[LANG.current].allLabel} <span class="filter-chip-count">${totalCount}</span>`:T[LANG.current].allLabel;allChip.onclick=()=>setFilter(null);bar.appendChild(allChip);CATEGORIES.forEach(cat=>{const count=catCounts[cat.id]||0;const chip=document.createElement('button');const isActive=!state.showFavoritesOnly&&state.activeCategory===cat.id;chip.className='filter-chip'+(isActive?' active':'')+(totalCount>0&&count===0?' no-data':'');if(isActive){chip.style.background=cat.color;chip.style.borderColor=cat.color;}const countBadge=totalCount>0?` <span class="filter-chip-count">${count}</span>`:'';chip.innerHTML=`${cat.emoji} ${cat[LANG.current]||cat.en}${countBadge}`;chip.onclick=()=>setFilter(cat.id);bar.appendChild(chip);});if(typeof buildAgeFilterPills==='function')buildAgeFilterPills();}
+function setFilter(catId){state.activeCategory=catId;state.showFavoritesOnly=false;state.displayed=0;if(state.allVenues.length===0){buildFilterBar();const cat=catId?CATEGORIES.find(c=>c.id===catId):null;const catName=cat?(cat[LANG.current]||cat.en):'';if(catId&&cat){document.getElementById('emptyTitle').textContent=T[LANG.current].browseCategory(catName);document.getElementById('emptyDesc').textContent=T[LANG.current].browseCategoryDesc;}else{updateEmptyStateText();}searchInput.focus();return;}applyFilter();buildFilterBar();}
+function applyFilter(){let list=state.activeCategory?state.allVenues.filter(v=>v.category.id===state.activeCategory):[...state.allVenues];if(state.showFavoritesOnly){list=list.filter(v=>state.favorites.includes(v.id));}if(typeof activeAgeFilter!=='undefined'&&activeAgeFilter!=='all'){const ageRange=typeof AGE_FILTER_RANGES!=='undefined'?AGE_FILTER_RANGES.find(a=>a.id===activeAgeFilter):null;if(ageRange&&ageRange.categories){list=list.filter(v=>ageRange.categories.includes(v.category.id));}}if(state.userLocation){list.forEach(v=>{v._userDist=haversine(state.userLocation[0],state.userLocation[1],v.lat,v.lon);});list.sort((a,b)=>a._userDist-b._userDist);}state.filtered=list;renderList();renderMarkers();}
+const searchInput=document.getElementById('searchInput');const autocompleteEl=document.getElementById('autocomplete');let focusedIdx=-1;
+searchInput.addEventListener('input',()=>{const q=searchInput.value.trim().toLowerCase();if(!q){autocompleteEl.classList.remove('open');return;}const regionMatches=PL_REGIONS.filter(r=>r.name.toLowerCase().includes(q)||(r.nameZh&&r.nameZh.includes(q))).slice(0,5);const staticVenueMatches=STATIC_PL_VENUES.filter(v=>v.tags.name&&(v.tags.name.toLowerCase().includes(q)||(v.tags.nameZh&&v.tags.nameZh.includes(q)))).map(v=>({name:v.tags.name,nameZh:v.tags.nameZh||'',type:'venue',lat:v.lat,lon:v.lon,emoji:getCategoryForVenue(v.tags).emoji,catLabel:getCategoryForVenue(v.tags)[LANG.current]||getCategoryForVenue(v.tags).en,city:v.tags['addr:city']||'',id:`${v.type}/${v.id}`}));const loadedVenueMatches=(state.allVenues.length>0?state.allVenues:[]).filter(v=>(v.name.toLowerCase().includes(q)||(v.nameZh&&v.nameZh.includes(q)))&&!staticVenueMatches.find(s=>s.name===v.name)).map(v=>({name:v.name,nameZh:v.nameZh||'',type:'venue',lat:v.lat,lon:v.lon,emoji:v.category.emoji,catLabel:v.category[LANG.current]||v.category.en,city:v.address?v.address.split(',').pop().trim():'',id:v.id}));const allVenueMatches=[...staticVenueMatches,...loadedVenueMatches].slice(0,5);renderAutocomplete(regionMatches,q,allVenueMatches);});
+searchInput.addEventListener('keydown',e=>{const items=autocompleteEl.querySelectorAll('.autocomplete-item');if(e.key==='ArrowDown'){e.preventDefault();focusedIdx=Math.min(focusedIdx+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('focused',i===focusedIdx));}else if(e.key==='ArrowUp'){e.preventDefault();focusedIdx=Math.max(focusedIdx-1,0);items.forEach((el,i)=>el.classList.toggle('focused',i===focusedIdx));}else if(e.key==='Enter'){e.preventDefault();if(focusedIdx>=0&&items[focusedIdx]){items[focusedIdx].click();}else if(searchInput.value.trim()){searchRegion(searchInput.value.trim());}}else if(e.key==='Escape'){autocompleteEl.classList.remove('open');}});
+document.addEventListener('click',e=>{if(!e.target.closest('.header-search'))autocompleteEl.classList.remove('open');});
+function renderAutocomplete(regionMatches,q,venueMatches){focusedIdx=-1;venueMatches=venueMatches||[];if(!regionMatches.length&&!venueMatches.length){autocompleteEl.classList.remove('open');return;}const safeQ=q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');let html='';if('near me'.includes(q)||'我附近'.includes(q)){html+=`<div class="autocomplete-item" onclick="activateNearMe()"><span class="venue-emoji">📍</span><span>${T[LANG.current].nearMe}</span><span class="region-type">${T[LANG.current].nearMeLocationType}</span></div>`;}if(venueMatches.length>0){html+=`<div class="autocomplete-section-label">${T[LANG.current].venuesSection}</div>`;html+=venueMatches.map(v=>{const safeName=escapeHtml(v.name);const highlighted=safeName.replace(new RegExp(`(${safeQ})`,'gi'),'<strong style="color:var(--primary)">$1</strong>');return`<div class="autocomplete-item" onclick="searchVenueFromAutocomplete(${v.lat},${v.lon},'${v.id.replace(/'/g,"\\'")}','${v.name.replace(/'/g,"\\'")}')"><span class="venue-emoji">${v.emoji}</span><span>${highlighted}<span class="venue-result-detail"> &middot; ${v.city}</span></span><span class="region-type">${v.catLabel}</span></div>`;}).join('');}if(regionMatches.length>0){html+=`<div class="autocomplete-section-label">${T[LANG.current].regionsSection}</div>`;html+=regionMatches.map(r=>{const safeName=escapeHtml(r.name);const highlighted=safeName.replace(new RegExp(`(${safeQ})`,'gi'),'<strong style="color:var(--primary)">$1</strong>');const zhLabel=r.nameZh?` ${r.nameZh}`:'';const escapedName=r.name.replace(/'/g,"\\'").replace(/[<>"]/g,'');return`<div class="autocomplete-item" onclick="searchRegion('${escapedName}')"><span>${highlighted}${zhLabel}</span><span class="region-type">${r.type==='province'?'Region':'City'}</span></div>`;}).join('');}autocompleteEl.innerHTML=html;autocompleteEl.classList.add('open');}
+function clearSearch(){searchInput.value='';autocompleteEl.classList.remove('open');searchInput.focus();fullReset();}
+function resetHome(){searchInput.value='';autocompleteEl.classList.remove('open');state.activeCategory=null;state.activeCardId=null;state.showFavoritesOnly=false;state.displayed=0;if(typeof activeAgeFilter!=='undefined')activeAgeFilter='all';markersLayer.clearLayers();state.markers.clear();map.setView([52.1,19.4],6);showOverlay(false);if(typeof closeDetailPanel==='function')closeDetailPanel();loadStaticVenues();}
+function fullReset(){state.allVenues=[];state.filtered=[];state.displayed=0;state.activeCategory=null;state.activeCardId=null;state.currentRegion='';state.showFavoritesOnly=false;if(typeof activeAgeFilter!=='undefined')activeAgeFilter='all';markersLayer.clearLayers();state.markers.clear();searchInput.value='';autocompleteEl.classList.remove('open');map.setView([52.1,19.4],6);showOverlay(false);document.getElementById('resultCountText').textContent=T[LANG.current].resultLabel;document.getElementById('emptyState').style.display='flex';document.getElementById('venueList').style.display='none';document.getElementById('venueList').innerHTML='';document.getElementById('categorySummary').innerHTML='';closeDetailPanel();updateEmptyStateText();buildFilterBar();}
+function showToast(message,duration=3000){const toast=document.getElementById('toast');toast.textContent=message;toast.classList.add('show');clearTimeout(toast._timer);toast._timer=setTimeout(()=>toast.classList.remove('show'),duration);}
+const scrollTopBtn=document.getElementById('scrollTopBtn');document.getElementById('venueList').addEventListener('scroll',function(){scrollTopBtn.classList.toggle('visible',this.scrollTop>200);});scrollTopBtn.addEventListener('click',()=>{document.getElementById('venueList').scrollTo({top:0,behavior:'smooth'});});
+async function searchRegion(name){searchInput.value=name;autocompleteEl.classList.remove('open');state.currentRegion=name;showOverlay(true);document.getElementById('resultCountText').innerHTML=T[LANG.current].searching;try{const nominatimUrl=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(name+' Poland')}&format=json&limit=1&addressdetails=1`;const geoRes=await fetch(nominatimUrl);const geoData=await geoRes.json();if(!geoData.length){showToast(T[LANG.current].regionNotFound);showOverlay(false);return;}const place=geoData[0];const[s,n,w,e]=place.boundingbox.map(Number);const bbox=`${s},${w},${n},${e}`;map.fitBounds([[s,w],[n,e]],{padding:[20,20]});const overpassQuery=buildOverpassQuery(bbox);const osmData=await fetchOverpass(overpassQuery);processOSMData(osmData.elements);showOverlay(false);}catch(err){console.error('Search error:',err);showOverlay(false);document.getElementById('resultCountText').innerHTML=`&#9888;&#65039; Error: ${err.message||err} - please check your connection and retry`;}}
+const OVERPASS_ENDPOINTS=['https://overpass.kumi.systems/api/interpreter','https://overpass.openstreetmap.fr/api/interpreter','https://overpass-api.de/api/interpreter'];
+function buildOverpassQuery(bbox){return`[out:json][timeout:60];\n(\n  node["name"]["tourism"~"museum|gallery|aquarium|zoo|theme_park|attraction|visitor_centre"](${bbox});\n  node["name"]["leisure"~"playground|water_park|ice_rink|miniature_golf|nature_reserve|marina"](${bbox});\n  node["name"]["amenity"~"theatre|cinema"](${bbox});\n  node["name"]["natural"="beach"](${bbox});\n  node["name"]["historic"~"castle|ruins|monument|fort|mill"](${bbox});\n  way["name"]["tourism"~"museum|gallery|aquarium|zoo|theme_park|attraction|visitor_centre"](${bbox});\n  way["name"]["leisure"~"playground|water_park|nature_reserve"](${bbox});\n  way["name"]["amenity"~"theatre|cinema"](${bbox});\n  way["name"]["natural"="beach"](${bbox});\n  way["name"]["historic"~"castle|ruins|fort|mill"](${bbox});\n  relation["name"]["tourism"~"museum|zoo|theme_park"](${bbox});\n  relation["name"]["leisure"="nature_reserve"](${bbox});\n  relation["name"]["natural"="beach"](${bbox});\n);\nout center;`;}
+const PL_BBOX='49.0,14.1,54.9,24.2';
+function buildCategoryQuery(catId,bbox){const cat=CATEGORIES.find(c=>c.id===catId);if(!cat)return buildOverpassQuery(bbox);const stmts=[];Object.entries(cat.tags).forEach(([key,vals])=>{const op=vals.length===1?'=':'~';const val=vals.join('|');['node','way','relation'].forEach(t=>stmts.push(`  ${t}["name"]["${key}"${op}"${val}"](${bbox});`));});return`[out:json][timeout:90];\n(\n${stmts.join('\n')}\n);\nout center;`;}
+async function fetchOverpass(query){let lastErr;for(let i=0;i<OVERPASS_ENDPOINTS.length;i++){const url=OVERPASS_ENDPOINTS[i]+'?data='+encodeURIComponent(query);const controller=new AbortController();const tid=setTimeout(()=>controller.abort(),35000);try{const res=await fetch(url,{signal:controller.signal});clearTimeout(tid);if(res.ok){const json=await res.json();if(json.remark&&/timed out|timeout/i.test(json.remark)){lastErr=new Error('Server timeout');continue;}return json;}lastErr=new Error(`HTTP ${res.status}`);}catch(e){clearTimeout(tid);lastErr=e;}}throw lastErr||new Error('All Overpass endpoints failed');}
+function formatRating(venue){if(!venue.rating)return null;const r=parseFloat(venue.rating);const fullStars=Math.floor(r);const rem=r%1;const halfStar=rem>=0.25&&rem<0.75;const stars='\u2605'.repeat(fullStars)+(halfStar?'\u00BD':(rem>=0.75?'\u2605':''));const count=parseInt(venue.reviews||'0');const countStr=count>=1000?(count/1000).toFixed(1)+'K':String(count);const countFull=count>=1000?count.toLocaleString():String(count);return{stars,rating:venue.rating,countShort:countStr,countFull};}
+function ratingCardHtml(venue){const r=formatRating(venue);if(!r)return'';return`<span class="venue-rating"><span class="rating-stars">\u2B50</span> <span class="rating-num">${r.rating}</span> <span class="rating-count">(${r.countShort})</span></span>`;}
+function ratingDetailHtml(venue){const r=formatRating(venue);if(!r)return'';return`<div class="detail-rating"><span class="detail-rating-stars">${r.stars}</span><span class="detail-rating-num">${r.rating}</span><span class="detail-rating-sep">\u00B7</span><span class="detail-rating-count">${r.countFull} reviews</span></div>`;}
+function applySortOrder(mode){state.sortMode=mode;const list=state.filtered;if(mode==='rating'){list.sort((a,b)=>{const ra=parseFloat(a.rating||'0');const rb=parseFloat(b.rating||'0');if(rb!==ra)return rb-ra;return(parseInt(b.reviews||'0'))-(parseInt(a.reviews||'0'));});}else if(mode==='name'){list.sort((a,b)=>a.name.localeCompare(b.name));}else if(mode==='distance'&&state.userLocation){list.sort((a,b)=>(a._userDist||9999)-(b._userDist||9999));}else{const orderMap=new Map();state.allVenues.forEach((v,i)=>orderMap.set(v.id,i));list.sort((a,b)=>(orderMap.get(a.id)||0)-(orderMap.get(b.id)||0));}state.displayed=0;renderList();}
+function processOSMData(elements){const venues=[];const seen=new Set();for(const el of elements){const tags=el.tags||{};const name=tags.name||tags['name:el']||tags['name:en'];if(!name)continue;const lat=el.lat??el.center?.lat;const lon=el.lon??el.center?.lon;if(!lat||!lon)continue;const key=`${name.toLowerCase()}-${Math.round(lat*1000)}-${Math.round(lon*1000)}`;if(seen.has(key))continue;seen.add(key);const cat=getCategoryForVenue(tags);const rawWebsite=tags.website||tags['contact:website']||tags['url']||'';const website=rawWebsite?(rawWebsite.startsWith('http')?rawWebsite:'https://'+rawWebsite):'';const city=tags['addr:city']||tags['addr:town']||tags['addr:village']||'';const street=[tags['addr:street'],tags['addr:housenumber']].filter(Boolean).join(' ');const address=[street,city].filter(Boolean).join(', ');venues.push({id:`${el.type}/${el.id}`,name,nameZh:tags['name:zh']||tags['name:zh-Hans']||tags.nameZh||'',lat,lon,category:cat,website,address,phone:tags.phone||tags['contact:phone']||'',openingHours:tags.opening_hours||'',rating:tags.rating||'',reviews:tags.reviews||'',osmType:el.type,osmId:el.id});}venues.sort((a,b)=>{if(a.category.id!=='attraction'&&b.category.id==='attraction')return-1;if(a.category.id==='attraction'&&b.category.id!=='attraction')return 1;return a.name.localeCompare(b.name);});state.allVenues=venues;state.displayed=0;applyFilter();buildFilterBar();document.getElementById('resultCountText').innerHTML=venues.length?T[LANG.current].found(venues.length,state.currentRegion):T[LANG.current].notFound;const sortCtrl=document.getElementById('sortControl');if(sortCtrl){sortCtrl.style.display=venues.length?'inline-flex':'none';const sortSel=document.getElementById('sortSelect');if(sortSel)sortSel.value='default';}state.sortMode='default';renderCategorySummary();}
+function renderList(){const list=document.getElementById('venueList');const empty=document.getElementById('emptyState');if(state.allVenues.length===0){empty.style.display='flex';list.style.display='none';updateEmptyStateText();if(state.activeCategory){const cat=CATEGORIES.find(c=>c.id===state.activeCategory);const catName=cat?(cat[LANG.current]||cat.en):'';document.getElementById('emptyTitle').textContent=T[LANG.current].searchRegionFirst;document.getElementById('emptyDesc').textContent=T[LANG.current].searchRegionFirstDesc(catName);}return;}if(state.filtered.length===0){empty.style.display='flex';list.style.display='none';const cat=CATEGORIES.find(c=>c.id===state.activeCategory);const catName=cat?(cat[LANG.current]||cat.en):'';document.getElementById('emptyTitle').textContent=T[LANG.current].noInRegion(catName,state.currentRegion);document.getElementById('emptyDesc').textContent=T[LANG.current].tryOtherCategory;return;}empty.style.display='none';list.style.display='flex';const toShow=state.filtered.slice(0,state.displayed+PAGE_SIZE);state.displayed=toShow.length;const frag=document.createDocumentFragment();toShow.forEach(v=>{const card=document.createElement('div');card.className='venue-card'+(v.id===state.activeCardId?' active':'');card.id='card-'+v.id.replace(/[^a-z0-9]/gi,'-');const isFav=state.favorites.includes(v.id);const distHtml=v._userDist!=null?`<span class="venue-distance">📍 ${v._userDist.toFixed(1)} km</span>`:'';card.innerHTML=`<button class="venue-fav-btn ${isFav?'favorited':''}" onclick="event.stopPropagation(); toggleFavorite('${v.id.replace(/'/g,"\\'")}', this)" title="${isFav?'Remove':'Add'}">${isFav?'❤️':'♡'}</button><div class="venue-card-top"><div class="venue-icon" style="background:${v.category.bg}">${v.category.emoji}</div><div class="venue-info"><div class="venue-name">${v.name}</div>${v.nameZh?`<div class="venue-name-zh">${v.nameZh}</div>`:''}${ratingCardHtml(v)}<div class="venue-meta"><span class="venue-tag" style="background:${v.category.bg};color:${v.category.color}">${v.category[LANG.current]||v.category.en}</span>${distHtml}${v.address?`<span class="venue-address"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 10 C2 7 0.5 5.5 0.5 4a4.5 4.5 0 019 0c0 1.5-1.5 3-4.5 6z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>${v.address}</span>`:''}</div>${v.openingHours?`<div class="venue-detail-row">\u{1F552} ${translateHours(v.openingHours)}</div>`:''}${v.phone?`<div class="venue-detail-row">\u{1F4DE} <a href="tel:${v.phone}">${v.phone}</a></div>`:''}</div></div><div class="venue-actions">${v.website?`<a class="btn-website" href="${v.website}" target="_blank" rel="noopener">${T[LANG.current].website}</a>`:`<span class="btn-website" style="opacity:.45;cursor:default">${T[LANG.current].noWebsite}</span>`}<a class="btn-nav" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">${T[LANG.current].navigate}</a><button class="btn-map" onclick="flyToVenue('${v.id}')">${T[LANG.current].flyTo}</button></div>`;card.addEventListener('click',e=>{if(e.target.closest('a,button'))return;selectVenue(v.id);});frag.appendChild(card);});list.innerHTML='';list.appendChild(frag);if(state.displayed<state.filtered.length){const btn=document.createElement('button');btn.className='load-more-btn';btn.textContent=`${T[LANG.current].loadMore} (${state.filtered.length-state.displayed} more)`;btn.onclick=()=>{renderList();};list.appendChild(btn);}}
+function renderCategorySummary(){const el=document.getElementById('categorySummary');if(!state.allVenues.length){el.innerHTML='';return;}const counts={};state.allVenues.forEach(v=>{counts[v.category.id]=(counts[v.category.id]||0)+1;});el.innerHTML=CATEGORIES.filter(cat=>counts[cat.id]).map(cat=>`<span class="category-summary-chip" style="background:${cat.bg};color:${cat.color}">${cat.emoji} ${counts[cat.id]}</span>`).join('');}
+function updateEmptyStateText(){document.getElementById('emptyTitle').textContent=T[LANG.current].emptyTitle;document.getElementById('emptyDesc').textContent=T[LANG.current].emptyDesc;}
+const _iconCache={};function getIcon(cat){if(!_iconCache[cat.id]){_iconCache[cat.id]=L.divIcon({html:`<div class="map-marker" style="background:${cat.color}"><div class="map-marker-inner">${cat.emoji}</div></div>`,className:'',iconSize:[34,34],iconAnchor:[17,34],popupAnchor:[0,-36]});}return _iconCache[cat.id];}
+function renderMarkers(){markersLayer.clearLayers();state.markers.clear();const batch=[];state.filtered.forEach(v=>{const marker=L.marker([v.lat,v.lon],{icon:getIcon(v.category)});marker.bindPopup(()=>buildPopup(v),{maxWidth:280,minWidth:260});marker.on('click',()=>selectVenue(v.id));state.markers.set(v.id,marker);batch.push(marker);});markersLayer.addLayers(batch);}
+function buildPopup(v){return`<div class="popup-content"><div class="popup-header"><div class="popup-icon" style="background:${v.category.bg}">${v.category.emoji}</div><div><div class="popup-name">${v.name}</div>${v.nameZh?`<div class="popup-name-zh">${v.nameZh}</div>`:''}</div></div>${v.address?`<div class="popup-address">\u{1F4CD} ${v.address}</div>`:''}${v.openingHours?`<div class="popup-address">\u{1F552} ${translateHours(v.openingHours)}</div>`:''}${v.phone?`<div class="popup-address">\u{1F4DE} <a href="tel:${v.phone}" style="color:var(--primary);text-decoration:none">${v.phone}</a></div>`:''}<div style="display:flex;gap:6px">${v.website?`<a class="popup-website" href="${v.website}" target="_blank" rel="noopener" style="flex:1">${T[LANG.current].website}</a>`:''}<a class="popup-website" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener" style="flex:1;background:#4285F4">${T[LANG.current].navigate}</a></div></div>`;}
+function selectVenue(id){state.activeCardId=id;document.querySelectorAll('.venue-card').forEach(c=>c.classList.remove('active'));const cardEl=document.getElementById('card-'+id.replace(/[^a-z0-9]/gi,'-'));if(cardEl){cardEl.classList.add('active');cardEl.scrollIntoView({behavior:'smooth',block:'nearest'});}const marker=state.markers.get(id);if(marker){marker.openPopup();}}
+function flyToVenue(id){const v=state.allVenues.find(x=>x.id===id);if(!v)return;map.flyTo([v.lat,v.lon],16,{duration:1});selectVenue(id);}
+function showOverlay(show){const overlay=document.getElementById('mapOverlay');document.getElementById('loadingText').textContent=T[LANG.current].loadingVenues;document.getElementById('loadingHint').textContent=show?T[LANG.current].loadingHint:'';overlay.classList.toggle('hidden',!show);}
+function setLang(lang){LANG.current=lang;document.querySelectorAll('.lang-btn').forEach(b=>{b.classList.toggle('active',b.dataset.lang===lang);});document.getElementById('searchInput').placeholder=T[lang].searchPlaceholder;updateEmptyStateText();buildFilterBar();if(state.allVenues.length){document.getElementById('resultCountText').innerHTML=T[lang].found(state.filtered.length,state.currentRegion);renderList();renderMarkers();renderCategorySummary();}else{document.getElementById('resultCountText').textContent=T[lang].resultLabel;}const wb=document.getElementById('weatherBanner');if(wb&&wb.style.display!=='none'){document.getElementById('weatherBannerText').textContent=T[lang].weatherBannerText;document.getElementById('weatherBannerBtn').textContent=T[lang].weatherBannerBtn;}}
+function showSkeletons(){const list=document.getElementById('venueList');document.getElementById('emptyState').style.display='none';list.style.display='flex';list.innerHTML=Array(4).fill(0).map(()=>`<div class="skeleton-card"><div style="display:flex;gap:11px;align-items:center"><div class="skeleton" style="width:36px;height:36px;border-radius:50%;flex-shrink:0"></div><div style="flex:1"><div class="skeleton" style="height:12px;margin-bottom:8px;width:70%"></div><div class="skeleton" style="height:10px;width:45%"></div></div></div></div>`).join('');}
+const _origSearch=searchRegion;window.searchRegion=async function(name){showSkeletons();return _origSearch(name);};
+function loadStaticVenues(){state.currentRegion=T[LANG.current].featuredRegion;processOSMData(STATIC_PL_VENUES);}
+
+const CITY_COORDS={athens:[37.97,23.73],thessaloniki:[40.63,22.95],santorini:[36.42,25.43],mykonos:[37.45,25.33],heraklion:[35.34,25.13],rhodes:[36.43,28.22],corfu:[39.62,19.92],nafplio:[37.57,22.80],olympia:[37.64,21.63],delphi:[38.48,22.50],meteora:[39.72,21.63],zakynthos:[37.79,20.90],chania:[35.52,24.02],rethymno:[35.37,24.47],patras:[38.25,21.73],volos:[39.37,22.95],kefalonia:[38.19,20.51],naxos:[37.10,25.38],paros:[37.08,25.15],crete:[35.24,24.90],kalamata:[37.04,22.11],ioannina:[39.66,20.85],kavala:[40.94,24.41],雅典:[37.97,23.73],塞萨洛尼基:[40.63,22.95],圣托里尼:[36.42,25.43],米科诺斯:[37.45,25.33],克里特:[35.24,24.90],伊拉克利翁:[35.34,25.13],罗得岛:[36.43,28.22],科孚:[39.62,19.92],纳夫普利翁:[37.57,22.80],奥林匹亚:[37.64,21.63],德尔菲:[38.48,22.50],梅黛奥拉:[39.72,21.63],扎金索斯:[37.79,20.90]};
+const INTEREST_MAP={'动物':['zoo','children_farm'],'动物园':['zoo'],'农场':['children_farm'],'博物馆':['museum'],'游乐园':['theme_park'],'室内':['indoor_playground','museum','aquarium'],'下雨':['indoor_playground','museum','aquarium'],'海滩':['beach'],'海边':['beach'],'沙滩':['beach'],'城堡':['historic'],'历史':['historic'],'古迹':['historic'],'自然':['nature'],'水族馆':['aquarium'],'运动':['sports'],'中餐':['chinese_restaurant'],'自助餐':['buffet'],'animal':['zoo','children_farm'],'zoo':['zoo'],'farm':['children_farm'],'museum':['museum'],'theme park':['theme_park'],'indoor':['indoor_playground','museum','aquarium'],'rain':['indoor_playground','museum','aquarium'],'beach':['beach'],'sea':['beach'],'castle':['historic'],'history':['historic'],'nature':['nature'],'aquarium':['aquarium'],'sport':['sports'],'chinese':['chinese_restaurant'],'buffet':['buffet'],'playground':['indoor_playground','playground'],};
+const AGE_HINTS={'婴儿':1,'宝宝':2,'1岁':1,'2岁':2,'3岁':3,'幼儿':3,'小朋友':5,'4岁':4,'5岁':5,'6岁':6,'7岁':7,'8岁':8,'9岁':9,'10岁':10,'学龄':7,'toddler':2,'baby':1,'teenager':13};
+function haversine(lat1,lon1,lat2,lon2){const R=6371;const dLat=(lat2-lat1)*Math.PI/180;const dLon=(lon2-lon1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function parseUserMessage(msg){const lower=msg.toLowerCase();const result={city:null,coords:null,categories:new Set(),age:null,maxDist:null,raw:msg};for(const[name,coords]of Object.entries(CITY_COORDS)){if(lower.includes(name.toLowerCase())){result.city=name;result.coords=coords;break;}}for(const[kw,cats]of Object.entries(INTEREST_MAP)){if(lower.includes(kw.toLowerCase())){cats.forEach(c=>result.categories.add(c));}}for(const[kw,age]of Object.entries(AGE_HINTS)){if(lower.includes(kw)){result.age=age;break;}}const distMatch=lower.match(/(\d+)\s*(km|公里|min)/);if(distMatch){const num=parseInt(distMatch[1]);result.maxDist=(distMatch[2]==='min')?num*1.2:num;}return result;}
+function recommendVenues(parsed){let venues=[...STATIC_PL_VENUES].map(v=>{const tags=v.tags||{};const cat=getCategoryForVenue(tags);return{...v,_cat:cat,_name:tags.name,_city:tags['addr:city']||''};});if(parsed.categories.size>0){venues=venues.filter(v=>parsed.categories.has(v._cat.id));}if(parsed.coords){venues.forEach(v=>{v._dist=haversine(parsed.coords[0],parsed.coords[1],v.lat,v.lon);});if(parsed.maxDist){venues=venues.filter(v=>v._dist<=parsed.maxDist);}venues.sort((a,b)=>a._dist-b._dist);}else{venues.sort(()=>Math.random()-0.5);}if(parsed.age!==null){if(parsed.age<=3){const priority=['children_farm','indoor_playground','playground','zoo'];venues.sort((a,b)=>{const aP=priority.indexOf(a._cat.id);const bP=priority.indexOf(b._cat.id);if(aP>=0&&bP<0)return-1;if(aP<0&&bP>=0)return 1;return(a._dist||0)-(b._dist||0);});}else if(parsed.age>=8){const priority=['theme_park','sports','museum','historic'];venues.sort((a,b)=>{const aP=priority.indexOf(a._cat.id);const bP=priority.indexOf(b._cat.id);if(aP>=0&&bP<0)return-1;if(aP<0&&bP>=0)return 1;return(a._dist||0)-(b._dist||0);});}}return venues.slice(0,6);}
+function buildChatResponse(parsed,venues){const isZh=/[\u4e00-\u9fff]/.test(parsed.raw);const isPL=false;const chatLang=isZh?'zh':(isPL?'pl':'en');let parts=[];if(venues.length===0){const noMatch={en:"Sorry, no exact matches found. Try different keywords?",zh:'抱歉，没有找到完全匹配的场地。试试换个关键词？',pl:'', nl:''};return noMatch[chatLang];}if(chatLang==='zh'){let opener='为你推荐以下场地';if(parsed.city)opener=`在 ${parsed.city} 附近为你推荐`;if(parsed.age)opener+=`（适合${parsed.age}岁孩子）`;opener+='：';parts.push(opener);}else if(chatLang==='el'){let opener='Εδω ειναι οι προτασεις μου';if(parsed.city)opener=`Κοντα στο ${parsed.city}, εδω ειναι οι προτασεις μου`;if(parsed.age)opener+=` (για παιδια ${parsed.age} ετων)`;opener+=':';parts.push(opener);}else{let opener='Here are my recommendations';if(parsed.city)opener=`Near ${parsed.city}, here are my picks`;if(parsed.age)opener+=` (for age ${parsed.age})`;opener+=':';parts.push(opener);}venues.forEach((v)=>{const dist=v._dist?` (${v._dist.toFixed(1)}km)`:'';const catLabel=v._cat[chatLang]||v._cat.en;parts.push(`\n${v._cat.emoji} <strong>${v._name}</strong>${dist}\n<span style="color:var(--text-muted);font-size:11px">${catLabel} &middot; ${v._city}</span>`);});if(chatLang==='zh'){parts.push('\n点击场地名称可在地图上查看位置。');}else if(chatLang==='el'){parts.push('\nΚαντε κλικ σε μια τοποθεσια για να τη δειτε στο χαρτη.');}else{parts.push('\nClick a venue name to see it on the map.');}return parts.join('');}
+
+let chatOpen=false;
+function toggleChat(open){chatOpen=open;document.getElementById('chatPanel').classList.toggle('open',open);document.getElementById('chatFab').classList.toggle('hidden',open);if(open&&document.getElementById('chatMessages').children.length===0){initChat();}if(open)document.getElementById('chatInput').focus();}
+function initChat(){const chatGreetings={en:"Hi! I'm your Poland family outing assistant.\n\nTell me:\n\u2022 Which city or island?\n\u2022 Kids' ages?\n\u2022 Indoor or outdoor?\n\u2022 Any interests?\n\nI'll recommend the best places!",zh:'你好！我是波兰亲子出行助手。\n\n告诉我你的情况：\n\u2022 你在哪个城市或岛屿？\n\u2022 孩子多大？\n\u2022 想要室内还是室外？\n\u2022 对什么感兴趣？\n\n我会推荐最合适的去处！',pl:'', nl:''};addBotMessage(chatGreetings[LANG.current]||chatGreetings.en);showQuickActions();}
+function showQuickActions(){const el=document.getElementById('chatQuickActions');const allActions={en:[['🏠 Indoor Athens','Indoor activities in Athens'],['🏖️ Beach Crete','Beach in Crete for kids'],['🏛️ Museum Athens','Museum for 8 year old near Athens'],['🦁 Zoo Athens','Zoo near Athens for 3 year old']],zh:[['🏠 雅典室内玩','我在雅典，想找室内活动'],['🏖️ 克里特海滩','想带孩子去克里特海滩'],['🏛️ 雅典博物馆','想带8岁孩子去博物馆，在雅典'],['🦁 带宝宝看动物','我孩子3岁，想去看动物']],pl:[['🏠 Εσωτερικα Αθηνα','Εσωτερικες δραστηριοτητες στην Αθηνα'],['🏖️ Παραλια Κρητη','Παραλια στην Κρητη για παιδια'],['🏛️ Μουσειο Αθηνα','Μουσειο κοντα στην Αθηνα'],['🦁 Ζωο Αθηνα','Ζωολογικος κηπος κοντα στην Αθηνα']]};const actions=allActions[LANG.current]||allActions.en;el.innerHTML=actions.map(([label,msg])=>`<button class="chat-quick-btn" onclick="sendQuickMsg('${msg.replace(/'/g,"\\'")}')">${label}</button>`).join('');}
+function sendQuickMsg(msg){document.getElementById('chatInput').value=msg;handleChatSend();}
+function escapeHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function addBotMessage(text){const el=document.getElementById('chatMessages');const div=document.createElement('div');div.className='chat-msg bot';div.innerHTML=text.replace(/\n/g,'<br>');el.appendChild(div);el.scrollTop=el.scrollHeight;}
+function addUserMessage(text){const el=document.getElementById('chatMessages');const div=document.createElement('div');div.className='chat-msg user';div.textContent=text;el.appendChild(div);el.scrollTop=el.scrollHeight;}
+function showTyping(){const el=document.getElementById('chatMessages');const div=document.createElement('div');div.className='chat-typing';div.id='chatTyping';div.innerHTML='<span></span><span></span><span></span>';el.appendChild(div);el.scrollTop=el.scrollHeight;}
+function removeTyping(){const t=document.getElementById('chatTyping');if(t)t.remove();}
+function handleChatSend(){const input=document.getElementById('chatInput');const msg=input.value.trim();if(!msg)return;addUserMessage(msg);input.value='';document.getElementById('chatQuickActions').innerHTML='';showTyping();setTimeout(()=>{removeTyping();const parsed=parseUserMessage(msg);const venues=recommendVenues(parsed);const response=buildChatResponse(parsed,venues);let venueChips='';if(venues.length>0){venueChips='<div style="margin-top:8px">'+venues.map(v=>`<span class="chat-venue-chip" onclick="chatShowVenue(${v.lat},${v.lon},'${v._name.replace(/'/g,"\\'")}')">${v._cat.emoji} ${v._name}</span>`).join('')+'</div>';}addBotMessage(response+venueChips);},600+Math.random()*400);}
+function chatShowVenue(lat,lon,name){map.flyTo([lat,lon],14,{duration:1});const v=state.allVenues.find(x=>x.name===name);if(v)selectVenue(v.id);if(window.innerWidth<=768)toggleChat(false);}
+document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();handleChatSend();}});
+
+function toggleFavorite(venueId,btnEl){const idx=state.favorites.indexOf(venueId);if(idx>=0){state.favorites.splice(idx,1);if(btnEl){btnEl.classList.remove('favorited');btnEl.textContent='\u2661';}}else{state.favorites.push(venueId);if(btnEl){btnEl.classList.add('favorited');btnEl.textContent='\u2764\uFE0F';}}if(btnEl){btnEl.classList.remove('bounce');void btnEl.offsetWidth;btnEl.classList.add('bounce');}localStorage.setItem('pl-kids-explorer-favorites',JSON.stringify(state.favorites));buildFilterBar();if(state.showFavoritesOnly){state.displayed=0;applyFilter();}}
+function toggleFavoritesFilter(){state.showFavoritesOnly=!state.showFavoritesOnly;if(state.showFavoritesOnly){state.activeCategory=null;}state.displayed=0;applyFilter();buildFilterBar();}
+function setMobileView(mode){
+  if(mode==='list'){document.body.classList.add('mobile-list-mode');document.getElementById('mapToggleBtn').classList.remove('active');document.getElementById('listToggleBtn').classList.add('active');}
+  else{document.body.classList.remove('mobile-list-mode');document.getElementById('mapToggleBtn').classList.add('active');document.getElementById('listToggleBtn').classList.remove('active');if(typeof map!=='undefined')setTimeout(()=>map.invalidateSize(),50);}
+}
+
+function searchVenueFromAutocomplete(lat,lon,venueId,venueName){autocompleteEl.classList.remove('open');searchInput.value=venueName;map.flyTo([lat,lon],16,{duration:1});const v=state.allVenues.find(x=>x.id===venueId);if(v){selectVenue(v.id);}else{L.popup().setLatLng([lat,lon]).setContent(`<div class="popup-content"><div class="popup-name">${escapeHtml(venueName)}</div></div>`).openOn(map);}}
+function activateNearMe(){autocompleteEl.classList.remove('open');const btn=document.getElementById('nearmeBtn');if(!navigator.geolocation){showToast(T[LANG.current].nearMeError);return;}btn.classList.add('active');showToast(T[LANG.current].nearMeSearching,2000);navigator.geolocation.getCurrentPosition((pos)=>{const lat=pos.coords.latitude;const lon=pos.coords.longitude;state.userLocation=[lat,lon];if(state.userLocationMarker){map.removeLayer(state.userLocationMarker);}state.userLocationMarker=L.circleMarker([lat,lon],{radius:10,color:'#4285F4',fillColor:'#4285F4',fillOpacity:0.5,weight:3,opacity:0.8}).addTo(map).bindPopup(T[LANG.current].yourLocation);state.displayed=0;applyFilter();buildFilterBar();map.flyTo([lat,lon],11,{duration:1});showToast(T[LANG.current].sortedByDistance,2000);},(err)=>{btn.classList.remove('active');if(err.code===1){showToast(T[LANG.current].nearMePermDenied,4000);}else{showToast(T[LANG.current].nearMeError);}},{enableHighAccuracy:true,timeout:10000});}
+
+(function initBottomSheet(){const sidebar=document.getElementById('sidebarSheet');const handle=document.getElementById('bottomSheetHandle');if(!handle)return;const SNAP_COLLAPSED=25;const SNAP_HALF=50;const SNAP_FULL=90;let sheetPos=SNAP_COLLAPSED;let startY=0,startPos=0,dragging=false;function isMobile(){return window.innerWidth<=768;}function setSheetPosition(pct){if(!isMobile()){sidebar.style.transform='';sidebar.style.height='';return;}sheetPos=pct;const h=Math.min(pct,90);sidebar.style.height=h+'dvh';sidebar.style.transform='translateY(0)';}handle.addEventListener('touchstart',(e)=>{if(!isMobile())return;dragging=true;startY=e.touches[0].clientY;startPos=sheetPos;sidebar.style.transition='none';},{passive:true});handle.addEventListener('touchmove',(e)=>{if(!dragging||!isMobile())return;const dy=startY-e.touches[0].clientY;const dvh=(dy/window.innerHeight)*100;const newPos=Math.max(10,Math.min(90,startPos+dvh));sidebar.style.height=newPos+'dvh';},{passive:true});handle.addEventListener('touchend',()=>{if(!dragging||!isMobile())return;dragging=false;sidebar.style.transition='height 0.3s cubic-bezier(.4,0,.2,1)';const currentH=parseFloat(sidebar.style.height)||SNAP_COLLAPSED;const snaps=[SNAP_COLLAPSED,SNAP_HALF,SNAP_FULL];let closest=snaps[0];let minDist=Math.abs(currentH-snaps[0]);for(const s of snaps){const d=Math.abs(currentH-s);if(d<minDist){minDist=d;closest=s;}}setSheetPosition(closest);});function initMobileSheet(){if(isMobile()){sidebar.style.transition='height 0.3s cubic-bezier(.4,0,.2,1)';const startSnap = state.allVenues.length === 0 ? SNAP_HALF : SNAP_COLLAPSED;
+      setSheetPosition(startSnap);}else{sidebar.style.transform='';sidebar.style.height='';sidebar.style.transition='';}}window.addEventListener('resize',initMobileSheet);initMobileSheet();})();
+
+function openDetailPanel(venueId){const v=state.allVenues.find(x=>x.id===venueId);if(!v)return;const panel=document.getElementById('venueDetailPanel');const body=document.getElementById('detailPanelBody');const titleEl=document.getElementById('detailPanelTitle');const t=T[LANG.current];titleEl.textContent=t.venueDetails;const isFav=state.favorites.includes(v.id);let html='';html+=`<div class="detail-venue-icon" style="background:${v.category.bg}">${v.category.emoji}</div>`;html+=`<div class="detail-venue-name">${escapeHtml(v.name)}</div>`;if(v.nameZh&&LANG.current==="zh")html+=`<div class="detail-venue-name-zh">${escapeHtml(v.nameZh)}</div>`;html+=`<span class="detail-category-badge" style="background:${v.category.bg};color:${v.category.color}">${v.category.emoji} ${v.category[LANG.current]||v.category.en}</span>`;html+=ratingDetailHtml(v);if(v.address)html+=`<div class="detail-info-row"><span class="detail-icon">📍</span><span>${escapeHtml(v.address)}</span></div>`;if(v.openingHours)html+=`<div class="detail-info-row"><span class="detail-icon">\u{1F552}</span><span>${escapeHtml(translateHours(v.openingHours))}</span></div>`;if(v.phone)html+=`<div class="detail-info-row"><span class="detail-icon">\u{1F4DE}</span><a href="tel:${v.phone}">${escapeHtml(v.phone)}</a></div>`;html+='<div class="detail-actions">';if(v.website)html+=`<a class="detail-btn detail-btn-website" href="${v.website}" target="_blank" rel="noopener">🔗 ${t.visitWebsite}</a>`;html+=`<a class="detail-btn detail-btn-navigate" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">🧭 ${t.navigateTo}</a>`;html+=`<button class="detail-btn detail-btn-favorite ${isFav?'favorited':''}" id="detailFavBtn" onclick="toggleDetailFavorite('${v.id.replace(/'/g,"\\'")}')"> ${isFav?'❤️':'♡'} ${isFav?t.favorited:t.addFavorite}</button>`;html+='</div>';body.innerHTML=html;panel.classList.add('open');}
+function closeDetailPanel(){document.getElementById('venueDetailPanel').classList.remove('open');}
+function toggleDetailFavorite(venueId){toggleFavorite(venueId,null);const btn=document.getElementById('detailFavBtn');const t=T[LANG.current];const isFav=state.favorites.includes(venueId);if(btn){btn.className='detail-btn detail-btn-favorite'+(isFav?' favorited':'');btn.innerHTML=`${isFav?'❤️':'♡'} ${isFav?t.favorited:t.addFavorite}`;}renderList();}
+const _origSelectVenue=selectVenue;window.selectVenue=function(id){_origSelectVenue(id);openDetailPanel(id);};
+document.addEventListener('keydown',(e)=>{if(e.key==='Escape')closeDetailPanel();});
+
+const AGE_FILTER_RANGES=[
+  {id:'all',en:'All ages',zh:'所有年龄',pl:'', nl:'',emoji:'',categories:null},
+  {id:'0-3',en:'0-3',zh:'0-3岁',pl:'', nl:'',emoji:'👶',categories:['children_farm','playground','indoor_playground','beach','chinese_restaurant','buffet']},
+  {id:'3-6',en:'3-6',zh:'3-6岁',pl:'', nl:'',emoji:'🧒',categories:['children_farm','playground','indoor_playground','beach','chinese_restaurant','buffet','zoo','aquarium','theme_park','nature','museum']},
+  {id:'6-12',en:'6-12',zh:'6-12岁',pl:'', nl:'',emoji:'🧒',categories:null},
+];
+let activeAgeFilter='all';
+function setAgeFilter(ageId){activeAgeFilter=ageId;if(ageId!=='all'){state.activeCategory=null;state.showFavoritesOnly=false;}state.displayed=0;applyFilter();buildFilterBar();buildAgeFilterPills();}
+function buildAgeFilterPills(){const existing=document.getElementById('ageFilterGroup');if(existing)existing.remove();const bar=document.getElementById('filterBar');const group=document.createElement('div');group.className='age-filter-group';group.id='ageFilterGroup';AGE_FILTER_RANGES.forEach(age=>{const pill=document.createElement('button');pill.className='age-pill'+(activeAgeFilter===age.id?' active':'');const label=age[LANG.current]||age.en;pill.innerHTML=age.emoji?`${age.emoji} ${label}`:label;pill.onclick=()=>setAgeFilter(age.id);group.appendChild(pill);});bar.appendChild(group);}
+
+const INDOOR_CATEGORIES=['indoor_playground','museum','aquarium','theatre','buffet','chinese_restaurant','sports'];
+let weatherBannerDismissed=false;
+async function fetchWeather(){try{const res=await fetch('https://api.open-meteo.com/v1/forecast?latitude=52.23&longitude=21.01&current=temperature_2m,rain,weather_code');const data=await res.json();if(!data.current)return;const temp=Math.round(data.current.temperature_2m);const rain=data.current.rain||0;const code=data.current.weather_code||0;let emoji='\u2600\uFE0F';if(code>=61)emoji='🌧️';else if(code>=51)emoji='🌦️';else if(code>=45)emoji='🌫️';else if(code>=3)emoji='\u26C5';const badge=document.getElementById('weatherBadge');badge.innerHTML=`${emoji} ${temp}&deg;C`;badge.style.display='flex';if((rain>0||code>=61)&&!weatherBannerDismissed){const banner=document.getElementById('weatherBanner');document.getElementById('weatherBannerText').textContent=T[LANG.current].weatherBannerText;document.getElementById('weatherBannerBtn').textContent=T[LANG.current].weatherBannerBtn;banner.style.display='flex';}}catch(e){console.log('Weather fetch failed:',e.message);}}
+function filterIndoorWeather(){activeAgeFilter='all';state.showFavoritesOnly=false;state.activeCategory=null;state.displayed=0;let list=state.allVenues.filter(v=>INDOOR_CATEGORIES.includes(v.category.id));if(state.userLocation){list.forEach(v=>{v._userDist=haversine(state.userLocation[0],state.userLocation[1],v.lat,v.lon);});list.sort((a,b)=>a._userDist-b._userDist);}state.filtered=list;renderList();renderMarkers();buildFilterBar();buildAgeFilterPills();showToast(T[LANG.current].showingIndoor,2000);dismissWeatherBanner();}
+function dismissWeatherBanner(){weatherBannerDismissed=true;document.getElementById('weatherBanner').style.display='none';}
+
+buildFilterBar();buildAgeFilterPills();setLang('en');loadStaticVenues();fetchWeather();
+</script>
+
+<!-- COUNTRY PICKER -->
+<div class="country-picker" id="countryPicker" onclick="if(event.target===this)closeCountryPicker()">
+  <div class="country-picker-panel">
+    <div class="cp-title"><span id="cpTitle">Switch Country</span>
+      <button class="cp-close" onclick="closeCountryPicker()">✕</button></div>
+    <div class="cp-grid" id="cpGrid"></div>
+  </div>
+</div>
+<!-- ZOOM FABs -->
+<div class="fab-zoom">
+  <button class="fab-zoom-btn" onclick="map.zoomIn()" aria-label="Zoom in">+</button>
+  <button class="fab-zoom-btn" onclick="map.zoomOut()" aria-label="Zoom out">−</button>
+</div>
+<script>
+const CP_COUNTRIES=[
+  {slug:'nl',flag:'🇳🇱',en:'Netherlands',zh:'荷兰',nl:'Nederland',count:672},
+  {slug:'be',flag:'🇧🇪',en:'Belgium',zh:'比利时',nl:'België',count:464},
+  {slug:'de',flag:'🇩🇪',en:'Germany',zh:'德国',nl:'Duitsland',count:593},
+  {slug:'at',flag:'🇦🇹',en:'Austria',zh:'奥地利',nl:'Oostenrijk',count:293},
+  {slug:'ch',flag:'🇨🇭',en:'Switzerland',zh:'瑞士',nl:'Zwitserland',count:257},
+  {slug:'fr',flag:'🇫🇷',en:'France',zh:'法国',nl:'Frankrijk',count:607},
+  {slug:'uk',flag:'🇬🇧',en:'United Kingdom',zh:'英国',nl:'VK',count:515},
+  {slug:'ie',flag:'🇮🇪',en:'Ireland',zh:'爱尔兰',nl:'Ierland',count:176},
+  {slug:'es',flag:'🇪🇸',en:'Spain',zh:'西班牙',nl:'Spanje',count:576},
+  {slug:'pt',flag:'🇵🇹',en:'Portugal',zh:'葡萄牙',nl:'Portugal',count:533},
+  {slug:'it',flag:'🇮🇹',en:'Italy',zh:'意大利',nl:'Italië',count:570},
+  {slug:'gr',flag:'🇬🇷',en:'Greece',zh:'希腊',nl:'Griekenland',count:249},
+  {slug:'pl',flag:'🇵🇱',en:'Poland',zh:'波兰',nl:'Polen',count:300},
+  {slug:'se',flag:'🇸🇪',en:'Sweden',zh:'瑞典',nl:'Zweden',count:300},
+  {slug:'dk',flag:'🇩🇰',en:'Denmark',zh:'丹麦',nl:'Denemarken',count:300},
+  {slug:'no',flag:'🇳🇴',en:'Norway',zh:'挪威',nl:'Noorwegen',count:300},
+  {slug:'cz',flag:'🇨🇿',en:'Czech Republic',zh:'捷克',nl:'Tsjechië',count:300},
+  {slug:'hu',flag:'🇭🇺',en:'Hungary',zh:'匈牙利',nl:'Hongarije',count:300},
+  {slug:'hr',flag:'🇭🇷',en:'Croatia',zh:'克罗地亚',nl:'Kroatië',count:300},
+];
+const CURRENT_CC='pl';
+
+function openCountryPicker(){
+  const lang=typeof LANG!=='undefined'?LANG.current:'en';
+  document.getElementById('cpTitle').textContent=lang==='zh'?'选择国家':lang==='nl'?'Kies land':'Switch Country';
+  document.getElementById('cpGrid').innerHTML=CP_COUNTRIES.map(c=>`<a href="https://kidsexplorer.eu/${c.slug}/" class="cp-item${c.slug===CURRENT_CC?' current':''}"><span class="cp-flag">${c.flag}</span><span class="cp-name">${lang==='zh'?c.zh:lang==='nl'?c.nl:c.en}</span><span class="cp-count">${c.count}+</span></a>`).join('');
+  document.getElementById('countryPicker').classList.add('open');
+}
+function closeCountryPicker(){document.getElementById('countryPicker').classList.remove('open');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCountryPicker();});
+</script>
+
+<!-- Mobile filter dimmer -->
+<div class="mobile-filter-dimmer" id="mobileFilterDimmer" style="display:none;" onclick="closeMobileFilter()"></div>
+
+<script>
+// ── MOBILE ACTION BAR ──────────────────────────────────────────────────
+let mobileFilterOpen = false;
+
+function toggleMobileFilter() {
+  mobileFilterOpen = !mobileFilterOpen;
+  document.getElementById('filterBar').classList.toggle('mobile-open', mobileFilterOpen);
+  document.getElementById('mobileFilterDimmer').style.display = mobileFilterOpen ? 'block' : 'none';
+  updateMobileActionBar();
+}
+
+function closeMobileFilter() {
+  mobileFilterOpen = false;
+  document.getElementById('filterBar').classList.remove('mobile-open');
+  document.getElementById('mobileFilterDimmer').style.display = 'none';
+  updateMobileActionBar();
+}
+
+function toggleMobileFavs() {
+  toggleFavoritesFilter();
+  if (mobileFilterOpen) closeMobileFilter();
+  setTimeout(updateMobileActionBar, 50);
+}
+
+function toggleMobileSort() {
+  const sc = document.getElementById('sortControl');
+  if (!sc) return;
+  const isVisible = sc.style.display !== 'none';
+  sc.style.display = isVisible ? 'none' : 'flex';
+  if (!isVisible) document.getElementById('sortSelect')?.focus();
+  updateMobileActionBar();
+}
+
+function updateMobileActionBar() {
+  const favBtn = document.getElementById('mobFavBtn');
+  const catBtn = document.getElementById('mobCatBtn');
+  const sortBtn = document.getElementById('mobSortBtn');
+  if (!favBtn) return;
+  favBtn.classList.toggle('active', !!state.showFavoritesOnly);
+  catBtn.classList.toggle('active', mobileFilterOpen || state.activeCategory !== null || (state.activeAgeGroup && state.activeAgeGroup !== 'all'));
+  const sortSel = document.getElementById('sortSelect');
+  sortBtn.classList.toggle('active', !!(sortSel && sortSel.value !== 'default'));
+}
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
