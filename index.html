@@ -163,33 +163,25 @@ footer a{color:var(--terracotta);font-weight:500}
 
 <script>
 const COUNTRIES = [
-  // Benelux
   {slug:'nl', flag:'🇳🇱', en:'Netherlands', native:'Nederland',  zh:'荷兰',     count:672, region:'benelux'},
   {slug:'be', flag:'🇧🇪', en:'Belgium',     native:'België',     zh:'比利时',   count:464, region:'benelux'},
-  // DACH (German-speaking)
   {slug:'de', flag:'🇩🇪', en:'Germany',     native:'Deutschland',zh:'德国',     count:593, region:'dach'},
   {slug:'at', flag:'🇦🇹', en:'Austria',     native:'Österreich', zh:'奥地利',   count:293, region:'dach'},
   {slug:'ch', flag:'🇨🇭', en:'Switzerland', native:'Schweiz',    zh:'瑞士',     count:257, region:'dach'},
-  // France
   {slug:'fr', flag:'🇫🇷', en:'France',      native:'France',     zh:'法国',     count:607, region:'fr'},
-  // British Isles
-  {slug:'uk', flag:'🇬🇧', en:'United Kingdom',native:'UK',       zh:'英国',     count:515, region:'british'},
-  {slug:'ie', flag:'🇮🇪', en:'Ireland',     native:'Éire',       zh:'爱尔兰',   count:176, region:'british'},
-  // Iberia
   {slug:'es', flag:'🇪🇸', en:'Spain',       native:'España',     zh:'西班牙',   count:576, region:'iberia'},
   {slug:'pt', flag:'🇵🇹', en:'Portugal',    native:'Portugal',   zh:'葡萄牙',   count:533, region:'iberia'},
-  // Southern Europe
   {slug:'it', flag:'🇮🇹', en:'Italy',       native:'Italia',     zh:'意大利',   count:570, region:'south'},
   {slug:'gr', flag:'🇬🇷', en:'Greece',      native:'Ελλάδα',     zh:'希腊',     count:249, region:'south'},
   {slug:'hr', flag:'🇭🇷', en:'Croatia',     native:'Hrvatska',   zh:'克罗地亚', count:300, region:'south'},
-  // Northern Europe
   {slug:'se', flag:'🇸🇪', en:'Sweden',      native:'Sverige',    zh:'瑞典',     count:300, region:'nordic'},
   {slug:'dk', flag:'🇩🇰', en:'Denmark',     native:'Danmark',    zh:'丹麦',     count:300, region:'nordic'},
   {slug:'no', flag:'🇳🇴', en:'Norway',      native:'Norge',      zh:'挪威',     count:300, region:'nordic'},
-  // Central & Eastern Europe
   {slug:'pl', flag:'🇵🇱', en:'Poland',      native:'Polska',     zh:'波兰',     count:300, region:'central'},
   {slug:'cz', flag:'🇨🇿', en:'Czech Republic',native:'Česká republika',zh:'捷克',count:300, region:'central'},
   {slug:'hu', flag:'🇭🇺', en:'Hungary',     native:'Magyarország',zh:'匈牙利',  count:300, region:'central'},
+  {slug:'ie', flag:'🇮🇪', en:'Ireland',     native:'Éire',       zh:'爱尔兰',   count:176, region:'british'},
+  {slug:'uk', flag:'🇬🇧', en:'United Kingdom',native:'UK',       zh:'英国',     count:515, region:'british'}
 ];
 
 function render() {
