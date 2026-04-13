@@ -2021,19 +2021,26 @@
 <a href="#map" class="skip-link" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:9999;padding:8px 16px;background:var(--primary);color:#fff;font-weight:700;text-decoration:none;border-radius:0 0 8px 0;" onfocus="this.style.position='fixed';this.style.left='0';this.style.top='0';this.style.width='auto';this.style.height='auto';this.style.overflow='visible';" onblur="this.style.position='absolute';this.style.left='-9999px';this.style.width='1px';this.style.height='1px';this.style.overflow='hidden';">Skip to map</a>
 
 <!-- ── CROSS-NAV ──────────────────────────────────── -->
-<div id="crossNav" style="display:flex;justify-content:center;gap:16px;padding:6px 16px;background:#1A2B4A;font-size:12px;flex-wrap:wrap;">
-  <span style="color:#fff;font-weight:600;border-bottom:2px solid #E05A1E;padding-bottom:1px;">🇳🇱 Holland</span>
-  <a href="https://kidsexplorer.eu/be/" style="color:#9AA5B8;text-decoration:none;">🇧🇪 Belgium</a>
-  <a href="https://kidsexplorer.eu/de/" style="color:#9AA5B8;text-decoration:none;">🇩🇪 Germany</a>
-  <a href="https://kidsexplorer.eu/fr/" style="color:#9AA5B8;text-decoration:none;">🇫🇷 France</a>
-  <a href="https://kidsexplorer.eu/pt/" style="color:#9AA5B8;text-decoration:none;">🇵🇹 Portugal</a>
-  <a href="https://kidsexplorer.eu/es/" style="color:#9AA5B8;text-decoration:none;">🇪🇸 Spain</a>
-  <a href="https://kidsexplorer.eu/it/" style="color:#9AA5B8;text-decoration:none;">🇮🇹 Italy</a>
+<div id="crossNav" style="display:flex;justify-content:center;gap:8px 12px;padding:6px 16px;background:#1A2B4A;font-size:12px;flex-wrap:wrap;">
+  <span style="color:#fff;font-weight:600;border-bottom:2px solid #E05A1E;padding-bottom:1px;">🇳🇱 NL</span>
+  <a href="https://kidsexplorer.eu/be/" style="color:#9AA5B8;text-decoration:none;">🇧🇪 BE</a>
+  <a href="https://kidsexplorer.eu/de/" style="color:#9AA5B8;text-decoration:none;">🇩🇪 DE</a>
+  <a href="https://kidsexplorer.eu/at/" style="color:#9AA5B8;text-decoration:none;">🇦🇹 AT</a>
+  <a href="https://kidsexplorer.eu/ch/" style="color:#9AA5B8;text-decoration:none;">🇨🇭 CH</a>
+  <a href="https://kidsexplorer.eu/fr/" style="color:#9AA5B8;text-decoration:none;">🇫🇷 FR</a>
+  <a href="https://kidsexplorer.eu/es/" style="color:#9AA5B8;text-decoration:none;">🇪🇸 ES</a>
+  <a href="https://kidsexplorer.eu/pt/" style="color:#9AA5B8;text-decoration:none;">🇵🇹 PT</a>
+  <a href="https://kidsexplorer.eu/it/" style="color:#9AA5B8;text-decoration:none;">🇮🇹 IT</a>
+  <a href="https://kidsexplorer.eu/gr/" style="color:#9AA5B8;text-decoration:none;">🇬🇷 GR</a>
+  <a href="https://kidsexplorer.eu/pl/" style="color:#9AA5B8;text-decoration:none;">🇵🇱 PL</a>
+  <a href="https://kidsexplorer.eu/se/" style="color:#9AA5B8;text-decoration:none;">🇸🇪 SE</a>
+  <a href="https://kidsexplorer.eu/dk/" style="color:#9AA5B8;text-decoration:none;">🇩🇰 DK</a>
+  <a href="https://kidsexplorer.eu/no/" style="color:#9AA5B8;text-decoration:none;">🇳🇴 NO</a>
+  <a href="https://kidsexplorer.eu/cz/" style="color:#9AA5B8;text-decoration:none;">🇨🇿 CZ</a>
+  <a href="https://kidsexplorer.eu/hu/" style="color:#9AA5B8;text-decoration:none;">🇭🇺 HU</a>
+  <a href="https://kidsexplorer.eu/hr/" style="color:#9AA5B8;text-decoration:none;">🇭🇷 HR</a>
+  <a href="https://kidsexplorer.eu/ie/" style="color:#9AA5B8;text-decoration:none;">🇮🇪 IE</a>
   <a href="https://kidsexplorer.eu/uk/" style="color:#9AA5B8;text-decoration:none;">🇬🇧 UK</a>
-  <a href="https://kidsexplorer.eu/ch/" style="color:#9AA5B8;text-decoration:none;">🇨🇭 Switzerland</a>
-  <a href="https://kidsexplorer.eu/at/" style="color:#9AA5B8;text-decoration:none;">🇦🇹 Austria</a>
-  <a href="https://kidsexplorer.eu/ie/" style="color:#9AA5B8;text-decoration:none;">🇮🇪 Ireland</a>
-  <a href="https://kidsexplorer.eu/gr/" style="color:#9AA5B8;text-decoration:none;">🇬🇷 Greece</a>
 </div>
 
 <!-- ── HEADER ─────────────────────────────────────── -->
@@ -5269,15 +5276,13 @@ if ('serviceWorker' in navigator) {
 
 <script>
 // ── COUNTRY PICKER ────────────────────────────────
-const CP_COUNTRIES = [
+const CP_COUNTRIES=[
   {slug:'nl',flag:'🇳🇱',en:'Netherlands',zh:'荷兰',nl:'Nederland',count:672},
   {slug:'be',flag:'🇧🇪',en:'Belgium',zh:'比利时',nl:'België',count:464},
   {slug:'de',flag:'🇩🇪',en:'Germany',zh:'德国',nl:'Duitsland',count:593},
   {slug:'at',flag:'🇦🇹',en:'Austria',zh:'奥地利',nl:'Oostenrijk',count:293},
-  {slug:'ch',flag:'🇨🇭',en:'Switzerland',zh:'瑞士',nl:'Zwitserland',count:257},
+  {slug:'ch',flag:'🇨🇭',en:'Switzerland',zh:'瑞士',nl:'Zwitserland',count:334},
   {slug:'fr',flag:'🇫🇷',en:'France',zh:'法国',nl:'Frankrijk',count:607},
-  {slug:'uk',flag:'🇬🇧',en:'United Kingdom',zh:'英国',nl:'VK',count:515},
-  {slug:'ie',flag:'🇮🇪',en:'Ireland',zh:'爱尔兰',nl:'Ierland',count:176},
   {slug:'es',flag:'🇪🇸',en:'Spain',zh:'西班牙',nl:'Spanje',count:576},
   {slug:'pt',flag:'🇵🇹',en:'Portugal',zh:'葡萄牙',nl:'Portugal',count:533},
   {slug:'it',flag:'🇮🇹',en:'Italy',zh:'意大利',nl:'Italië',count:570},
@@ -5289,6 +5294,8 @@ const CP_COUNTRIES = [
   {slug:'cz',flag:'🇨🇿',en:'Czech Republic',zh:'捷克',nl:'Tsjechië',count:300},
   {slug:'hu',flag:'🇭🇺',en:'Hungary',zh:'匈牙利',nl:'Hongarije',count:300},
   {slug:'hr',flag:'🇭🇷',en:'Croatia',zh:'克罗地亚',nl:'Kroatië',count:300},
+  {slug:'ie',flag:'🇮🇪',en:'Ireland',zh:'爱尔兰',nl:'Ierland',count:296},
+  {slug:'uk',flag:'🇬🇧',en:'United Kingdom',zh:'英国',nl:'VK',count:515},
 ];
 const CURRENT_CC = 'nl';
 
@@ -5360,7 +5367,7 @@ function updateMobileActionBar() {
 }
 </script>
 
-<section class="seo-section" style="max-width:900px;margin:32px auto;padding:24px 24px 8px;font-family:Inter,sans-serif;color:#333;line-height:1.6">
+<section class="seo-section" style="display:none;max-width:900px;margin:32px auto;padding:24px 24px 8px;font-family:Inter,sans-serif;color:#333;line-height:1.6">
   <h2 style="font-size:18px;font-weight:700;margin-bottom:8px">Family venues in Netherlands · 荷兰亲子景点</h2>
   <p style="font-size:14px;color:#555;margin-bottom:12px">Find 667+ family-friendly venues across the Netherlands, from Efteling to Amsterdam Zoo. Interactive map covering theme parks, beaches, zoos, museums, and indoor playgrounds across Holland.</p>
   <ul style="font-size:13px;columns:2;column-gap:24px;padding-left:20px;color:#444">
