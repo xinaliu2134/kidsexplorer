@@ -132,6 +132,8 @@ body[data-view="list"] .fab-stack{display:none}
 .overlay-actions .btn-primary:hover{background:var(--brand-dark)}
 .overlay-actions .btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
 .overlay-actions .btn-secondary:hover{border-color:var(--brand);color:var(--brand)}
+.overlay-share{background:var(--brand);color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.overlay-share:hover{background:var(--brand-dark);}
 .overlay-fav{width:44px;height:44px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:all .15s}
 .overlay-fav:hover{border-color:var(--brand)}
 .overlay-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
@@ -326,6 +328,7 @@ body[data-view="list"] .fab-stack{display:none}
   <div class="overlay-body" id="ov-body"></div>
   <div class="overlay-actions">
     <button class="overlay-fav" id="ov-fav" onclick="toggleFav()" title="Save to favorites">♡</button>
+    <button class="overlay-share" id="ov-share" onclick="shareVenue()" title="Share">📤</button>
     <a class="btn btn-secondary" id="ov-directions" target="_blank">🗺 Directions</a>
     <a class="btn btn-primary" id="ov-website" target="_blank">🌐 Website</a>
   </div>
@@ -859,6 +862,7 @@ const I18N = {
     rating: 'Rating', address: 'Address', city: 'City', hours: 'Hours', reviews: 'reviews',
     empty: 'No venues in this area. Try moving the map or clearing filters.',
     search_ph: 'Search places or cities…',
+    link_copied: 'Link copied!',
     lang_next: 'HR',
   },
   hr: {
@@ -869,6 +873,7 @@ const I18N = {
     rating: 'Ocjena', address: 'Adresa', city: 'Grad', hours: 'Radno vrijeme', reviews: 'recenzija',
     empty: 'Nema mjesta u ovom području. Pomičite kartu ili obrišite filtere.',
     search_ph: 'Tražite mjesta ili gradove…',
+    link_copied: 'Veza kopirana!',
     lang_next: '中',
   },
   zh: {
@@ -879,6 +884,7 @@ const I18N = {
     rating: '评分', address: '地址', city: '城市', hours: '开放时间', reviews: '评价',
     empty: '当前视口内没有场所。拖动地图或清空筛选。',
     search_ph: '搜索场所或城市…',
+    link_copied: '链接已复制！',
     lang_next: 'EN',
   }
 };
@@ -1352,6 +1358,46 @@ document.getElementById('chatInput').addEventListener('keydown',e=>{
     <button class="chat-send" id="chatSend" onclick="handleChatSend()">➤</button>
   </div>
 </div>
+
+
+function shareVenue(){
+  const id = state.selectedId;
+  if(id == null) return;
+  const v = VENUES.find(x=>x.id===id);
+  const name = v ? (state.lang==='zh'&&v.zh ? v.zh : v.name) : 'Kids Explorer';
+  const url = location.origin + location.pathname + '#venue=' + encodeURIComponent(id);
+  if(navigator.share){
+    navigator.share({title:name,text:name,url:url}).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(url).then(()=>showShareToast()).catch(()=>{
+      const ta=document.createElement('textarea');
+      ta.value=url;ta.style.cssText='position:fixed;opacity:0';
+      document.body.appendChild(ta);ta.select();
+      document.execCommand('copy');document.body.removeChild(ta);
+      showShareToast();
+    });
+  }
+}
+function showShareToast(){
+  const msg=I18N[state.lang]&&I18N[state.lang].link_copied||'Link copied!';
+  let toast=document.getElementById('shareToast');
+  if(!toast){toast=document.createElement('div');toast.id='shareToast';
+    toast.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1A2B4A;color:#fff;padding:10px 20px;border-radius:24px;font-size:14px;z-index:9999;pointer-events:none;transition:opacity .3s';
+    document.body.appendChild(toast);}
+  toast.textContent=msg;toast.style.opacity='1';
+  setTimeout(()=>{toast.style.opacity='0';},2500);
+}
+
+// Deep link: open venue from URL hash
+(function(){
+  const h=location.hash;
+  if(h.startsWith('#venue=')){
+    const id=decodeURIComponent(h.slice(7));
+    const numId=parseInt(id);
+    const v=VENUES.find(x=>x.id===(isNaN(numId)?id:numId));
+    if(v){setTimeout(()=>openDetail(v),500);}
+  }
+})();
 
 </body>
 </html>
