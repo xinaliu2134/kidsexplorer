@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Norway Kids Explorer · KidsExplorer.eu</title>
+<meta name="description" content="Family-friendly venues across Norway on one interactive map. Multilingual. Free.">
+<link rel="canonical" href="https://kidsexplorer.eu/no/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kidsexplorer.eu/no/">
+<meta property="og:title" content="Norway Kids Explorer · KidsExplorer.eu">
+<meta property="og:description" content="129+ family-friendly venues across Greece on one interactive map. Bilingual map with verified addresses, ratings, and opening hours.">
+<meta property="og:image" content="https://kidsexplorer.eu/og/no.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="KidsExplorer.eu">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Norway Kids Explorer · KidsExplorer.eu">
+<meta name="twitter:description" content="129+ family-friendly venues across Greece on one interactive map. Bilingual map with verified addresses, ratings, and opening hours.">
+<meta name="twitter:image" content="https://kidsexplorer.eu/og/no.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Original Holland Kids palette (restored from v1) */
+  --bg:#F2F4F8;
+  --surface:#FFFFFF;
+  --border:#CBD5E1;
+  --border-strong:#94A3B8;
+  --text:#1A2B4A;
+  --text-soft:#5A6A84;
+  --text-mute:#9AA5B8;
+  --brand:#E05A1E;
+  --brand-dark:#B84515;
+  --brand-light:#FFF0E9;
+  --teal:#0EA5A0;
+  --navy:#1A2B4A;
+  --shadow:0 1px 3px rgba(26,43,74,.12), 0 0 0 1px rgba(26,43,74,.04);
+  --shadow-lg:0 8px 24px rgba(26,43,74,.20), 0 0 0 1px rgba(26,43,74,.08);
+  --radius:14px;
+  --header-h:56px;
+  --safe-bottom:env(safe-area-inset-bottom,0);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input{font-family:inherit;border:none;outline:none;background:none;color:inherit}
+
+/* ===== Top Header ===== */
+.hdr{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);z-index:900;display:flex;align-items:center;gap:10px;padding:0 14px}
+.hdr-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;letter-spacing:-.3px;color:var(--brand);white-space:nowrap}
+.hdr-brand .logo{font-size:20px}
+.hdr-country{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--bg);border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:600;cursor:pointer}
+.hdr-country:hover{border-color:var(--brand)}
+.hdr-country .flag{font-size:16px}
+.hdr-search{flex:1;display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:999px;cursor:text;min-width:0}
+.hdr-search input{flex:1;font-size:14px;min-width:0}
+.hdr-search .icon{color:var(--text-mute);flex-shrink:0}
+.hdr-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--bg);border:1px solid var(--border);font-size:16px;flex-shrink:0}
+.hdr-btn:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ===== Map ===== */
+#map{position:fixed;top:var(--header-h);left:0;right:0;bottom:0;z-index:1}
+.leaflet-popup-content-wrapper{border-radius:14px}
+.leaflet-popup-content{margin:14px 16px;font-family:'Inter',sans-serif;font-size:13px}
+
+/* ===== Map/List Toggle (mobile) ===== */
+.view-toggle{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--header-h) + 12px);z-index:600;display:flex;background:#fff;border:1px solid var(--border);border-radius:999px;box-shadow:var(--shadow);padding:3px}
+.view-toggle button{padding:8px 18px;font-size:13px;font-weight:600;border-radius:999px;color:var(--text-soft)}
+.view-toggle button.active{background:var(--text);color:#fff}
+.view-toggle button:not(.active):hover{color:var(--text)}
+body[data-view="list"] #map{display:none}
+body[data-view="list"] .drawer{transform:translateY(0)!important;top:calc(var(--header-h) + 58px);border-radius:20px 20px 0 0;max-height:calc(100vh - var(--header-h) - 58px);height:calc(100vh - var(--header-h) - 58px)}
+body[data-view="list"] .drawer-handle{display:none}
+body[data-view="list"] .fab-stack{display:none}
+@media (min-width:1024px){
+  .view-toggle{display:none} /* desktop shows both */
+}
+
+/* ===== Floating Action Buttons ===== */
+.fab-stack{position:fixed;right:14px;top:calc(var(--header-h) + 14px);z-index:500;display:flex;flex-direction:column;gap:10px}
+.fab{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s}
+.fab:hover{border-color:var(--brand);color:var(--brand);transform:scale(1.05)}
+.fab.near{background:var(--brand);color:#fff;border-color:var(--brand);width:auto;padding:0 18px;border-radius:22px;font-size:13px;font-weight:600;gap:6px}
+.fab.near:hover{background:var(--brand-dark);color:#fff}
+
+/* ===== Bottom Drawer (List) ===== */
+.drawer{position:fixed;left:0;right:0;bottom:0;z-index:700;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:80vh;display:flex;flex-direction:column}
+.drawer[data-state="peek"]{transform:translateY(calc(100% - 72px))}
+.drawer[data-state="half"]{transform:translateY(calc(100% - 48vh))}
+.drawer[data-state="full"]{transform:translateY(8vh)}
+.drawer-handle{flex-shrink:0;padding:8px 0 4px;text-align:center;cursor:grab;touch-action:none}
+.drawer-handle::before{content:'';display:inline-block;width:40px;height:4px;background:var(--border-strong);border-radius:2px}
+.drawer-hdr{flex-shrink:0;padding:6px 18px 12px;display:flex;align-items:center;justify-content:space-between}
+.drawer-hdr .count{font-weight:700;font-size:14px}
+.drawer-hdr .count small{font-weight:500;color:var(--text-mute);font-size:12px;margin-left:4px}
+.drawer-hdr .actions{display:flex;gap:6px}
+.drawer-hdr .chip{padding:6px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.drawer-hdr .chip:hover{border-color:var(--brand);color:var(--brand)}
+.drawer-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 18px calc(20px + var(--safe-bottom))}
+.venue-card{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.venue-card:last-child{border-bottom:none}
+.venue-card:hover{background:#fafaf7}
+.venue-card:hover .venue-name{color:var(--brand)}
+.venue-thumb{width:56px;height:56px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;position:relative;overflow:hidden}
+.venue-thumb::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.2),transparent)}
+.venue-info{flex:1;min-width:0}
+.venue-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-zh{font-size:12px;color:var(--text-mute);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft)}
+.venue-meta .rating{color:var(--brand);font-weight:600}
+.venue-meta .dot{color:var(--text-mute)}
+.empty{padding:40px 20px;text-align:center;color:var(--text-mute);font-size:14px}
+
+/* ===== Detail Overlay (bottom sheet, half-screen) ===== */
+.overlay{position:fixed;left:0;right:0;bottom:0;z-index:900;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);max-height:50vh;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.overlay.open{transform:translateY(0)}
+.overlay-hdr{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;padding:18px 18px 12px;gap:10px}
+.overlay-title{flex:1;min-width:0}
+.overlay-title h3{font-size:18px;font-weight:700;line-height:1.2;margin-bottom:4px}
+.overlay-title .zh{font-size:13px;color:var(--text-mute)}
+.overlay-close{width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-soft)}
+.overlay-body{flex:1;overflow-y:auto;padding:0 18px 20px}
+.detail-row{display:flex;gap:10px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--text-soft)}
+.detail-row .lbl{min-width:70px;font-weight:600;color:var(--text)}
+.overlay-actions{flex-shrink:0;padding:12px 18px calc(12px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:8px}
+.overlay-actions .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+.overlay-actions .btn-primary{background:var(--brand);color:#fff}
+.overlay-actions .btn-primary:hover{background:var(--brand-dark)}
+.overlay-actions .btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.overlay-actions .btn-secondary:hover{border-color:var(--brand);color:var(--brand)}
+.overlay-fav{width:44px;height:44px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:all .15s}
+.overlay-fav:hover{border-color:var(--brand)}
+.overlay-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.card-fav{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.9);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text-mute);z-index:2;transition:all .15s}
+.card-fav:hover{color:var(--brand);border-color:var(--brand)}
+.card-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.venue-thumb{position:relative}
+
+/* ===== Filter Drawer (slides from right) ===== */
+.filter-drawer{position:fixed;top:var(--header-h);right:0;bottom:0;width:min(360px,92vw);background:#fff;border-left:1px solid var(--border);box-shadow:-10px 0 40px rgba(0,0,0,.12);z-index:950;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;pointer-events:none}
+.filter-drawer.open{pointer-events:auto}
+.filter-drawer.open{transform:translateX(0)}
+.filter-hdr{flex-shrink:0;padding:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.filter-hdr h3{font-size:18px;font-weight:700}
+.filter-body{flex:1;overflow-y:auto;padding:20px}
+.filter-section{margin-bottom:24px}
+.filter-section h4{font-size:12px;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.cat-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:500;color:var(--text)}
+.cat-btn.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.cat-btn:not(.active):hover{border-color:var(--brand);color:var(--brand)}
+.cat-btn .emoji{font-size:16px}
+.cat-btn .count{margin-left:auto;font-size:11px;opacity:.75}
+.filter-footer{flex-shrink:0;padding:16px 20px calc(16px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:10px}
+.filter-footer .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600}
+.filter-footer .btn-clear{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.filter-footer .btn-apply{background:var(--brand);color:#fff}
+
+/* Gradient covers for thumbnails */
+.cat-theme_park{background:linear-gradient(135deg,#ff9a56,#ff6b9d)}
+.cat-zoo{background:linear-gradient(135deg,#22c55e,#059669)}
+.cat-aquarium{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-museum{background:linear-gradient(135deg,#8b5cf6,#4f46e5)}
+.cat-nature{background:linear-gradient(135deg,#84cc16,#15803d)}
+.cat-beach{background:linear-gradient(135deg,#38bdf8,#0ea5e9)}
+.cat-playground{background:linear-gradient(135deg,#fbbf24,#f97316)}
+.cat-indoor_play{background:linear-gradient(135deg,#a855f7,#7e22ce)}
+.cat-trampoline{background:linear-gradient(135deg,#ec4899,#be185d)}
+.cat-swim{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-climbing{background:linear-gradient(135deg,#f59e0b,#b45309)}
+.cat-karting{background:linear-gradient(135deg,#ef4444,#991b1b)}
+.cat-farm{background:linear-gradient(135deg,#a3e635,#65a30d)}
+.cat-attraction{background:linear-gradient(135deg,#fb923c,#c2410c)}
+.cat-theatre{background:linear-gradient(135deg,#d946ef,#86198f)}
+.cat-cinema{background:linear-gradient(135deg,#64748b,#334155)}
+.cat-ice_rink{background:linear-gradient(135deg,#60a5fa,#1d4ed8)}
+.cat-minigolf{background:linear-gradient(135deg,#10b981,#047857)}
+.cat-other{background:linear-gradient(135deg,#94a3b8,#475569)}
+.cat-castle{background:linear-gradient(135deg,#a78bfa,#6d28d9)}
+.cat-windmill{background:linear-gradient(135deg,#bae6fd,#0284c7)}
+.cat-escape{background:linear-gradient(135deg,#fdba74,#c2410c)}
+.cat-sports{background:linear-gradient(135deg,#fde047,#ca8a04)}
+.cat-restaurant{background:linear-gradient(135deg,#f87171,#b91c1c)}
+.cat-monument{background:linear-gradient(135deg,#d6d3d1,#57534e)}
+.cat-ship{background:linear-gradient(135deg,#67e8f9,#0e7490)}
+.cat-ruins{background:linear-gradient(135deg,#fde68a,#92400e)}
+
+/* Marker icons */
+.venue-marker{width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.leaflet-marker-icon.selected .venue-marker{transform:scale(1.2);border-width:4px}
+
+/* Cluster */
+.marker-cluster-small{background:rgba(201,100,66,.25)}
+.marker-cluster-small div{background:rgba(201,100,66,.8)}
+.marker-cluster-medium{background:rgba(201,100,66,.35)}
+.marker-cluster-medium div{background:rgba(201,100,66,.9)}
+.marker-cluster-large{background:rgba(201,100,66,.45)}
+.marker-cluster-large div{background:var(--brand)}
+.marker-cluster div{color:#fff;font-weight:700}
+
+@media (max-width:640px){
+  .hdr-brand span:not(.logo){display:none}
+  .drawer-hdr{padding:6px 14px 10px}
+  .drawer-body{padding:0 14px calc(20px + var(--safe-bottom))}
+  .cat-grid{grid-template-columns:1fr}
+}
+@media (min-width:1024px){
+  /* Desktop: drawer becomes sidebar */
+  .drawer{top:var(--header-h);right:auto;left:0;width:420px;max-width:420px;max-height:none;height:calc(100vh - var(--header-h));border-radius:0;border-right:1px solid var(--border);border-top:none;transform:translateX(0) !important;box-shadow:4px 0 24px rgba(0,0,0,.06)}
+  .drawer-handle{display:none}
+  #map{left:420px}
+  .overlay{left:auto;right:20px;bottom:20px;width:400px;max-width:calc(100vw - 440px);max-height:70vh;border-radius:20px;border:1px solid var(--border)}
+  .fab-stack{top:calc(var(--header-h) + 14px);right:14px}
+}
+
+/* ── AI CHAT WIDGET ────────────────────────────── */
+.chat-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--brand),#F39C12);color:#fff;border:none;box-shadow:0 4px 16px rgba(224,90,30,.4);cursor:pointer;font-size:24px;display:flex;align-items:center;justify-content:center;z-index:800;transition:transform .2s,box-shadow .2s}
+.chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 24px rgba(224,90,30,.5)}
+.chat-fab.hidden{display:none}
+.chat-panel{position:fixed;bottom:24px;right:24px;width:380px;max-height:520px;background:var(--surface);border-radius:18px;box-shadow:0 12px 48px rgba(26,43,74,.25);z-index:801;display:none;flex-direction:column;overflow:hidden}
+.chat-panel.open{display:flex}
+.chat-header{background:var(--navy,#1A2B4A);padding:14px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.chat-header-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--brand),#F39C12);border-radius:50%;display:grid;place-items:center;font-size:16px}
+.chat-header-text{flex:1;color:#fff;font-size:14px;font-weight:700}
+.chat-header-sub{color:rgba(255,255,255,.5);font-size:11px;font-weight:400}
+.chat-close{background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;padding:4px;transition:color .15s}
+.chat-close:hover{color:#fff}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:200px;max-height:340px}
+.chat-msg{max-width:88%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.5;word-break:break-word}
+.chat-msg.bot{background:var(--bg);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px}
+.chat-msg.user{background:var(--brand);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.chat-msg.bot a,.chat-msg.bot strong{color:var(--brand);font-weight:600}
+.chat-quick-actions{padding:0 16px 12px;display:flex;flex-wrap:wrap;gap:6px}
+.chat-quick-btn{padding:6px 12px;border-radius:999px;background:var(--brand-light,#FFF0E9);color:var(--brand);border:1px solid var(--brand);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+.chat-quick-btn:hover{background:var(--brand);color:#fff}
+.chat-input-area{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
+.chat-input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:999px;font-size:13px;font-family:inherit;color:var(--text);background:var(--bg)}
+.chat-input:focus{border-color:var(--brand);outline:none}
+.chat-send{width:36px;height:36px;border-radius:50%;background:var(--brand);color:#fff;border:none;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chat-send:hover{background:var(--brand-dark)}
+.chat-typing{display:flex;gap:4px;align-self:flex-start;padding:10px 14px}
+.chat-typing span{width:8px;height:8px;border-radius:50%;background:var(--border-strong);animation:chatBounce .6s infinite alternate}
+.chat-typing span:nth-child(2){animation-delay:.2s}
+.chat-typing span:nth-child(3){animation-delay:.4s}
+@keyframes chatBounce{to{transform:translateY(-6px);opacity:.4}}
+.chat-venue-chip{display:inline-block;padding:4px 10px;margin:3px 2px;border-radius:12px;background:var(--brand-light,#FFF0E9);color:var(--brand);font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent}
+.chat-venue-chip:hover{border-color:var(--brand)}
+@media(max-width:640px){.chat-panel{width:calc(100vw-24px);right:12px;bottom:12px;max-height:70vh}.chat-fab{bottom:90px;right:16px;width:50px;height:50px;font-size:22px}}
+
+</style>
+<meta name="keywords" content="Norway kids, family travel Norway, Oslo with kids, fjords family, 挪威亲子游, 挪威遛娃">
+<meta name="author" content="Nana Liu">
+<meta name="robots" content="index, follow">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Norway Kids Explorer",
+  "url": "https://kidsexplorer.eu/no-v2/",
+  "description": "Family-friendly venues across Norway",
+  "inLanguage": ["en", "zh"],
+  "isPartOf": {"@type": "WebSite", "name": "Kids Explorer", "url": "https://kidsexplorer.eu/"},
+  "about": {"@type": "Country", "name": "Norway"}
+}
+</script>
+</head>
+<body>
+
+<!-- Top Header -->
+<header class="hdr">
+  <a href="/" class="hdr-brand"><span class="logo">🌍</span><span>KidsExplorer</span></a>
+  <button class="hdr-country" onclick="openCountryPicker()">
+    <span class="flag">🇳🇴</span><span>NO</span><span style="opacity:.5">▾</span>
+  </button>
+  <div class="hdr-search">
+    <span class="icon">🔍</span>
+    <input id="search" placeholder="Search / 搜索…">
+  </div>
+  <button class="hdr-btn" id="lang-btn" onclick="toggleLang()" title="Language">中</button>
+  <button class="hdr-btn" onclick="openFilter()" title="Category">🏷️</button>
+</header>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- View Toggle (mobile only) -->
+<div class="view-toggle">
+  <button id="tog-map" class="active" onclick="setView('map')">🗺 Map</button>
+  <button id="tog-list" onclick="setView('list')">☰ List</button>
+</div>
+
+<!-- Floating Actions -->
+<div class="fab-stack">
+  <button class="fab near" onclick="locateMe()"><span>📍</span><span>Near me</span></button>
+  <button class="fab" onclick="zoomIn()">+</button>
+  <button class="fab" onclick="zoomOut()">−</button>
+</div>
+
+<!-- Bottom Drawer: Venue list -->
+<section class="drawer" id="drawer" data-state="peek">
+  <div class="drawer-handle" onclick="toggleDrawer()"></div>
+  <div class="drawer-hdr">
+    <div class="count"><span id="count">0</span> <small id="count-label">in view</small></div>
+    <div class="actions">
+      <button class="chip" id="favs-chip" onclick="toggleFavsOnly()">♡ Favs</button>
+      <button class="chip" onclick="openFilter()">🏷 Category</button>
+      <button class="chip" onclick="toggleSort()">↕ Sort</button>
+    </div>
+  </div>
+  <div class="drawer-body" id="list"></div>
+</section>
+
+<!-- Detail Overlay -->
+<aside class="overlay" id="overlay">
+  <div class="overlay-hdr">
+    <div class="overlay-title">
+      <h3 id="ov-name"></h3>
+      <div class="zh" id="ov-zh"></div>
+    </div>
+    <button class="overlay-close" onclick="closeOverlay()">×</button>
+  </div>
+  <div class="overlay-body" id="ov-body"></div>
+  <div class="overlay-actions">
+    <button class="overlay-fav" id="ov-fav" onclick="toggleFav()" title="Save to favorites">♡</button>
+    <a class="btn btn-secondary" id="ov-directions" target="_blank">🗺 Directions</a>
+    <a class="btn btn-primary" id="ov-website" target="_blank">🌐 Website</a>
+  </div>
+</aside>
+
+<!-- Filter Drawer -->
+<aside class="filter-drawer" id="filter">
+  <div class="filter-hdr">
+    <h3>Category</h3>
+    <button class="overlay-close" onclick="closeFilter()">×</button>
+  </div>
+  <div class="filter-body">
+    <div class="filter-section">
+      <h4>Category</h4>
+      <div class="cat-grid" id="cat-grid"></div>
+    </div>
+  </div>
+  <div class="filter-footer">
+    <button class="btn btn-clear" onclick="clearFilter()">Clear</button>
+    <button class="btn btn-apply" onclick="closeFilter()">Show results</button>
+  </div>
+</aside>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+const STATIC_NO_VENUES = [
+{type:'node',id:2001,lat:59.9139,lon:10.7522,tags:{nameZh:'奥斯陆弗罗格纳公园',name:'Vigeland Sculpture Park Oslo',tourism:'attraction',website:'https://www.vigeland.museum.no','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'34521'}},
+{type:'node',id:2002,lat:59.9171,lon:10.7276,tags:{nameZh:'奥斯陆阿克苏斯城堡',name:'Akershus Fortress Oslo',tourism:'museum',website:'https://www.forsvarsbygg.no','addr:city':'Oslo',opening_hours:'Mo-Su 08:00-21:00',rating:'4.4',reviews:'18342'}},
+{type:'node',id:2003,lat:59.9095,lon:10.7230,tags:{nameZh:'奥斯陆歌剧院',name:'Oslo Opera House',tourism:'attraction',website:'https://www.operaen.no','addr:city':'Oslo',opening_hours:'Mo-Fr 10:00-20:00, Sa-Su 11:00-18:00',rating:'4.6',reviews:'28431'}},
+{type:'node',id:2004,lat:59.9025,lon:10.6971,tags:{nameZh:'奥斯陆弗兰姆博物馆',name:'Fram Museum Oslo',tourism:'museum',website:'https://www.frammuseum.no','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'14231'}},
+{type:'node',id:2005,lat:59.9019,lon:10.6953,tags:{nameZh:'奥斯陆康提基博物馆',name:'Kon-Tiki Museum Oslo',tourism:'museum',website:'https://www.kon-tiki.no','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'12841'}},
+{type:'node',id:2006,lat:59.9271,lon:10.6994,tags:{nameZh:'奥斯陆动物园',name:'Oslo Zoo Frognerparken',tourism:'zoo','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.1',reviews:'8421'}},
+{type:'node',id:2007,lat:59.9290,lon:10.7350,tags:{nameZh:'奥斯陆自然历史博物馆',name:'Natural History Museum Oslo',tourism:'museum',website:'https://www.nhm.uio.no','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-16:00',rating:'4.3',reviews:'7842'}},
+{type:'node',id:2008,lat:59.8933,lon:10.6253,tags:{nameZh:'科伦水上乐园',name:'Tusenfryd Amusement Park',tourism:'theme_park',website:'https://www.tusenfryd.no','addr:city':'Vinterbro',opening_hours:'Mo-Su 10:00-18:00 (seasonal)',rating:'4.2',reviews:'24312'}},
+{type:'node',id:2009,lat:59.9202,lon:10.7251,tags:{nameZh:'奥斯陆儿童艺术博物馆',name:'International Children\'s Art Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.2',reviews:'3421'}},
+{type:'node',id:2010,lat:59.9082,lon:10.7603,tags:{nameZh:'奥斯陆市政厅',name:'Oslo City Hall',tourism:'museum',website:'https://www.oslo.kommune.no','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-18:00',rating:'4.1',reviews:'12341'}},
+{type:'node',id:2011,lat:59.8739,lon:10.5938,tags:{nameZh:'奥斯陆冬季公园',name:'Slottsfjell Oslo Ski Area',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-17:00 (winter)',rating:'4.3',reviews:'6842'}},
+{type:'node',id:2012,lat:59.9148,lon:10.7553,tags:{nameZh:'奥斯陆儿童游乐场',name:'Spikersuppa Playground Oslo',tourism:'playground','addr:city':'Oslo',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'3241'}},
+{type:'node',id:2013,lat:59.9043,lon:10.7182,tags:{nameZh:'奥斯陆室内游乐中心',name:'Eventyrland Indoor Play Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-19:00',rating:'4.1',reviews:'4521'}},
+{type:'node',id:2014,lat:59.9219,lon:10.6947,tags:{nameZh:'奥斯陆游泳中心',name:'Frognerbadet Swimming Pool Oslo',tourism:'swimming_pool',website:'https://www.oslo.kommune.no','addr:city':'Oslo',opening_hours:'Mo-Su 07:00-20:00 (seasonal)',rating:'4.3',reviews:'8421'}},
+{type:'node',id:2015,lat:59.9088,lon:10.7469,tags:{nameZh:'奥斯陆密室逃脱',name:'Escape Oslo',tourism:'escape_room',website:'https://www.escape.no','addr:city':'Oslo',opening_hours:'Mo-Su 11:00-23:00',rating:'4.5',reviews:'3241'}},
+{type:'node',id:2016,lat:59.9131,lon:10.7497,tags:{nameZh:'奥斯陆保龄球',name:'Bowlero Oslo',tourism:'bowling','addr:city':'Oslo',opening_hours:'Mo-Su 12:00-24:00',rating:'4.0',reviews:'2841'}},
+{type:'node',id:2017,lat:59.9264,lon:10.7177,tags:{nameZh:'奥斯陆科技博物馆',name:'Norwegian Museum of Science and Technology',tourism:'science_center',website:'https://www.tekniskmuseum.no','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'9821'}},
+{type:'node',id:2018,lat:59.9133,lon:10.7596,tags:{nameZh:'奥斯陆国家剧院',name:'National Theatre Oslo',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Sa 10:00-20:00',rating:'4.4',reviews:'7342'}},
+{type:'node',id:2019,lat:59.9089,lon:10.7282,tags:{nameZh:'奥斯陆海盗船博物馆',name:'Viking Ship Museum Oslo',tourism:'museum',website:'https://www.khm.uio.no','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-18:00',rating:'4.7',reviews:'32841'}},
+{type:'node',id:2020,lat:59.9118,lon:10.7334,tags:{nameZh:'奥斯陆民俗博物馆',name:'Norwegian Folk Museum Oslo',tourism:'museum',website:'https://www.norskfolkemuseum.no','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'14321'}},
+{type:'node',id:2021,lat:59.9283,lon:10.7521,tags:{nameZh:'圣母玛利亚公园游乐场',name:'Olaf Ryes Plass Playground Oslo',tourism:'playground','addr:city':'Oslo',opening_hours:'Mo-Su 07:00-22:00',rating:'4.0',reviews:'1842'}},
+{type:'node',id:2022,lat:59.9394,lon:10.7282,tags:{nameZh:'奥斯陆儿童农场',name:'Tiurleiken Children\'s Farm Oslo',tourism:'children_farm','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.2',reviews:'2341'}},
+{type:'node',id:2023,lat:59.9183,lon:10.7327,tags:{nameZh:'奥斯陆皇宫公园',name:'Palace Park Oslo',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'12341'}},
+{type:'node',id:2024,lat:59.9451,lon:10.6183,tags:{nameZh:'霍尔门科伦滑雪博物馆',name:'Holmenkollen Ski Museum',tourism:'museum',website:'https://www.holmenkollen.com','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'18342'}},
+{type:'node',id:2025,lat:59.9462,lon:10.6199,tags:{nameZh:'霍尔门科伦滑雪跳台',name:'Holmenkollen Ski Jump Tower',tourism:'attraction',website:'https://www.holmenkollen.com','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'22341'}},
+{type:'node',id:2026,lat:60.3929,lon:5.3221,tags:{nameZh:'卑尔根布里根',name:'Bryggen Wharf Bergen',tourism:'attraction',website:'https://www.visitbergen.com','addr:city':'Bergen',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'42341'}},
+{type:'node',id:2027,lat:60.3981,lon:5.3286,tags:{nameZh:'卑尔根水族馆',name:'Bergen Aquarium',tourism:'aquarium',website:'https://www.akvariet.no','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'14321'}},
+{type:'node',id:2028,lat:60.3950,lon:5.3270,tags:{nameZh:'卑尔根弗洛伊恩山缆车',name:'Fløibanen Funicular Bergen',tourism:'attraction',website:'https://www.floibanen.no','addr:city':'Bergen',opening_hours:'Mo-Su 07:30-23:00',rating:'4.8',reviews:'34521'}},
+{type:'node',id:2029,lat:60.3902,lon:5.3262,tags:{nameZh:'卑尔根汉萨博物馆',name:'Hanseatic Museum Bergen',tourism:'museum',website:'https://www.khm.uio.no','addr:city':'Bergen',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'8342'}},
+{type:'node',id:2030,lat:60.3866,lon:5.3307,tags:{nameZh:'卑尔根儿童博物馆',name:'Children\'s Museum Bergen',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2031,lat:60.3876,lon:5.3315,tags:{nameZh:'卑尔根自然历史博物馆',name:'University Museum of Bergen',tourism:'museum',website:'https://www.uib.no/en/universitymuseum','addr:city':'Bergen',opening_hours:'Tu-Su 11:00-15:00',rating:'4.3',reviews:'5421'}},
+{type:'node',id:2032,lat:60.4072,lon:5.3146,tags:{nameZh:'卑尔根游泳中心',name:'Fana Swim Club Bergen',tourism:'swimming_pool','addr:city':'Bergen',opening_hours:'Mo-Fr 07:00-21:00, Sa-Su 09:00-18:00',rating:'4.1',reviews:'2841'}},
+{type:'node',id:2033,lat:60.3938,lon:5.3274,tags:{nameZh:'卑尔根室内游乐场',name:'VilVite Bergen Science Center',tourism:'science_center',website:'https://www.vilvite.no','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'9841'}},
+{type:'node',id:2034,lat:60.4014,lon:5.3181,tags:{nameZh:'卑尔根密室逃脱',name:'Escape Bergen',tourism:'escape_room','addr:city':'Bergen',opening_hours:'Mo-Su 11:00-22:00',rating:'4.4',reviews:'2341'}},
+{type:'node',id:2035,lat:60.3921,lon:5.3242,tags:{nameZh:'卑尔根儿童游乐场',name:'Verftet Playground Bergen',tourism:'playground','addr:city':'Bergen',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'1842'}},
+{type:'node',id:2036,lat:63.4297,lon:10.3930,tags:{nameZh:'特隆赫姆尼达罗斯大教堂',name:'Nidaros Cathedral Trondheim',tourism:'museum',website:'https://www.nidarosdomen.no','addr:city':'Trondheim',opening_hours:'Mo-Fr 09:00-18:00, Sa 09:00-14:00, Su 13:00-16:00',rating:'4.7',reviews:'24321'}},
+{type:'node',id:2037,lat:63.4265,lon:10.3811,tags:{nameZh:'特隆赫姆自然历史博物馆',name:'NTNU Natural History Museum Trondheim',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2038,lat:63.4285,lon:10.3967,tags:{nameZh:'特隆赫姆科技博物馆',name:'Vitenskapsmuseet Trondheim',tourism:'science_center','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-16:00',rating:'4.3',reviews:'5421'}},
+{type:'node',id:2039,lat:63.4322,lon:10.4019,tags:{nameZh:'特隆赫姆游乐场',name:'Lerkendal Park Playground Trondheim',tourism:'playground','addr:city':'Trondheim',opening_hours:'Mo-Su 07:00-22:00',rating:'3.9',reviews:'1241'}},
+{type:'node',id:2040,lat:63.4239,lon:10.3869,tags:{nameZh:'特隆赫姆儿童乐园',name:'Trondheim Children\'s Museum',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-16:00',rating:'4.1',reviews:'3241'}},
+{type:'node',id:2041,lat:63.4411,lon:10.4100,tags:{nameZh:'特隆赫姆游泳馆',name:'Pirbadet Aquapark Trondheim',tourism:'swimming_pool',website:'https://www.pirbadet.no','addr:city':'Trondheim',opening_hours:'Mo-Fr 07:00-21:30, Sa-Su 09:00-18:00',rating:'4.4',reviews:'7841'}},
+{type:'node',id:2042,lat:63.4294,lon:10.3944,tags:{nameZh:'特隆赫姆密室逃脱',name:'Epic Escape Trondheim',tourism:'escape_room','addr:city':'Trondheim',opening_hours:'Mo-Su 12:00-22:00',rating:'4.4',reviews:'2341'}},
+{type:'node',id:2043,lat:63.4307,lon:10.3973,tags:{nameZh:'特隆赫姆保龄球',name:'Bolgen Bowling Trondheim',tourism:'bowling','addr:city':'Trondheim',opening_hours:'Mo-Su 12:00-24:00',rating:'4.0',reviews:'2141'}},
+{type:'node',id:2044,lat:58.9700,lon:5.7328,tags:{nameZh:'斯塔万格罐头食品博物馆',name:'Norwegian Canning Museum Stavanger',tourism:'museum',website:'https://www.saf-museum.no','addr:city':'Stavanger',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'6341'}},
+{type:'node',id:2045,lat:58.9744,lon:5.7310,tags:{nameZh:'斯塔万格石油博物馆',name:'Norwegian Petroleum Museum Stavanger',tourism:'museum',website:'https://www.norskolje.museum.no','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'18342'}},
+{type:'node',id:2046,lat:58.9760,lon:5.7283,tags:{nameZh:'斯塔万格儿童博物馆',name:'Stavanger Children\'s Museum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 11:00-16:00',rating:'4.1',reviews:'3421'}},
+{type:'node',id:2047,lat:58.9822,lon:5.7419,tags:{nameZh:'斯塔万格游泳馆',name:'Stavanger Aquapark',tourism:'swimming_pool','addr:city':'Stavanger',opening_hours:'Mo-Fr 07:00-21:00, Sa-Su 09:00-18:00',rating:'4.2',reviews:'4341'}},
+{type:'node',id:2048,lat:58.9701,lon:5.7364,tags:{nameZh:'斯塔万格老城',name:'Stavanger Old Town',tourism:'attraction','addr:city':'Stavanger',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'14321'}},
+{type:'node',id:2049,lat:58.9750,lon:5.7350,tags:{nameZh:'斯塔万格儿童游乐场',name:'Mosvatnet Park Playground Stavanger',tourism:'playground','addr:city':'Stavanger',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'1841'}},
+{type:'node',id:2050,lat:58.9670,lon:5.7241,tags:{nameZh:'斯塔万格动物园',name:'Stavanger Zoo',tourism:'zoo','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-17:00',rating:'4.1',reviews:'5341'}},
+{type:'node',id:2051,lat:58.9718,lon:5.7312,tags:{nameZh:'斯塔万格科技博物馆',name:'Vitenfabrikken Science Center Stavanger',tourism:'science_center','addr:city':'Stavanger',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'7842'}},
+{type:'node',id:2052,lat:58.9688,lon:5.7397,tags:{nameZh:'斯塔万格密室逃脱',name:'Stavanger Escape Room',tourism:'escape_room','addr:city':'Stavanger',opening_hours:'Mo-Su 11:00-22:00',rating:'4.4',reviews:'1841'}},
+{type:'node',id:2053,lat:59.9120,lon:10.7513,tags:{nameZh:'奥斯陆波佩萨游泳池',name:'Tøyenbadet Outdoor Pool Oslo',tourism:'swimming_pool','addr:city':'Oslo',opening_hours:'Mo-Su 07:00-20:00 (seasonal)',rating:'4.1',reviews:'6342'}},
+{type:'node',id:2054,lat:59.9283,lon:10.7191,tags:{nameZh:'奥斯陆儿童科学馆',name:'VitenParken Science Center Oslo',tourism:'science_center','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'8342'}},
+{type:'node',id:2055,lat:59.9153,lon:10.7582,tags:{nameZh:'奥斯陆港口游船',name:'Oslo Fjord Cruise',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'12841'}},
+{type:'node',id:2056,lat:59.9181,lon:10.7431,tags:{nameZh:'奥斯陆蹦床公园',name:'Airborne Trampoline Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-21:00',rating:'4.3',reviews:'5421'}},
+{type:'node',id:2057,lat:59.9051,lon:10.7344,tags:{nameZh:'奥斯陆儿童博物馆',name:'Norwegian Children\'s Museum',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-16:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2058,lat:59.9341,lon:10.7283,tags:{nameZh:'奥斯陆自然保护区',name:'Ekebergparken Nature Oslo',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'9341'}},
+{type:'node',id:2059,lat:59.9061,lon:10.7181,tags:{nameZh:'奥斯陆中国城餐厅',name:'China Garden Oslo',amenity:'chinese_restaurant','addr:city':'Oslo',opening_hours:'Mo-Su 12:00-22:00',rating:'4.0',reviews:'2341'}},
+{type:'node',id:2060,lat:59.9091,lon:10.7211,tags:{nameZh:'奥斯陆龙宫',name:'Dragon Palace Oslo',amenity:'chinese_restaurant','addr:city':'Oslo',opening_hours:'Mo-Su 12:00-22:00',rating:'4.1',reviews:'1841'}},
+{type:'node',id:2061,lat:59.9073,lon:10.7291,tags:{nameZh:'奥斯陆自助餐',name:'Asian Buffet Oslo',amenity:'buffet_restaurant','addr:city':'Oslo',opening_hours:'Mo-Su 11:00-22:00',rating:'3.9',reviews:'2141'}},
+{type:'node',id:2062,lat:60.3982,lon:5.3243,tags:{nameZh:'卑尔根蹦床公园',name:'Jump Bergen Trampoline',tourism:'indoor_play','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-21:00',rating:'4.2',reviews:'3421'}},
+{type:'node',id:2063,lat:60.3938,lon:5.3192,tags:{nameZh:'卑尔根儿童农场',name:'Gullgruven Children\'s Farm Bergen',tourism:'children_farm','addr:city':'Bergen',opening_hours:'Sa-Su 10:00-17:00',rating:'4.1',reviews:'1841'}},
+{type:'node',id:2064,lat:60.4041,lon:5.3122,tags:{nameZh:'卑尔根保龄球',name:'Alrek Bowling Bergen',tourism:'bowling','addr:city':'Bergen',opening_hours:'Mo-Su 12:00-24:00',rating:'3.9',reviews:'2341'}},
+{type:'node',id:2065,lat:69.6492,lon:18.9553,tags:{nameZh:'特罗姆瑟北极博物馆',name:'Polar Museum Tromsø',tourism:'museum',website:'https://www.uit.no/polarmuseum','addr:city':'Tromsø',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'8342'}},
+{type:'node',id:2066,lat:69.6476,lon:18.9589,tags:{nameZh:'特罗姆瑟北极星缆车',name:'Fjellheisen Cable Car Tromsø',tourism:'attraction',website:'https://www.fjellheisen.no','addr:city':'Tromsø',opening_hours:'Mo-Su 10:00-23:00',rating:'4.7',reviews:'22341'}},
+{type:'node',id:2067,lat:69.6521,lon:18.9411,tags:{nameZh:'特罗姆瑟北极水族馆',name:'Polaria Arctic Aquarium Tromsø',tourism:'aquarium',website:'https://www.polaria.no','addr:city':'Tromsø',opening_hours:'Mo-Su 10:00-19:00',rating:'4.5',reviews:'12341'}},
+{type:'node',id:2068,lat:69.6556,lon:18.9638,tags:{nameZh:'特罗姆瑟科学中心',name:'Tromsø Science Centre',tourism:'science_center','addr:city':'Tromsø',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'5421'}},
+{type:'node',id:2069,lat:69.6473,lon:18.9633,tags:{nameZh:'特罗姆瑟儿童游乐场',name:'Storgata Playground Tromsø',tourism:'playground','addr:city':'Tromsø',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'1241'}},
+{type:'node',id:2070,lat:69.6541,lon:18.9521,tags:{nameZh:'特罗姆瑟游泳馆',name:'Tromsø Aquatics Center',tourism:'swimming_pool','addr:city':'Tromsø',opening_hours:'Mo-Fr 07:00-21:00, Sa-Su 09:00-18:00',rating:'4.2',reviews:'3421'}},
+{type:'node',id:2071,lat:59.9200,lon:10.7380,tags:{nameZh:'奥斯陆卡尔约翰购物广场',name:'Karl Johans Gate Oslo',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'18342'}},
+{type:'node',id:2072,lat:59.9139,lon:10.7612,tags:{nameZh:'奥斯陆弗耶尔博格海滩',name:'Sørenga Seawater Pool Oslo',tourism:'swimming_pool','addr:city':'Oslo',opening_hours:'Mo-Su 08:00-21:00 (seasonal)',rating:'4.4',reviews:'9341'}},
+{type:'node',id:2073,lat:59.9153,lon:10.7294,tags:{nameZh:'奥斯陆儿童室内游乐',name:'Kiddie Land Indoor Play Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-19:00',rating:'4.0',reviews:'3421'}},
+{type:'node',id:2074,lat:60.3862,lon:5.3211,tags:{nameZh:'卑尔根马里亚博物馆',name:'KODE Art Museums Bergen',tourism:'museum',website:'https://www.kodebergen.no','addr:city':'Bergen',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'6841'}},
+{type:'node',id:2075,lat:60.3932,lon:5.3173,tags:{nameZh:'卑尔根游乐场',name:'Nygårdsparken Playground Bergen',tourism:'playground','addr:city':'Bergen',opening_hours:'Mo-Su 08:00-22:00',rating:'4.1',reviews:'1841'}},
+{type:'node',id:2076,lat:63.4287,lon:10.3941,tags:{nameZh:'特隆赫姆蹦床公园',name:'Jump Zone Trampoline Trondheim',tourism:'indoor_play','addr:city':'Trondheim',opening_hours:'Mo-Su 10:00-21:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2077,lat:63.4213,lon:10.3921,tags:{nameZh:'特隆赫姆儿童农场',name:'Sverresborg Children\'s Farm Trondheim',tourism:'children_farm','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'2341'}},
+{type:'node',id:2078,lat:63.4379,lon:10.4089,tags:{nameZh:'特隆赫姆自然公园',name:'Lerkendal Nature Park Trondheim',tourism:'nature_park','addr:city':'Trondheim',opening_hours:'Mo-Su 07:00-22:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2079,lat:58.9742,lon:5.7288,tags:{nameZh:'斯塔万格保龄球',name:'Bowlero Stavanger',tourism:'bowling','addr:city':'Stavanger',opening_hours:'Mo-Su 12:00-24:00',rating:'4.0',reviews:'1841'}},
+{type:'node',id:2080,lat:58.9698,lon:5.7310,tags:{nameZh:'斯塔万格蹦床公园',name:'Air Time Trampoline Stavanger',tourism:'indoor_play','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-21:00',rating:'4.2',reviews:'3421'}},
+{type:'node',id:2081,lat:59.9083,lon:10.7478,tags:{nameZh:'奥斯陆阿斯特鲁普费纳利现代艺术博物馆',name:'Astrup Fearnley Museum Oslo',tourism:'museum',website:'https://www.afmuseet.no','addr:city':'Oslo',opening_hours:'Tu-Su 12:00-17:00',rating:'4.3',reviews:'7841'}},
+{type:'node',id:2082,lat:59.9172,lon:10.7548,tags:{nameZh:'奥斯陆国家历史博物馆',name:'Museum of Cultural History Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-16:00',rating:'4.4',reviews:'9841'}},
+{type:'node',id:2083,lat:59.9294,lon:10.7471,tags:{nameZh:'奥斯陆自然历史公园',name:'Botanisk Hage Oslo',tourism:'nature_park',website:'https://www.nhm.uio.no','addr:city':'Oslo',opening_hours:'Mo-Su 07:00-21:00',rating:'4.3',reviews:'8341'}},
+{type:'node',id:2084,lat:59.9183,lon:10.7282,tags:{nameZh:'奥斯陆儿童科技馆',name:'Teknisk Museum Kids Workshop Oslo',tourism:'science_center','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'7341'}},
+{type:'node',id:2085,lat:60.3948,lon:5.3211,tags:{nameZh:'卑尔根儿童室内游乐',name:'Mini Zoo Indoor Play Bergen',tourism:'indoor_play','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-19:00',rating:'4.1',reviews:'2841'}},
+{type:'node',id:2086,lat:60.3913,lon:5.3289,tags:{nameZh:'卑尔根史前博物馆',name:'Bergen Museum of Natural History',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2087,lat:58.9733,lon:5.7331,tags:{nameZh:'斯塔万格蝴蝶农场',name:'Stavanger Butterfly Farm',tourism:'children_farm','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-17:00 (seasonal)',rating:'4.3',reviews:'4321'}},
+{type:'node',id:2088,lat:59.9219,lon:10.7519,tags:{nameZh:'奥斯陆游艇码头',name:'Aker Brygge Oslo Waterfront',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'18341'}},
+{type:'node',id:2089,lat:63.4341,lon:10.4056,tags:{nameZh:'特隆赫姆儿童游乐场',name:'Marinen Playground Trondheim',tourism:'playground','addr:city':'Trondheim',opening_hours:'Mo-Su 07:00-22:00',rating:'4.0',reviews:'1241'}},
+{type:'node',id:2090,lat:60.3871,lon:5.3231,tags:{nameZh:'卑尔根自然保护区',name:'Ulriken Nature Reserve Bergen',tourism:'nature_park','addr:city':'Bergen',opening_hours:'Mo-Su 08:00-21:00',rating:'4.5',reviews:'12341'}},
+{type:'node',id:2091,lat:59.9241,lon:10.7422,tags:{nameZh:'奥斯陆蒙克博物馆',name:'Munch Museum Oslo',tourism:'museum',website:'https://www.munchmuseet.no','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-21:00',rating:'4.4',reviews:'14321'}},
+{type:'node',id:2092,lat:59.9198,lon:10.7311,tags:{nameZh:'奥斯陆北欧食品博物馆',name:'Norwegian Food Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-16:00',rating:'4.1',reviews:'3421'}},
+{type:'node',id:2093,lat:60.4021,lon:5.3211,tags:{nameZh:'卑尔根保龄球联盟',name:'Bowling Alliance Bergen',tourism:'bowling','addr:city':'Bergen',opening_hours:'Mo-Su 12:00-24:00',rating:'4.0',reviews:'1841'}},
+{type:'node',id:2094,lat:58.9679,lon:5.7372,tags:{nameZh:'斯塔万格艺术博物馆',name:'Stavanger Art Museum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'5321'}},
+{type:'node',id:2095,lat:59.9102,lon:10.7223,tags:{nameZh:'奥斯陆地下室内游乐',name:'Adventure House Indoor Play Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-19:00',rating:'4.1',reviews:'3141'}},
+{type:'node',id:2096,lat:63.4259,lon:10.3889,tags:{nameZh:'特隆赫姆科技园',name:'Gråmølna Science Park Trondheim',tourism:'science_center','addr:city':'Trondheim',opening_hours:'Mo-Su 09:00-17:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2097,lat:59.9284,lon:10.7312,tags:{nameZh:'奥斯陆体育博物馆',name:'Norwegian Sports Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-16:00',rating:'4.0',reviews:'3421'}},
+{type:'node',id:2098,lat:60.3989,lon:5.3323,tags:{nameZh:'卑尔根峡湾游船',name:'Hardangerfjord Cruise Bergen',tourism:'attraction','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-18:00 (seasonal)',rating:'4.8',reviews:'28341'}},
+{type:'node',id:2099,lat:59.9041,lon:10.6912,tags:{nameZh:'奥斯陆阿斯克尔儿童农场',name:'Asker Children\'s Farm',tourism:'children_farm','addr:city':'Asker',opening_hours:'We-Su 10:00-17:00',rating:'4.3',reviews:'3421'}},
+{type:'node',id:2100,lat:59.9118,lon:10.7381,tags:{nameZh:'奥斯陆城市博物馆',name:'Oslo City Museum',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-16:00',rating:'4.1',reviews:'4321'}},
+{type:'node',id:2101,lat:59.9162,lon:10.7452,tags:{nameZh:'奥斯陆国家美术馆',name:'National Museum Oslo',tourism:'museum',website:'https://www.nasjonalmuseet.no','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-20:00',rating:'4.6',reviews:'22341'}},
+{type:'node',id:2102,lat:60.3900,lon:5.3280,tags:{nameZh:'卑尔根挪威民间博物馆',name:'Gamle Bergen Museum',tourism:'museum','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'7841'}},
+{type:'node',id:2103,lat:63.4202,lon:10.3956,tags:{nameZh:'特隆赫姆古城博物馆',name:'Nidaros Cathedral Museum',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-16:00',rating:'4.4',reviews:'6341'}},
+{type:'node',id:2104,lat:58.9631,lon:5.7319,tags:{nameZh:'斯塔万格游乐场',name:'Byparken Playground Stavanger',tourism:'playground','addr:city':'Stavanger',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'1841'}},
+{type:'node',id:2105,lat:59.9228,lon:10.7491,tags:{nameZh:'奥斯陆蜡像馆',name:'Wax Museum Oslo',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'3.9',reviews:'4321'}},
+{type:'node',id:2106,lat:59.9059,lon:10.7541,tags:{nameZh:'奥斯陆峡湾探险',name:'Oslo Fjord Adventure',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-18:00 (seasonal)',rating:'4.5',reviews:'8341'}},
+{type:'node',id:2107,lat:60.3963,lon:5.3196,tags:{nameZh:'卑尔根自然探险公园',name:'Espehaugen Nature Park Bergen',tourism:'nature_park','addr:city':'Bergen',opening_hours:'Mo-Su 08:00-20:00',rating:'4.3',reviews:'4321'}},
+{type:'node',id:2108,lat:63.4321,lon:10.3889,tags:{nameZh:'特隆赫姆儿童乐园',name:'Fun Factory Indoor Play Trondheim',tourism:'indoor_play','addr:city':'Trondheim',opening_hours:'Mo-Su 10:00-19:00',rating:'4.1',reviews:'3241'}},
+{type:'node',id:2109,lat:58.9779,lon:5.7241,tags:{nameZh:'斯塔万格儿童博物馆',name:'Stavanger Museum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 11:00-16:00',rating:'4.3',reviews:'5421'}},
+{type:'node',id:2110,lat:59.9053,lon:10.7273,tags:{nameZh:'奥斯陆博物馆岛',name:'Bygdøy Museum Peninsula Oslo',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'22341'}},
+
+{type:'node',id:5801,lat:59.9145,lon:10.7523,tags:{nameZh:'奥斯陆攀岩中心',name:'Climbing Centre Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-22:00',rating:'4.5',reviews:'9200'}},
+{type:'node',id:5802,lat:59.9278,lon:10.7389,tags:{nameZh:'奥斯陆冰场',name:'Ice Rink Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-21:00',rating:'4.4',reviews:'12000'}},
+{type:'node',id:5803,lat:59.9034,lon:10.7678,tags:{nameZh:'奥斯陆VR体验馆',name:'VR Zone Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'7200'}},
+{type:'node',id:5804,lat:59.9367,lon:10.7289,tags:{nameZh:'奥斯陆卡丁车',name:'Indoor Karting Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'6800'}},
+{type:'node',id:5805,lat:59.9189,lon:10.7512,tags:{nameZh:'奥斯陆儿童戏剧',name:'Children\'s Theatre Oslo',tourism:'attraction','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'6200'}},
+{type:'node',id:5806,lat:59.9056,lon:10.7623,tags:{nameZh:'奥斯陆逃脱密室2',name:'Escape Room 2 Oslo',tourism:'escape_room','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'5800'}},
+{type:'node',id:5807,lat:59.9312,lon:10.7178,tags:{nameZh:'奥斯陆体验博物馆',name:'Immersive Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-20:00',rating:'4.5',reviews:'11000'}},
+{type:'node',id:5808,lat:59.9445,lon:10.7445,tags:{nameZh:'奥斯陆机器人实验室',name:'Robot Lab Oslo Kids',tourism:'science_center','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'6700'}},
+{type:'node',id:5809,lat:59.9134,lon:10.7756,tags:{nameZh:'奥斯陆恐龙博物馆',name:'Dino Experience Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'9200'}},
+{type:'node',id:5810,lat:59.9256,lon:10.7634,tags:{nameZh:'奥斯陆高绳索公园',name:'High Ropes Course Oslo',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'7800'}},
+{type:'node',id:5811,lat:59.9178,lon:10.7389,tags:{nameZh:'奥斯陆fjord游船',name:'Oslofjord Family Cruise',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'18000'}},
+{type:'node',id:5812,lat:59.9423,lon:10.7223,tags:{nameZh:'奥斯陆滑雪博物馆',name:'Ski Museum Oslo',tourism:'museum',website:'https://www.skiforeningen.no','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'7800'}},
+{type:'node',id:5813,lat:59.9089,lon:10.7834,tags:{nameZh:'奥斯陆自然探索',name:'Oslo Nature Discovery Centre',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'8900'}},
+{type:'node',id:5814,lat:59.9234,lon:10.7567,tags:{nameZh:'奥斯陆儿童农场',name:'City Farm Oslo',tourism:'children_farm','addr:city':'Oslo',opening_hours:'Sa-Su 09:00-17:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:5815,lat:59.9456,lon:10.7134,tags:{nameZh:'奥斯陆激光枪战',name:'Laser Zone Oslo',tourism:'indoor_play','addr:city':'Oslo',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'6200'}},
+{type:'node',id:5816,lat:60.3934,lon:5.3245,tags:{nameZh:'卑尔根攀岩中心',name:'Climbing Centre Bergen',tourism:'indoor_play','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-22:00',rating:'4.4',reviews:'6200'}},
+{type:'node',id:5817,lat:60.3789,lon:5.3378,tags:{nameZh:'卑尔根VR体验馆',name:'VR Experience Bergen',tourism:'indoor_play','addr:city':'Bergen',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'4800'}},
+{type:'node',id:5818,lat:60.4012,lon:5.3156,tags:{nameZh:'卑尔根峡湾游船',name:'Fjord Cruise Bergen Families',tourism:'nature_park','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-17:00',rating:'4.8',reviews:'22000'}},
+{type:'node',id:5819,lat:60.3867,lon:5.3489,tags:{nameZh:'卑尔根冒险公园',name:'Adventure Park Bergen',tourism:'nature_park','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'7800'}},
+{type:'node',id:5820,lat:60.3734,lon:5.3312,tags:{nameZh:'卑尔根儿童博物馆',name:'Children\'s Museum Bergen',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'6700'}},
+{type:'node',id:5821,lat:60.3945,lon:5.3223,tags:{nameZh:'卑尔根逃脱密室',name:'Escape Room Bergen',tourism:'escape_room','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-22:00',rating:'4.4',reviews:'5200'}},
+{type:'node',id:5822,lat:60.3812,lon:5.3578,tags:{nameZh:'卑尔根儿童农场',name:'Farm Bergen',tourism:'children_farm','addr:city':'Bergen',opening_hours:'Sa-Su 09:00-17:00',rating:'4.3',reviews:'3800'}},
+{type:'node',id:5823,lat:60.3678,lon:5.3145,tags:{nameZh:'卑尔根水族馆',name:'Bergen Aquarium Marine Activities',tourism:'aquarium','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'14000'}},
+{type:'node',id:5824,lat:63.4312,lon:10.3978,tags:{nameZh:'特隆赫姆冒险公园',name:'Adventure Forest Trondheim',tourism:'nature_park','addr:city':'Trondheim',opening_hours:'Mo-Su 09:00-19:00',rating:'4.4',reviews:'6700'}},
+{type:'node',id:5825,lat:63.4189,lon:10.4123,tags:{nameZh:'特隆赫姆VR体验馆',name:'VR Zone Trondheim',tourism:'indoor_play','addr:city':'Trondheim',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'4800'}},
+{type:'node',id:5826,lat:63.4456,lon:10.3834,tags:{nameZh:'特隆赫姆攀岩中心',name:'Climbing Centre Trondheim',tourism:'indoor_play','addr:city':'Trondheim',opening_hours:'Mo-Su 09:00-22:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:5827,lat:63.4267,lon:10.4245,tags:{nameZh:'特隆赫姆儿童博物馆',name:'Children\'s Museum Trondheim',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'6200'}},
+{type:'node',id:5828,lat:63.4089,lon:10.3912,tags:{nameZh:'特隆赫姆峡湾游船',name:'Trondheim Fjord Cruise',tourism:'nature_park','addr:city':'Trondheim',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'9200'}},
+{type:'node',id:5829,lat:58.9701,lon:5.7245,tags:{nameZh:'斯塔万格海洋博物馆',name:'Stavanger Maritime Museum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 10:00-16:00',rating:'4.4',reviews:'8900'}},
+{type:'node',id:5830,lat:58.9823,lon:5.7134,tags:{nameZh:'斯塔万格室内游乐场',name:'Fun Park Stavanger',tourism:'indoor_play','addr:city':'Stavanger',opening_hours:'Mo-Su 09:00-21:00',rating:'4.2',reviews:'5200'}},
+{type:'node',id:5831,lat:58.9634,lon:5.7367,tags:{nameZh:'斯塔万格攀岩中心',name:'Climbing Wall Stavanger',tourism:'indoor_play','addr:city':'Stavanger',opening_hours:'Mo-Su 09:00-22:00',rating:'4.3',reviews:'4800'}},
+{type:'node',id:5832,lat:58.9756,lon:5.7023,tags:{nameZh:'斯塔万格峡湾游船',name:'Lysefjord Cruise Stavanger',tourism:'nature_park','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-17:00',rating:'4.7',reviews:'16000'}},
+{type:'node',id:5833,lat:69.6512,lon:18.9534,tags:{nameZh:'特罗姆瑟极光中心',name:'Northern Lights Centre Tromsø',tourism:'science_center',website:'https://www.nordlyssenteret.no','addr:city':'Tromsø',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'14000'}},
+{type:'node',id:5834,lat:69.6634,lon:18.9412,tags:{nameZh:'特罗姆瑟缆车',name:'Tromsø Cable Car',tourism:'nature_park','addr:city':'Tromsø',opening_hours:'Mo-Su 10:00-17:00',rating:'4.8',reviews:'18000'}},
+{type:'node',id:5835,lat:69.6489,lon:18.9623,tags:{nameZh:'特罗姆瑟北极博物馆',name:'Arctic Museum Tromsø',tourism:'museum','addr:city':'Tromsø',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'11000'}},
+{type:'node',id:5836,lat:69.6712,lon:18.9289,tags:{nameZh:'特罗姆瑟冰雪活动',name:'Arctic Snow Activities Tromsø',tourism:'nature_park','addr:city':'Tromsø',opening_hours:'Mo-Su 09:00-17:00',rating:'4.6',reviews:'9800'}},
+{type:'node',id:5837,lat:59.9078,lon:10.7689,tags:{nameZh:'奥斯陆儿童创客空间',name:'Makerspace Kids Oslo',tourism:'science_center','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'5600'}},
+{type:'node',id:5838,lat:59.9289,lon:10.7512,tags:{nameZh:'奥斯陆迷你城市',name:'Mini World Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'7800'}},
+{type:'node',id:5839,lat:59.9367,lon:10.7634,tags:{nameZh:'奥斯陆天文馆',name:'Oslo Planetarium',tourism:'science_center','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'8900'}},
+{type:'node',id:5840,lat:59.9145,lon:10.7312,tags:{nameZh:'奥斯陆儿童骑马',name:'Horseback Riding Kids Oslo',tourism:'children_farm','addr:city':'Oslo',opening_hours:'Sa-Su 09:00-17:00',rating:'4.5',reviews:'4800'}},
+{type:'node',id:5841,lat:60.3923,lon:5.3334,tags:{nameZh:'卑尔根冰场',name:'Ice Rink Bergen',tourism:'indoor_play','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-21:00',rating:'4.3',reviews:'7200'}},
+{type:'node',id:5842,lat:60.3778,lon:5.3467,tags:{nameZh:'卑尔根迷你高尔夫',name:'Mini Golf Bergen',tourism:'indoor_play','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-20:00',rating:'4.1',reviews:'3600'}},
+{type:'node',id:5843,lat:63.4378,lon:10.4034,tags:{nameZh:'特隆赫姆科学与技术博物馆',name:'NTNU Science Museum Trondheim',tourism:'science_center','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-16:00',rating:'4.4',reviews:'7200'}},
+{type:'node',id:5844,lat:63.4156,lon:10.3856,tags:{nameZh:'特隆赫姆儿童农场',name:'Farm Experience Trondheim',tourism:'children_farm','addr:city':'Trondheim',opening_hours:'Sa-Su 09:00-17:00',rating:'4.3',reviews:'3800'}},
+{type:'node',id:5845,lat:58.9889,lon:5.7178,tags:{nameZh:'斯塔万格儿童博物馆',name:'Children\'s Museum Stavanger',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'6700'}},
+{type:'node',id:5846,lat:58.9712,lon:5.7289,tags:{nameZh:'斯塔万格水上乐园',name:'Stavanger Aquapark',tourism:'swimming_pool','addr:city':'Stavanger',opening_hours:'Mo-Su 07:00-22:00',rating:'4.3',reviews:'8900'}},
+{type:'node',id:5847,lat:59.9512,lon:10.6934,tags:{nameZh:'奥斯陆滑冰公园',name:'Skating Park Oslo',tourism:'nature_park','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-21:00',rating:'4.5',reviews:'12000'}},
+{type:'node',id:5848,lat:59.9201,lon:10.7823,tags:{nameZh:'奥斯陆儿童图书馆',name:'Children\'s Library Oslo',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Sa 09:00-18:00',rating:'4.4',reviews:'4800'}},
+{type:'node',id:5849,lat:60.4089,lon:5.3089,tags:{nameZh:'卑尔根高绳索公园',name:'High Ropes Bergen',tourism:'nature_park','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'6200'}},
+{type:'node',id:5850,lat:60.3645,lon:5.3534,tags:{nameZh:'卑尔根儿童创客空间',name:'Makerspace Kids Bergen',tourism:'science_center','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'4200'}},
+{type:'node',id:5991,lat:59.9139,lon:10.7522,tags:{nameZh:'奥斯陆科学探索馆',name:'Vitenfabrikken',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'2340'}},
+{type:'node',id:5992,lat:59.9134,lon:10.7328,tags:{nameZh:'奥斯陆植物园',name:'Botanisk hage Oslo',tourism:'park','addr:city':'Oslo',opening_hours:'Mo-Su 07:00-20:00',rating:'4.5',reviews:'3120'}},
+{type:'node',id:5993,lat:59.9075,lon:10.7197,tags:{nameZh:'挪威奥运博物馆',name:'Ski Museum Holmenkollen',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.7',reviews:'6780'}},
+{type:'node',id:5994,lat:59.9129,lon:10.7509,tags:{nameZh:'奥斯陆动物园',name:'Dyreparken Oslo',tourism:'zoo','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'2560'}},
+{type:'node',id:5995,lat:59.9084,lon:10.7366,tags:{nameZh:'奥斯陆儿童剧场',name:'Det Norske Teatret',tourism:'theatre','addr:city':'Oslo',opening_hours:'varies',rating:'4.5',reviews:'1340'}},
+{type:'node',id:5996,lat:59.9073,lon:10.7285,tags:{nameZh:'挪威民族博物馆',name:'Norsk Folkemuseum',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'9870'}},
+{type:'node',id:5997,lat:59.9155,lon:10.7501,tags:{nameZh:'奥斯陆天文馆',name:'Oslo Planetarium',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.4',reviews:'1890'}},
+{type:'node',id:5998,lat:59.9102,lon:10.7476,tags:{nameZh:'奥斯陆探索科学中心',name:'Teknisk Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:5999,lat:59.9099,lon:10.7403,tags:{nameZh:'挪威自然历史博物馆',name:'Naturhistorisk Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.4',reviews:'1780'}},
+{type:'node',id:6000,lat:59.9040,lon:10.7281,tags:{nameZh:'奥斯陆维吉兰雕塑公园',name:'Vigelandsparken',tourism:'park','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.8',reviews:'18900'}},
+{type:'node',id:6001,lat:60.3929,lon:5.3240,tags:{nameZh:'卑尔根阿夸里姆水族馆',name:'Akvariet i Bergen',tourism:'aquarium','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-18:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:6002,lat:60.3965,lon:5.3208,tags:{nameZh:'卑尔根历史博物馆',name:'Bergen Museum',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 10:00-16:00',rating:'4.4',reviews:'1890'}},
+{type:'node',id:6003,lat:60.3989,lon:5.3283,tags:{nameZh:'汉萨博物馆',name:'Bryggens Museum',tourism:'museum','addr:city':'Bergen',opening_hours:'Mo-Su 10:00-16:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6004,lat:60.4050,lon:5.3262,tags:{nameZh:'卑尔根绳子公园',name:'Fløibanen',tourism:'attraction','addr:city':'Bergen',opening_hours:'Mo-Su 07:30-23:00',rating:'4.7',reviews:'12300'}},
+{type:'node',id:6005,lat:60.3879,lon:5.3320,tags:{nameZh:'卑尔根海盗鱼市场',name:'Fisketorget Bergen',tourism:'attraction','addr:city':'Bergen',opening_hours:'Mo-Su 07:00-20:00',rating:'4.5',reviews:'8920'}},
+{type:'node',id:6006,lat:60.3962,lon:5.3244,tags:{nameZh:'格里格音乐厅',name:'Grieghallen',tourism:'theatre','addr:city':'Bergen',opening_hours:'varies',rating:'4.6',reviews:'2340'}},
+{type:'node',id:6007,lat:60.3926,lon:5.3332,tags:{nameZh:'卑尔根自然博物馆',name:'Naturhistorisk museum Bergen',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 10:00-15:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6008,lat:63.4305,lon:10.3951,tags:{nameZh:'特隆赫姆科学博物馆',name:'Vitenskapsmuseet',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 11:00-16:00',rating:'4.4',reviews:'1120'}},
+{type:'node',id:6009,lat:63.4298,lon:10.3926,tags:{nameZh:'特隆赫姆儿童科学馆',name:'Trondheim Science Centre',tourism:'museum','addr:city':'Trondheim',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'2560'}},
+{type:'node',id:6010,lat:63.4272,lon:10.3981,tags:{nameZh:'特隆赫姆大教堂',name:'Nidarosdomen',tourism:'attraction','addr:city':'Trondheim',opening_hours:'Mo-Su 09:00-18:00',rating:'4.7',reviews:'8920'}},
+{type:'node',id:6011,lat:63.4389,lon:10.3989,tags:{nameZh:'特隆赫姆植物园',name:'Ringve Museum',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 11:00-16:00',rating:'4.5',reviews:'1890'}},
+{type:'node',id:6012,lat:58.9701,lon:5.7331,tags:{nameZh:'斯塔万格石油博物馆',name:'Norsk Oljemuseum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'7890'}},
+{type:'node',id:6013,lat:58.9667,lon:5.7328,tags:{nameZh:'斯塔万格大教堂',name:'Stavanger Domkirke',tourism:'attraction','addr:city':'Stavanger',opening_hours:'Mo-Sa 11:00-16:00',rating:'4.5',reviews:'2560'}},
+{type:'node',id:6014,lat:58.9712,lon:5.7345,tags:{nameZh:'斯塔万格孩子文化馆',name:'Petroleum Museum Kids',tourism:'museum','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'1340'}},
+{type:'node',id:6015,lat:69.6489,lon:18.9551,tags:{nameZh:'特罗姆瑟北极博物馆',name:'Polaria',tourism:'museum','addr:city':'Tromsø',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:6016,lat:69.6527,lon:18.9565,tags:{nameZh:'特罗姆瑟大学博物馆',name:'Tromsø University Museum',tourism:'museum','addr:city':'Tromsø',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6017,lat:69.6536,lon:18.9588,tags:{nameZh:'北极灯塔观测台',name:'Nordlysplanetariet',tourism:'museum','addr:city':'Tromsø',opening_hours:'Mo-Su 11:00-18:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6018,lat:59.7439,lon:10.2042,tags:{nameZh:'德拉门冒险乐园',name:'Drammens Museum',tourism:'museum','addr:city':'Drammen',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:6019,lat:59.0942,lon:9.8601,tags:{nameZh:'斯基恩博物馆',name:'Telemark Museum',tourism:'museum','addr:city':'Skien',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:6020,lat:62.4722,lon:6.1495,tags:{nameZh:'奥勒松水族馆',name:'Atlanterhavsparken',tourism:'aquarium','addr:city':'Ålesund',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'6780'}},
+{type:'node',id:6021,lat:62.4726,lon:6.1548,tags:{nameZh:'奥勒松新艺术博物馆',name:'Jugendstilsenteret',tourism:'museum','addr:city':'Ålesund',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'3120'}},
+{type:'node',id:6022,lat:59.9119,lon:10.7453,tags:{nameZh:'奥斯陆歌剧院',name:'Operahuset Oslo',tourism:'theatre','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-23:00',rating:'4.8',reviews:'12300'}},
+{type:'node',id:6023,lat:59.9040,lon:10.7232,tags:{nameZh:'挪威工艺博物馆',name:'Kunstindustrimuseet',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.4',reviews:'1230'}},
+{type:'node',id:6024,lat:59.9124,lon:10.7519,tags:{nameZh:'奥斯陆自然科学中心',name:'NHM Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.5',reviews:'2890'}},
+{type:'node',id:6025,lat:59.9085,lon:10.7422,tags:{nameZh:'奥斯陆孩子游乐中心',name:'Tusenfryd Oslo',tourism:'theme_park','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-19:00',rating:'4.5',reviews:'8920'}},
+{type:'node',id:6026,lat:59.8990,lon:10.6214,tags:{nameZh:'埃克堡雕塑公园',name:'Ekeberg Sculpture Park',tourism:'park','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6027,lat:59.9053,lon:10.6981,tags:{nameZh:'挪威航海博物馆',name:'Norsk Maritime Museum',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'2340'}},
+{type:'node',id:6028,lat:59.9049,lon:10.6954,tags:{nameZh:'孔帖基博物馆',name:'Kon-Tiki Museet',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'7890'}},
+{type:'node',id:6029,lat:59.9065,lon:10.6973,tags:{nameZh:'奥斯陆海盗船博物馆',name:'Vikingskipshuset',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-18:00',rating:'4.7',reviews:'14500'}},
+{type:'node',id:6030,lat:60.3946,lon:5.3197,tags:{nameZh:'卑尔根现代艺术博物馆',name:'KODE Art Museum Bergen',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 11:00-18:00',rating:'4.6',reviews:'3560'}},
+{type:'node',id:6031,lat:60.3975,lon:5.3175,tags:{nameZh:'卑尔根儿童剧场',name:'Den Nationale Scene Bergen',tourism:'theatre','addr:city':'Bergen',opening_hours:'varies',rating:'4.5',reviews:'1120'}},
+{type:'node',id:6032,lat:63.4311,lon:10.3864,tags:{nameZh:'特隆赫姆老城区',name:'Nedre Elvehavn',tourism:'attraction','addr:city':'Trondheim',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6033,lat:58.9741,lon:5.7302,tags:{nameZh:'斯塔万格旧城',name:'Gamle Stavanger',tourism:'attraction','addr:city':'Stavanger',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:6034,lat:58.9682,lon:5.7214,tags:{nameZh:'斯塔万格水族馆',name:'Stavanger Akvarium',tourism:'aquarium','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:6035,lat:67.2804,lon:14.4051,tags:{nameZh:'博多航空博物馆',name:'Norsk Luftfartsmuseum',tourism:'museum','addr:city':'Bodø',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'3450'}},
+{type:'node',id:6036,lat:67.2838,lon:14.3832,tags:{nameZh:'博多海事博物馆',name:'Nordlandsmuseet',tourism:'museum','addr:city':'Bodø',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6037,lat:59.1266,lon:11.3921,tags:{nameZh:'萨普斯堡古堡',name:'Borregaard Museum',tourism:'museum','addr:city':'Sarpsborg',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'560'}},
+{type:'node',id:6038,lat:59.0460,lon:10.0107,tags:{nameZh:'桑德菲奥德鲸鱼博物馆',name:'Hvalfangstmuseet',tourism:'museum','addr:city':'Sandefjord',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6039,lat:59.4461,lon:10.4739,tags:{nameZh:'霍滕摩托博物馆',name:'Preus Museum Horten',tourism:'museum','addr:city':'Horten',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:6040,lat:59.2661,lon:10.4079,tags:{nameZh:'通斯贝格城堡',name:'Slottsfjellet Tønsberg',tourism:'castle','addr:city':'Tønsberg',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'2130'}},
+{type:'node',id:6041,lat:59.9137,lon:10.7464,tags:{nameZh:'奥斯陆阿斯楚普费恩利博物馆',name:'Astrup Fearnley Museet',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 12:00-18:00',rating:'4.5',reviews:'1890'}},
+{type:'node',id:6042,lat:59.9140,lon:10.7350,tags:{nameZh:'奥斯陆国家画廊',name:'Nasjonalmuseet',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-18:00',rating:'4.7',reviews:'8920'}},
+{type:'node',id:6043,lat:59.9178,lon:10.7376,tags:{nameZh:'奥斯陆王宫',name:'Det Kongelige Slott Oslo',tourism:'castle','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'6780'}},
+{type:'node',id:6044,lat:59.9080,lon:10.7534,tags:{nameZh:'奥斯陆新博物馆区',name:'Bjørvika Museumsbyen',tourism:'attraction','addr:city':'Oslo',opening_hours:'varies',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6045,lat:59.9041,lon:10.7367,tags:{nameZh:'奥斯陆历史博物馆',name:'Kulturhistorisk Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'3560'}},
+{type:'node',id:6046,lat:59.9105,lon:10.7530,tags:{nameZh:'奥斯陆市政厅',name:'Oslo Rådhus',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'4560'}},
+{type:'node',id:6047,lat:59.9085,lon:10.7255,tags:{nameZh:'弗拉姆极地博物馆',name:'Frammuseet',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'8920'}},
+{type:'node',id:6048,lat:63.4188,lon:10.4014,tags:{nameZh:'特隆赫姆水族馆',name:'Vitarium Trondheim',tourism:'aquarium','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:6049,lat:69.6492,lon:18.9636,tags:{nameZh:'特罗姆瑟极地体验馆',name:'Arctic Cathedral',tourism:'attraction','addr:city':'Tromsø',opening_hours:'Mo-Su 09:00-19:00',rating:'4.7',reviews:'7890'}},
+{type:'node',id:6050,lat:59.7463,lon:10.2059,tags:{nameZh:'德拉门水上公园',name:'Drammensbadet',tourism:'theme_park','addr:city':'Drammen',opening_hours:'Mo-Su 07:00-21:00',rating:'4.4',reviews:'2130'}},
+{type:'node',id:6131,lat:59.9127,lon:10.7401,tags:{nameZh:'奥斯陆音乐博物馆',name:'Musikkens Hus Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.4',reviews:'1340'}},
+{type:'node',id:6132,lat:59.9091,lon:10.7308,tags:{nameZh:'奥斯陆市政历史公园',name:'Bygdøy Allé Park',tourism:'park','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6133,lat:59.9162,lon:10.7338,tags:{nameZh:'挪威建筑博物馆',name:'Norsk Arkitekturmuseum',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6134,lat:59.9169,lon:10.7453,tags:{nameZh:'奥斯陆设计博物馆',name:'Designmuseo Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-18:00',rating:'4.4',reviews:'1230'}},
+{type:'node',id:6135,lat:59.9052,lon:10.7210,tags:{nameZh:'奥斯陆船坞博物馆',name:'Norsk Maritimt Museum',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'2560'}},
+{type:'node',id:6136,lat:59.9086,lon:10.7459,tags:{nameZh:'奥斯陆现代艺术博物馆',name:'Astrup Fearnley Museet',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 12:00-18:00',rating:'4.5',reviews:'1780'}},
+{type:'node',id:6137,lat:59.9131,lon:10.7498,tags:{nameZh:'奥斯陆城堡要塞',name:'Akershus Festning',tourism:'castle','addr:city':'Oslo',opening_hours:'Mo-Su 06:00-21:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:6138,lat:59.9201,lon:10.7290,tags:{nameZh:'奥斯陆国家体育馆公园',name:'Frognerparken',tourism:'park','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'12300'}},
+{type:'node',id:6139,lat:59.9185,lon:10.7321,tags:{nameZh:'奥斯陆公共游泳池',name:'Frogner Bad',tourism:'theme_park','addr:city':'Oslo',opening_hours:'Mo-Su 07:00-20:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6140,lat:59.8740,lon:10.8046,tags:{nameZh:'图森弗里德游乐园',name:'TusenFryd Fornøyelsespark',tourism:'theme_park','addr:city':'Vinterbro',opening_hours:'Mo-Su 10:00-19:00',rating:'4.5',reviews:'18900'}},
+{type:'node',id:6141,lat:60.3941,lon:5.3212,tags:{nameZh:'卑尔根科学探索馆',name:'VilVite Bergen',tourism:'museum','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-17:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:6142,lat:60.3923,lon:5.3245,tags:{nameZh:'卑尔根汉萨区',name:'Bryggen',tourism:'attraction','addr:city':'Bergen',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'18900'}},
+{type:'node',id:6143,lat:60.4042,lon:5.3291,tags:{nameZh:'卑尔根山区缆车',name:'Ulriken Cable Car',tourism:'attraction','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-21:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:6144,lat:60.3913,lon:5.3251,tags:{nameZh:'卑尔根汉萨博物馆',name:'Hanseatic Museum Bergen',tourism:'museum','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-17:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6145,lat:60.3980,lon:5.3225,tags:{nameZh:'卑尔根市立博物馆',name:'Bergen Bymuseum',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 10:00-16:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6146,lat:63.4316,lon:10.3978,tags:{nameZh:'特隆赫姆民俗博物馆',name:'Trøndelag Folkemuseum',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6147,lat:63.4362,lon:10.3928,tags:{nameZh:'特隆赫姆水族馆',name:'Trondheimsfjord Dykking',tourism:'aquarium','addr:city':'Trondheim',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:6148,lat:63.4260,lon:10.3945,tags:{nameZh:'特隆赫姆艺术博物馆',name:'Trondheim Kunstmuseum',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 11:00-17:00',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6149,lat:63.4231,lon:10.3968,tags:{nameZh:'特隆赫姆儿童画廊',name:'Gråmølna Trondheim',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6150,lat:58.9658,lon:5.7316,tags:{nameZh:'斯塔万格艺术博物馆',name:'Stavanger Kunstmuseum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6151,lat:58.9637,lon:5.7349,tags:{nameZh:'斯塔万格海事中心',name:'Norwegian Canning Museum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2130'}},
+{type:'node',id:6152,lat:58.9750,lon:5.7358,tags:{nameZh:'斯塔万格儿童科学馆',name:'Vitenfabrikken Stavanger',tourism:'museum','addr:city':'Stavanger',opening_hours:'Mo-Su 10:00-17:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6153,lat:69.6495,lon:18.9624,tags:{nameZh:'特罗姆瑟极地博物馆',name:'Ishavskatedralen',tourism:'attraction','addr:city':'Tromsø',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6154,lat:69.6511,lon:18.9598,tags:{nameZh:'特罗姆瑟缆车',name:'Fjellheisen Tromsø',tourism:'attraction','addr:city':'Tromsø',opening_hours:'Mo-Su 10:00-23:00',rating:'4.7',reviews:'8920'}},
+{type:'node',id:6155,lat:67.2845,lon:14.3817,tags:{nameZh:'博多儿童博物馆',name:'Salten Museum Bodø',tourism:'museum','addr:city':'Bodø',opening_hours:'Tu-Su 11:00-16:00',rating:'4.3',reviews:'640'}},
+{type:'node',id:6156,lat:59.1280,lon:11.3880,tags:{nameZh:'萨普斯堡历史遗址',name:'Borgarsyssel Museum',tourism:'museum','addr:city':'Sarpsborg',opening_hours:'Tu-Su 10:00-16:00',rating:'4.2',reviews:'560'}},
+{type:'node',id:6157,lat:59.2710,lon:10.4212,tags:{nameZh:'通斯贝格博物馆',name:'Slottsfjellets Museum',tourism:'museum','addr:city':'Tønsberg',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6158,lat:59.7454,lon:10.2091,tags:{nameZh:'德拉门艺术博物馆',name:'Drammens Museum',tourism:'museum','addr:city':'Drammen',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:6159,lat:59.0965,lon:9.8583,tags:{nameZh:'斯基恩自然遗址',name:'Telemark Canal',tourism:'attraction','addr:city':'Skien',opening_hours:'Mo-Su 08:00-20:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6160,lat:62.4733,lon:6.1507,tags:{nameZh:'奥勒松艺术博物馆',name:'KUBE Kunstmuseum Ålesund',tourism:'museum','addr:city':'Ålesund',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6161,lat:62.4746,lon:6.1523,tags:{nameZh:'奥勒松观景山',name:'Aksla Ålesund',tourism:'park','addr:city':'Ålesund',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'8920'}},
+{type:'node',id:6162,lat:59.9115,lon:10.7438,tags:{nameZh:'奥斯陆港口游船',name:'Oslo Fjord Cruise',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-20:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6163,lat:59.9065,lon:10.7162,tags:{nameZh:'挪威木偶剧场',name:'Dukketeatret Oslo',tourism:'theatre','addr:city':'Oslo',opening_hours:'varies',rating:'4.4',reviews:'1120'}},
+{type:'node',id:6164,lat:59.9111,lon:10.7527,tags:{nameZh:'奥斯陆阿克尔布里格',name:'Aker Brygge',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'9870'}},
+{type:'node',id:6165,lat:59.9115,lon:10.7289,tags:{nameZh:'奥斯陆音乐剧院',name:'Chateau Neuf Oslo',tourism:'theatre','addr:city':'Oslo',opening_hours:'varies',rating:'4.3',reviews:'780'}},
+{type:'node',id:6166,lat:60.3948,lon:5.3178,tags:{nameZh:'卑尔根迷你火车',name:'Bergenbanen',tourism:'attraction','addr:city':'Bergen',opening_hours:'Mo-Su 08:00-22:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6167,lat:60.4028,lon:5.3305,tags:{nameZh:'卑尔根城堡',name:'Bergenhus Festning',tourism:'castle','addr:city':'Bergen',opening_hours:'Mo-Su 06:00-23:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6168,lat:63.4322,lon:10.4001,tags:{nameZh:'特隆赫姆中世纪公园',name:'Erkebispegården',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6169,lat:63.4278,lon:10.3957,tags:{nameZh:'特隆赫姆老河港',name:'Nedre Elvehavn Trondheim',tourism:'attraction','addr:city':'Trondheim',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6170,lat:58.9718,lon:5.7240,tags:{nameZh:'斯塔万格儿童博物馆',name:'Stavanger Barnemuseum',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 10:00-16:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:6171,lat:59.4461,lon:10.4619,tags:{nameZh:'霍尔滕博物馆',name:'Marinemuseet Horten',tourism:'museum','addr:city':'Horten',opening_hours:'Tu-Su 11:00-16:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6172,lat:59.0482,lon:10.0201,tags:{nameZh:'桑德菲约德游乐公园',name:'Framnes Park',tourism:'park','addr:city':'Sandefjord',opening_hours:'Mo-Su 07:00-22:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:6173,lat:58.1479,lon:7.9956,tags:{nameZh:'克里斯蒂安桑动物园',name:'Kristiansand Dyrepark',tourism:'zoo','addr:city':'Kristiansand',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'18900'}},
+{type:'node',id:6174,lat:58.1472,lon:7.9942,tags:{nameZh:'克里斯蒂安桑儿童公园',name:'Abra Havn',tourism:'theme_park','addr:city':'Kristiansand',opening_hours:'Mo-Su 10:00-19:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:6175,lat:58.1463,lon:7.9927,tags:{nameZh:'克里斯蒂安桑博物馆',name:'Vest-Agder Museum',tourism:'museum','addr:city':'Kristiansand',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:6176,lat:58.1481,lon:8.0003,tags:{nameZh:'克里斯蒂安桑老城区',name:'Posebyen',tourism:'attraction','addr:city':'Kristiansand',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6177,lat:59.3484,lon:10.3907,tags:{nameZh:'腓特烈斯塔博物馆',name:'Fredrikstad Museum',tourism:'museum','addr:city':'Fredrikstad',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:6178,lat:59.3504,lon:10.3971,tags:{nameZh:'腓特烈斯塔要塞',name:'Gamlebyen Fredrikstad',tourism:'castle','addr:city':'Fredrikstad',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6179,lat:59.7405,lon:10.1826,tags:{nameZh:'霍尔姆斯特兰德博物馆',name:'Holmestrand Museum',tourism:'museum','addr:city':'Holmestrand',opening_hours:'Tu-Su 11:00-16:00',rating:'4.1',reviews:'340'}},
+{type:'node',id:6180,lat:59.5556,lon:10.5993,tags:{nameZh:'莫斯城市博物馆',name:'Moss By Museum',tourism:'museum','addr:city':'Moss',opening_hours:'Tu-Su 11:00-16:00',rating:'4.1',reviews:'420'}},
+{type:'node',id:6181,lat:59.9084,lon:10.7355,tags:{nameZh:'奥斯陆诺贝尔和平中心',name:'Nobels Fredssenter',tourism:'museum','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:6182,lat:59.9088,lon:10.7392,tags:{nameZh:'奥斯陆美术博物馆',name:'Nasjonalmuseet Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-18:00',rating:'4.7',reviews:'9870'}},
+{type:'node',id:6183,lat:59.9125,lon:10.7290,tags:{nameZh:'奥斯陆绘画博物馆',name:'Munch Museum',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-21:00',rating:'4.5',reviews:'8920'}},
+{type:'node',id:6184,lat:59.9129,lon:10.7441,tags:{nameZh:'奥斯陆犹太博物馆',name:'Jødisk Museum Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-16:00',rating:'4.2',reviews:'560'}},
+{type:'node',id:6185,lat:60.3931,lon:5.3262,tags:{nameZh:'卑尔根玩偶剧院',name:'Fana Folkehøgskole',tourism:'theatre','addr:city':'Bergen',opening_hours:'varies',rating:'4.3',reviews:'780'}},
+{type:'node',id:6186,lat:60.4019,lon:5.3238,tags:{nameZh:'卑尔根水族馆附馆',name:'Øygarden Akvariet',tourism:'aquarium','addr:city':'Bergen',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6187,lat:63.4358,lon:10.4011,tags:{nameZh:'特隆赫姆儿童博物馆',name:'Barnernes Museum Trondheim',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6188,lat:58.9675,lon:5.7302,tags:{nameZh:'斯塔万格城市公园',name:'Mosvatnet Stavanger',tourism:'park','addr:city':'Stavanger',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6189,lat:69.6500,lon:18.9720,tags:{nameZh:'特罗姆瑟城市博物馆',name:'Tromsø Museum',tourism:'museum','addr:city':'Tromsø',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'2560'}},
+{type:'node',id:6190,lat:59.9143,lon:10.7355,tags:{nameZh:'奥斯陆当代艺术中心',name:'Samtidskunst Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'780'}},
+
+{type:'node',id:7201,lat:59.9157,lon:10.7412,tags:{nameZh:'奥斯陆儿童游泳馆',name:'Bislett Stadion Oslo',tourism:'theme_park','addr:city':'Oslo',opening_hours:'Mo-Su 07:00-21:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7202,lat:59.9071,lon:10.7543,tags:{nameZh:'奥斯陆峡湾岛屿游',name:'Bygdøy badestrand',tourism:'park','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-20:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:7203,lat:60.3971,lon:5.3263,tags:{nameZh:'卑尔根水族馆分馆',name:'Akvariet Bergen annex',tourism:'aquarium','addr:city':'Bergen',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:7204,lat:63.4246,lon:10.3983,tags:{nameZh:'特隆赫姆科学公园',name:'Nedre Elvehavn Park',tourism:'park','addr:city':'Trondheim',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'2560'}},
+{type:'node',id:7205,lat:58.1490,lon:7.9916,tags:{nameZh:'克里斯蒂安桑艺术馆',name:'Sørlandets Kunstmuseum',tourism:'museum','addr:city':'Kristiansand',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:7206,lat:59.3527,lon:10.3959,tags:{nameZh:'腓特烈斯塔岛游览',name:'Isegran Fredrikstad',tourism:'attraction','addr:city':'Fredrikstad',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'1890'}},
+{type:'node',id:7207,lat:59.9042,lon:10.7248,tags:{nameZh:'奥斯陆海洋科学馆',name:'Sjøfartsmuseet Oslo',tourism:'museum','addr:city':'Oslo',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2130'}},
+{type:'node',id:7208,lat:60.3947,lon:5.3193,tags:{nameZh:'卑尔根艺术博物馆',name:'Kunsthall Bergen',tourism:'museum','addr:city':'Bergen',opening_hours:'Tu-Su 11:00-18:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:7209,lat:58.9699,lon:5.7362,tags:{nameZh:'斯塔万格航空博物馆',name:'Flymuseum Stavanger',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:7210,lat:69.6473,lon:18.9592,tags:{nameZh:'特罗姆瑟滨海公园',name:'Telegrafbukta Tromsø',tourism:'park','addr:city':'Tromsø',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'3120'}},
+{type:'node',id:7211,lat:59.9103,lon:10.7392,tags:{nameZh:'奥斯陆国家大剧院',name:'Nationaltheatret Oslo',tourism:'theatre','addr:city':'Oslo',opening_hours:'varies',rating:'4.7',reviews:'5670'}},
+{type:'node',id:7212,lat:63.4298,lon:10.3892,tags:{nameZh:'特隆赫姆现代艺术馆',name:'Trondheim Kunsthall',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 12:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:7213,lat:60.4029,lon:5.3201,tags:{nameZh:'卑尔根老港口',name:'Bryggen kvartal',tourism:'attraction','addr:city':'Bergen',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'9870'}},
+{type:'node',id:7214,lat:58.9725,lon:5.7319,tags:{nameZh:'斯塔万格现代艺术馆',name:'Stavanger Kunsthall',tourism:'museum','addr:city':'Stavanger',opening_hours:'Tu-Su 11:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:7215,lat:59.9148,lon:10.7333,tags:{nameZh:'奥斯陆市中心购物广场',name:'Karl Johans gate',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 10:00-21:00',rating:'4.4',reviews:'8920'}},
+{type:'node',id:7216,lat:63.4358,lon:10.3956,tags:{nameZh:'特隆赫姆科技大学博物馆',name:'NTNU Vitenskapsmuseet',tourism:'museum','addr:city':'Trondheim',opening_hours:'Tu-Su 11:00-16:00',rating:'4.4',reviews:'1120'}},
+{type:'node',id:7217,lat:59.9053,lon:10.7307,tags:{nameZh:'奥斯陆彩虹桥公园',name:'Tjuvholmen Oslo',tourism:'park','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:7218,lat:60.3917,lon:5.3229,tags:{nameZh:'卑尔根历史档案馆',name:'Bergen Riksarkivet',tourism:'museum','addr:city':'Bergen',opening_hours:'Mo-Fr 09:00-16:00',rating:'4.1',reviews:'340'}},
+{type:'node',id:7219,lat:58.1456,lon:7.9960,tags:{nameZh:'克里斯蒂安桑海洋博物馆',name:'Gimle Gård',tourism:'museum','addr:city':'Kristiansand',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:7220,lat:59.9121,lon:10.7505,tags:{nameZh:'奥斯陆港口餐饮广场',name:'Oslo Barcode',tourism:'attraction','addr:city':'Oslo',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'5670'}},
+];
+
+// ===== Category config =====
+const CATS = {
+  theme_park:{emoji:'🎢', en:'Theme parks', no:'Fornøyelsesparker', zh:'主题乐园'},
+  zoo:{emoji:'🦒', en:'Zoos', no:'Dyrehager', zh:'动物园'},
+  aquarium:{emoji:'🐠', en:'Aquariums', no:'Akvarier', zh:'水族馆'},
+  museum:{emoji:'🏛️', en:'Museums', no:'Museer', zh:'博物馆'},
+  nature:{emoji:'🌳', en:'Nature', no:'Natur', zh:'自然'},
+  beach:{emoji:'🏖️', en:'Beaches', no:'Strender', zh:'海滩'},
+  playground:{emoji:'🎪', en:'Playgrounds', no:'Lekeplasser', zh:'游乐场'},
+  indoor_play:{emoji:'🏠', en:'Indoor play', no:'Innendørs lek', zh:'室内游乐'},
+  trampoline:{emoji:'🤸', en:'Trampoline', no:'Trampolin', zh:'蹦床'},
+  swim:{emoji:'🏊', en:'Swimming', no:'Svømming', zh:'游泳'},
+  climbing:{emoji:'🧗', en:'Climbing', no:'Klatring', zh:'攀爬'},
+  karting:{emoji:'🏎️', en:'Karting', no:'Gokart', zh:'卡丁车'},
+  farm:{emoji:'🐑', en:'Farms', no:'Gårdsbesøk', zh:'农场'},
+  attraction:{emoji:'⭐', en:'Attractions', no:'Attraksjoner', zh:'景点'},
+  theatre:{emoji:'🎭', en:'Theatre', no:'Teater', zh:'剧院'},
+  cinema:{emoji:'🎬', en:'Cinema', no:'Kino', zh:'电影院'},
+  ice_rink:{emoji:'⛸️', en:'Ice rink', no:'Skøytebane', zh:'滑冰'},
+  minigolf:{emoji:'⛳', en:'Minigolf', no:'Minigolf', zh:'迷你高尔夫'},
+  castle:{emoji:'🏰', en:'Castles', no:'Slott', zh:'城堡'},
+  windmill:{emoji:'🌬️', en:'Windmills', no:'Vindmøller', zh:'风车'},
+  escape:{emoji:'🔓', en:'Escape rooms', no:'Escape rooms', zh:'密室逃脱'},
+  sports:{emoji:'🏆', en:'Sports centre', no:'Sportssenter', zh:'运动中心'},
+  restaurant:{emoji:'🍽️', en:'Family dining', no:'Familierestauranter', zh:'亲子餐厅'},
+  monument:{emoji:'🗿', en:'Monuments', no:'Monumenter', zh:'古迹'},
+  ship:{emoji:'⛵', en:'Historic ships', no:'Historiske skip', zh:'历史船只'},
+  ruins:{emoji:'🏺', en:'Ruins', no:'Ruiner', zh:'遗址'},
+  other:{emoji:'📍', en:'Other', no:'Annet', zh:'其他'}
+};
+
+// Richer emoji mapping using venue name keywords
+function emojiFor(name, cat){
+  const n = (name||'').toLowerCase();
+  // Zoo subtype refinements
+  if(cat==='zoo'){
+    if(/safari|wild|beekse/.test(n)) return '🦁';
+    if(/dolf|sea|seal|marine/.test(n)) return '🐬';
+    if(/bird|vogel|avifauna/.test(n)) return '🦜';
+    if(/ape|monkey|apen/.test(n)) return '🐒';
+    if(/butterfly|vlinder/.test(n)) return '🦋';
+    if(/reptile|snake|slang/.test(n)) return '🐍';
+    return '🦒';
+  }
+  // Museum subtype
+  if(cat==='museum'){
+    if(/science|nemo|natur/.test(n)) return '🔬';
+    if(/art|van gogh|rijks|kunstmuseum|stedelijk|gemeente/.test(n)) return '🖼️';
+    if(/maritime|ship|scheepvaart|maritiem/.test(n)) return '⚓';
+    if(/railway|spoorweg|train|tram/.test(n)) return '🚂';
+    if(/aviation|air|luchtvaart/.test(n)) return '✈️';
+    if(/corpus|body|anatomie/.test(n)) return '🫀';
+    if(/music|muziek|instrument/.test(n)) return '🎼';
+    if(/toy|speelgoed/.test(n)) return '🧸';
+    if(/history|histori|oorlog|war|museum van de geest/.test(n)) return '📜';
+    return '🏛️';
+  }
+  // Theme park subtype
+  if(cat==='theme_park'){
+    if(/water|waterpark|splash|aqua/.test(n)) return '💦';
+    if(/snow|ski|slope/.test(n)) return '❄️';
+    if(/mini|madurodam|miniatuur/.test(n)) return '🏘️';
+    if(/fairy|sprookje|efteling/.test(n)) return '🏰';
+    return '🎢';
+  }
+  // Nature subtype
+  if(cat==='nature'){
+    if(/forest|bos|wald/.test(n)) return '🌲';
+    if(/heath|heide/.test(n)) return '🌾';
+    if(/dune|duin/.test(n)) return '🏝️';
+    if(/lake|meer|lak/.test(n)) return '🏞️';
+    if(/tulip|tulp|keukenhof/.test(n)) return '🌷';
+    return '🌳';
+  }
+  // Playground subtype
+  if(cat==='playground'){
+    if(/water|splash/.test(n)) return '💦';
+    if(/adventure|avontur/.test(n)) return '🧗';
+    return '🛝';
+  }
+  // Indoor play
+  if(cat==='indoor_play'){
+    if(/monkey/.test(n)) return '🐒';
+    if(/ballorig|ball/.test(n)) return '🎈';
+    if(/jimmy|jimmi/.test(n)) return '🤹';
+    return '🏠';
+  }
+  // Restaurant subtype
+  if(cat==='restaurant'){
+    if(/pannenkoek|pancake/.test(n)) return '🥞';
+    if(/chinese|chinees|china|asia|asian|sushi|wok/.test(n)) return '🥢';
+    if(/pizza|pizzer/.test(n)) return '🍕';
+    if(/ice cream|ijssalon|gelato/.test(n)) return '🍦';
+    if(/buffet/.test(n)) return '🍱';
+    if(/burger|mcdonalds/.test(n)) return '🍔';
+    return '🍽️';
+  }
+  // Theme parks extras
+  if(cat==='theme_park' && /petting|boerderij/.test(n)) return '🐄';
+  // Castle/fort
+  if(cat==='castle'){
+    if(/fort|bourtange/.test(n)) return '⚔️';
+    return '🏰';
+  }
+  // Windmill
+  if(cat==='windmill') return '🌬️';
+  // Sports
+  if(cat==='sports'){
+    if(/klim|climb/.test(n)) return '🧗';
+    if(/bow|boog/.test(n)) return '🏹';
+    return '🏆';
+  }
+  // Farm animals
+  if(cat==='farm'){
+    if(/geiten|goat/.test(n)) return '🐐';
+    if(/paarden|horse/.test(n)) return '🐴';
+    return '🐑';
+  }
+  return CATS[cat]?.emoji || '📍';
+}
+
+function classify(t){
+  if(t.tourism==='theme_park') return 'theme_park';
+  if(t.tourism==='zoo') return 'zoo';
+  if(t.tourism==='children_farm') return 'farm';
+  if(t.tourism==='aquarium') return 'aquarium';
+  if(t.tourism==='museum') return 'museum';
+  if(t.tourism==='attraction' || t.tourism==='visitor_centre') return 'attraction';
+  if(t.leisure==='nature_reserve' || t.leisure==='park') return 'nature';
+  if(t.leisure==='playground') return 'playground';
+  if(t.leisure==='indoor_playground') return 'indoor_play';
+  if(t.leisure==='trampoline_park') return 'trampoline';
+  if(t.leisure==='swimming_pool') return 'swim';
+  if(t.leisure==='climbing_park') return 'climbing';
+  if(t.leisure==='go_kart') return 'karting';
+  if(t.leisure==='miniature_golf') return 'minigolf';
+  if(t.leisure==='ice_rink') return 'ice_rink';
+  if(t.leisure==='sports_centre') return 'sports';
+  if(t.leisure==='escape_room') return 'escape';
+  if(t.amenity==='theatre') return 'theatre';
+  if(t.amenity==='cinema') return 'cinema';
+  if(t.amenity && t.amenity.indexOf('restaurant')>=0) return 'restaurant';
+  if(t.historic==='castle') return 'castle';
+  if(t.historic==='fort') return 'castle';
+  if(t.historic==='windmill' || t.man_made==='windmill') return 'windmill';
+  if(t.historic==='monument' || t.historic==='archaeological_site') return 'monument';
+  if(t.historic==='ship') return 'ship';
+  if(t.historic==='ruins') return 'ruins';
+  if(t.natural==='beach') return 'beach';
+  return 'other';
+}
+
+// ===== Transform data =====
+const VENUES = STATIC_NO_VENUES.map(v=>{
+  const t = v.tags || {};
+  const cat = classify(t);
+  return {
+    id: v.id, lat: v.lat, lon: v.lon,
+    name: t.name || 'Unnamed',
+    zh: t.nameZh || '',
+    cat: cat,
+    emoji: emojiFor(t.name, cat),
+    city: t['addr:city'] || '',
+    street: t['addr:street'] || '',
+    house: t['addr:housenumber'] || '',
+    postcode: t['addr:postcode'] || '',
+    website: t.website || '',
+    hours: t.opening_hours || '',
+    rating: parseFloat(t.rating || '0') || null,
+    reviews: parseInt(t.reviews || '0') || 0,
+  };
+});
+
+// ===== State =====
+const FAV_KEY = 'ke_favs_no';
+const LANG_KEY = 'ke_lang_no';
+const LANGS = ['en','no','zh'];  // cycle: en → no → zh → en
+const state = {
+  activeCats: new Set(),  // empty = all
+  search: '',
+  sortBy: 'rating',
+  filtered: [],
+  selectedId: null,
+  markers: new Map(),
+  favs: new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')),
+  favsOnly: false,
+  lang: localStorage.getItem(LANG_KEY) || (navigator.language.startsWith('nb') ? 'no' : navigator.language.startsWith('zh') ? 'zh' : 'en'),
+};
+
+// ===== Language labels (shown in button — always the CURRENT language) =====
+const LANG_LABELS = {en:'EN', nl:'NL', de:'DE', fr:'FR', it:'IT', es:'ES', pt:'PT', el:'ΕΛ', zh:'中', no:'NO'};
+
+// ===== i18n =====
+const I18N = {
+  en: {
+    in_view: 'in view', favs: '♡ Favs', filters: '🏷 Category', sort: '↕ Sort',
+    category: 'Category', clear: 'Clear', show_results: 'Show results',
+    near_me: 'Near me', map: '🗺 Map', list: '☰ List',
+    directions: '🗺 Directions', website: '🌐 Website',
+    rating: 'Rating', address: 'Address', city: 'City', hours: 'Hours', reviews: 'reviews',
+    empty: 'No venues in this area. Try moving the map or clearing filters.',
+    search_ph: 'Search places or cities…',
+    lang_next: 'NO',
+  },
+  no: {
+    in_view: 'i visning', favs: '♡ Favoritter', filters: '🏷 Kategori', sort: '↕ Sorter',
+    category: 'Kategori', clear: 'Tøm', show_results: 'Vis resultater',
+    near_me: 'Nær meg', map: '🗺 Kart', list: '☰ Liste',
+    directions: '🗺 Veibeskrivelse', website: '🌐 Nettsted',
+    rating: 'Vurdering', address: 'Adresse', city: 'By', hours: 'Åpningstider', reviews: 'anmeldelser',
+    empty: 'Ingen steder i dette området. Flytt kartet eller tøm filtre.',
+    search_ph: 'Søk etter steder eller byer…',
+    lang_next: '中',
+  },
+  zh: {
+    in_view: '可见', favs: '♡ 收藏', filters: '🏷 品类', sort: '↕ 排序',
+    category: '品类', clear: '清空', show_results: '显示结果',
+    near_me: '我附近', map: '🗺 地图', list: '☰ 列表',
+    directions: '🗺 导航', website: '🌐 官网',
+    rating: '评分', address: '地址', city: '城市', hours: '开放时间', reviews: '评价',
+    empty: '当前视口内没有场所。拖动地图或清空筛选。',
+    search_ph: '搜索场所或城市…',
+    lang_next: 'EN',
+  }
+};
+function t(k){return I18N[state.lang][k] || k;}
+
+function toggleLang(){
+  const idx = LANGS.indexOf(state.lang);
+  state.lang = LANGS[(idx+1) % LANGS.length];
+  localStorage.setItem(LANG_KEY, state.lang);
+  applyLang();
+  renderList();
+  buildCatGrid();
+}
+function applyLang(){
+  // Header button shows NEXT language
+  document.getElementById('lang-btn').textContent = LANG_LABELS[state.lang] || state.lang.toUpperCase();
+  // Update chips
+  document.getElementById('favs-chip').innerHTML = t('favs');
+  document.querySelector('.actions .chip:nth-child(2)').innerHTML = t('filters');
+  document.querySelector('.actions .chip:nth-child(3)').innerHTML = t('sort');
+  // Filter drawer title + section
+  document.querySelector('.filter-hdr h3').textContent = t('category');
+  document.querySelector('.filter-section h4').textContent = t('category');
+  document.querySelector('.btn-clear').textContent = t('clear');
+  document.querySelector('.btn-apply').textContent = t('show_results');
+  // Near me button
+  document.querySelector('.fab.near').innerHTML = `<span>📍</span><span>${t('near_me')}</span>`;
+  // Map/List toggle
+  document.getElementById('tog-map').textContent = t('map');
+  document.getElementById('tog-list').textContent = t('list');
+  // Search placeholder
+  document.getElementById('search').placeholder = t('search_ph');
+  // Count label
+  document.getElementById('count-label').textContent = t('in_view');
+}
+function saveFavs(){localStorage.setItem(FAV_KEY, JSON.stringify([...state.favs]));}
+function toggleFav(){
+  if(state.selectedId == null) return;
+  if(state.favs.has(state.selectedId)) state.favs.delete(state.selectedId);
+  else state.favs.add(state.selectedId);
+  saveFavs();
+  updateFavBtn();
+  renderList();
+}
+function updateFavBtn(){
+  const btn = document.getElementById('ov-fav');
+  if(!btn) return;
+  const on = state.favs.has(state.selectedId);
+  btn.classList.toggle('on', on);
+  btn.textContent = on ? '♥' : '♡';
+}
+function toggleFavsOnly(){
+  state.favsOnly = !state.favsOnly;
+  document.getElementById('favs-chip').classList.toggle('on', state.favsOnly);
+  document.getElementById('favs-chip').style.background = state.favsOnly ? '#fff5f0' : '';
+  document.getElementById('favs-chip').style.color = state.favsOnly ? 'var(--brand)' : '';
+  document.getElementById('favs-chip').style.borderColor = state.favsOnly ? 'var(--brand)' : '';
+  renderList();
+}
+function cardFavClick(ev, id){
+  ev.stopPropagation();
+  if(state.favs.has(id)) state.favs.delete(id); else state.favs.add(id);
+  saveFavs();
+  if(state.selectedId===id) updateFavBtn();
+  renderList();
+}
+
+// ===== Map =====
+const map = L.map('map', {zoomControl:false, attributionControl:false}).setView([61.5,9.0],5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+L.control.attribution({prefix:false}).addTo(map);
+
+const clusterGroup = L.markerClusterGroup({
+  maxClusterRadius: 50,
+  showCoverageOnHover: false,
+});
+map.addLayer(clusterGroup);
+
+function makeIcon(v, selected=false){
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim();
+  return L.divIcon({
+    className: selected ? 'selected' : '',
+    html: `<div class="venue-marker" style="border-color:${color}">${v.emoji}</div>`,
+    iconSize:[36,36], iconAnchor:[18,18]
+  });
+}
+
+VENUES.forEach(v=>{
+  const m = L.marker([v.lat, v.lon], {icon: makeIcon(v)});
+  m.on('click', ()=>openDetail(v));
+  clusterGroup.addLayer(m);
+  state.markers.set(v.id, m);
+});
+
+// ===== Filter + render =====
+function computeFiltered(){
+  const q = state.search.trim().toLowerCase();
+  const bounds = map.getBounds();
+  let list = VENUES.filter(v=>{
+    if(state.favsOnly && !state.favs.has(v.id)) return false;
+    if(state.activeCats.size && !state.activeCats.has(v.cat)) return false;
+    if(q && !(v.name.toLowerCase().includes(q) || v.zh.includes(q) || v.city.toLowerCase().includes(q))) return false;
+    if(!state.favsOnly && !bounds.contains([v.lat, v.lon])) return false;
+    return true;
+  });
+  if(state.sortBy==='rating'){
+    list.sort((a,b)=>(b.rating||0)-(a.rating||0));
+  } else if(state.sortBy==='name'){
+    list.sort((a,b)=>a.name.localeCompare(b.name));
+  }
+  state.filtered = list;
+  return list;
+}
+
+function renderList(){
+  const list = computeFiltered();
+  const el = document.getElementById('list');
+  document.getElementById('count').textContent = list.length;
+  if(!list.length){
+    el.innerHTML = `<div class="empty">No venues in this area. Try moving the map or clearing filters.</div>`;
+    return;
+  }
+  el.innerHTML = list.slice(0,200).map(v=>{
+    const isFav = state.favs.has(v.id);
+    // NL venues: original name is already Dutch → use for en & nl; zh uses nameZh
+    const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+    const secondary = state.lang==='zh' ? v.name : (v.zh || '');
+    const catLabel = CATS[v.cat]?.[state.lang] || v.cat;
+    return `
+    <div class="venue-card" data-id="${v.id}" onclick="openDetail(VENUES.find(x=>x.id===${v.id}))">
+      <div class="venue-thumb cat-${v.cat}">${v.emoji}<button class="card-fav ${isFav?'on':''}" onclick="cardFavClick(event,${v.id})" title="Favorite">${isFav?'♥':'♡'}</button></div>
+      <div class="venue-info">
+        <div class="venue-name">${primary}</div>
+        ${secondary?`<div class="venue-zh">${secondary}</div>`:''}
+        <div class="venue-meta">
+          ${v.rating?`<span class="rating">★ ${v.rating.toFixed(1)}</span><span class="dot">·</span>`:''}
+          <span>${catLabel}</span>
+          ${v.city?`<span class="dot">·</span><span>${v.city}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== Detail overlay =====
+function openDetail(v){
+  if(!v) return;
+  state.selectedId = v.id;
+  const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+  const secondary = state.lang==='zh' && v.zh ? v.name : v.zh;
+  document.getElementById('ov-name').textContent = primary;
+  document.getElementById('ov-zh').textContent = secondary;
+  const rows = [];
+  if(v.rating) rows.push([t('rating'), `★ ${v.rating.toFixed(1)} · ${v.reviews.toLocaleString()} ${t('reviews')}`]);
+  if(v.street) rows.push([t('address'), `${v.street} ${v.house}, ${v.postcode} ${v.city}`.trim()]);
+  else if(v.city) rows.push([t('city'), v.city]);
+  rows.push([t('category'), `${v.emoji} ${CATS[v.cat]?.[state.lang] || v.cat}`]);
+  if(v.hours) rows.push([t('hours'), v.hours]);
+  document.getElementById('ov-body').innerHTML = rows.map(([k,val])=>
+    `<div class="detail-row"><div class="lbl">${k}</div><div>${val}</div></div>`
+  ).join('');
+  document.getElementById('ov-directions').href = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}&destination_place_id=${encodeURIComponent(v.name)}`;
+  document.getElementById('ov-directions').textContent = t('directions');
+  document.getElementById('ov-website').textContent = t('website');
+  const wsBtn = document.getElementById('ov-website');
+  if(v.website){
+    wsBtn.href = v.website; wsBtn.style.display='flex';
+  } else {
+    wsBtn.style.display='none';
+  }
+  updateFavBtn();
+  document.getElementById('overlay').classList.add('open');
+  // pan to marker
+  map.flyTo([v.lat, v.lon], Math.max(map.getZoom(), 13), {duration:.6});
+}
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('open');
+  state.selectedId = null;
+}
+
+// ===== Filter drawer =====
+function buildCatGrid(){
+  const counts = {};
+  VENUES.forEach(v=>counts[v.cat]=(counts[v.cat]||0)+1);
+  const el = document.getElementById('cat-grid');
+  el.innerHTML = Object.entries(CATS)
+    .filter(([k])=>counts[k])
+    .sort(([a],[b])=>(counts[b]||0)-(counts[a]||0))
+    .map(([k,c])=>`<button class="cat-btn ${state.activeCats.has(k)?'active':''}" data-cat="${k}" onclick="toggleCat('${k}')">
+      <span class="emoji">${c.emoji}</span>${c[state.lang]}<span class="count">${counts[k]}</span>
+    </button>`).join('');
+}
+function toggleCat(k){
+  if(state.activeCats.has(k)) state.activeCats.delete(k); else state.activeCats.add(k);
+  buildCatGrid();
+  renderList();
+}
+function clearFilter(){
+  state.activeCats.clear();
+  buildCatGrid();
+  renderList();
+}
+function openFilter(){document.getElementById('filter').classList.add('open');}
+function closeFilter(){document.getElementById('filter').classList.remove('open');}
+
+// ===== Drawer interactions =====
+function toggleDrawer(){
+  const d = document.getElementById('drawer');
+  const s = d.dataset.state;
+  d.dataset.state = s==='peek'?'half':(s==='half'?'full':'peek');
+}
+
+// ===== Near me (geolocation) =====
+function locateMe(){
+  if(!navigator.geolocation) return alert('Geolocation not supported');
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      const {latitude, longitude} = pos.coords;
+      map.flyTo([latitude, longitude], 12, {duration:.8});
+      L.circleMarker([latitude, longitude], {radius:10, color:'#c96442', fillColor:'#c96442', fillOpacity:.3, weight:3}).addTo(map);
+    },
+    (err)=>alert('Could not get location: '+err.message)
+  );
+}
+
+// ===== Zoom =====
+function zoomIn(){map.zoomIn();}
+function zoomOut(){map.zoomOut();}
+
+// ===== Search =====
+document.getElementById('search').addEventListener('input', e=>{
+  state.search = e.target.value;
+  renderList();
+});
+
+// ===== Country picker (placeholder — links to /) =====
+function openCountryPicker(){
+  window.location.href = '/';
+}
+
+// ===== Map/List view toggle (mobile) =====
+function setView(v){
+  document.body.dataset.view = v;
+  document.getElementById('tog-map').classList.toggle('active', v==='map');
+  document.getElementById('tog-list').classList.toggle('active', v==='list');
+  if(v==='map'){
+    setTimeout(()=>map.invalidateSize(), 50);
+  }
+}
+document.body.dataset.view = 'map';
+
+// ===== Sort toggle =====
+function toggleSort(){
+  state.sortBy = state.sortBy==='rating'?'name':'rating';
+  renderList();
+}
+
+// ===== Sync list when map moves =====
+let moveTimer;
+map.on('moveend', ()=>{
+  clearTimeout(moveTimer);
+  moveTimer = setTimeout(renderList, 150);
+});
+
+// ===== Initial render =====
+applyLang();
+buildCatGrid();
+renderList();
+
+// ===== Click outside to close overlays =====
+map.on('click', ()=>{
+  closeOverlay();
+});
+
+// ===== AI Chat Assistant =====
+const CITY_COORDS = {
+  'oslo':[59.91,10.75],
+  'bergen':[60.39,5.32],
+  'trondheim':[63.43,10.39],
+  'stavanger':[58.97,5.73],
+  'tromsø':[69.65,18.96],
+  'kristiansand':[58.16,8.0],
+  'fredrikstad':[59.21,10.94],
+  'drammen':[59.74,10.21],
+  'lillehammer':[61.12,10.47],
+  'bodø':[67.28,14.38],
+  'ålesund':[62.47,6.16],
+  '奥斯陆':[59.91,10.75],
+  '卑尔根':[60.39,5.32],
+  '特隆赫姆':[63.43,10.39],
+  '斯塔万格':[58.97,5.73],
+  '特罗姆瑟':[69.65,18.96]
+};
+const INTEREST_MAP = {
+  '动物':['zoo','farm'],'动物园':['zoo'],'农场':['farm'],
+  '博物馆':['museum'],'科学':['museum'],'艺术':['museum'],
+  '游乐园':['theme_park'],'主题公园':['theme_park'],'游乐场':['theme_park','indoor_play'],
+  '室内':['indoor_play','museum','aquarium'],'下雨':['indoor_play','museum','aquarium'],
+  '海滩':['beach'],'海边':['beach'],'游泳':['beach','swim'],
+  '城堡':['castle'],'历史':['castle','monument'],
+  '自然':['nature'],'公园':['nature'],'森林':['nature'],
+  '水族馆':['aquarium'],'海豚':['aquarium'],
+  '滑冰':['ice_rink'],'运动':['sports'],
+  '室内游乐':['indoor_play'],'蹦床':['trampoline'],
+  'animal':['zoo','farm'],'zoo':['zoo'],'farm':['farm'],
+  'museum':['museum'],'science':['museum'],
+  'theme park':['theme_park'],'amusement':['theme_park'],
+  'indoor':['indoor_play','museum','aquarium'],'rain':['indoor_play','museum','aquarium'],
+  'beach':['beach'],'castle':['castle'],
+  'nature':['nature'],'forest':['nature'],
+  'aquarium':['aquarium'],'playground':['indoor_play','playground'],
+  'trampoline':['trampoline'],'monkey town':['indoor_play'],'ballorig':['indoor_play'],
+};
+const AGE_HINTS = {
+  '婴儿':1,'宝宝':2,'1岁':1,'2岁':2,'3岁':3,'幼儿':3,'小朋友':5,
+  '4岁':4,'5岁':5,'6岁':6,'7岁':7,'8岁':8,'9岁':9,'10岁':10,
+  '学龄':7,'小学':8,'toddler':2,'baby':1,'teenager':13,
+};
+
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function parseUserMessage(msg){
+  const lower=msg.toLowerCase();
+  const result={city:null,coords:null,categories:new Set(),age:null,maxDist:null,raw:msg};
+  for(const [name,coords] of Object.entries(CITY_COORDS)){
+    if(lower.includes(name.toLowerCase())){result.city=name;result.coords=coords;break;}
+  }
+  for(const [kw,cats] of Object.entries(INTEREST_MAP)){
+    if(lower.includes(kw.toLowerCase())) cats.forEach(c=>result.categories.add(c));
+  }
+  for(const [kw,age] of Object.entries(AGE_HINTS)){
+    if(lower.includes(kw)){result.age=age;break;}
+  }
+  const dm=lower.match(/(\d+)\s*(km|公里|min|分钟)/);
+  if(dm){const n=parseInt(dm[1]);result.maxDist=(dm[2]==='分钟'||dm[2]==='min')?n*1.2:n;}
+  return result;
+}
+
+function chatRecommend(parsed){
+  let list=[...VENUES];
+  if(parsed.categories.size>0) list=list.filter(v=>parsed.categories.has(v.cat));
+  if(parsed.coords){
+    list.forEach(v=>{v._dist=haversine(parsed.coords[0],parsed.coords[1],v.lat,v.lon);});
+    if(parsed.maxDist) list=list.filter(v=>v._dist<=parsed.maxDist);
+    list.sort((a,b)=>a._dist-b._dist);
+  } else {
+    list.sort(()=>Math.random()-0.5);
+  }
+  if(parsed.age!==null){
+    if(parsed.age<=3){
+      const p=['farm','indoor_play','playground','zoo'];
+      list.sort((a,b)=>{const aP=p.indexOf(a.cat),bP=p.indexOf(b.cat);if(aP>=0&&bP<0)return -1;if(aP<0&&bP>=0)return 1;return(a._dist||0)-(b._dist||0);});
+    } else if(parsed.age>=8){
+      const p=['theme_park','sports','museum','castle'];
+      list.sort((a,b)=>{const aP=p.indexOf(a.cat),bP=p.indexOf(b.cat);if(aP>=0&&bP<0)return -1;if(aP<0&&bP>=0)return 1;return(a._dist||0)-(b._dist||0);});
+    }
+  }
+  return list.slice(0,6);
+}
+
+function buildChatResponse(parsed,venues){
+  const isZh=/[\u4e00-\u9fff]/.test(parsed.raw);
+  if(!venues.length) return isZh?'抱歉，没有找到完全匹配的场地。试试换个关键词或放宽距离范围？':"Sorry, no exact matches. Try different keywords or wider range?";
+  let parts=[];
+  if(isZh){
+    let o='为你推荐以下场地';
+    if(parsed.city) o=`在 ${parsed.city} 附近为你推荐`;
+    if(parsed.age) o+=`（适合${parsed.age}岁孩子）`;
+    parts.push(o+'：');
+  } else {
+    let o='Here are my recommendations';
+    if(parsed.city) o=`Near ${parsed.city}, here are my picks`;
+    if(parsed.age) o+=` (for age ${parsed.age})`;
+    parts.push(o+':');
+  }
+  venues.forEach(v=>{
+    const dist=v._dist?` (${v._dist.toFixed(1)}km)`:'';
+    const catLbl=CATS[v.cat]?.[state.lang]||v.cat;
+    parts.push(`\n${v.emoji} <strong>${v.name}</strong>${dist}\n<span style="color:var(--text-mute);font-size:11px">${catLbl} · ${v.city}</span>`);
+  });
+  if(isZh) parts.push('\n点击场地名称可在地图上查看位置。');
+  else parts.push('\nClick a venue name to see it on the map.');
+  let chips='';
+  if(venues.length>0){
+    chips='<div style="margin-top:8px">'+venues.map(v=>
+      `<span class="chat-venue-chip" onclick="chatShowVenue(${v.lat},${v.lon},${v.id})">${v.emoji} ${v.name}</span>`
+    ).join('')+'</div>';
+  }
+  return parts.join('')+chips;
+}
+
+let chatOpen=false;
+function toggleChat(open){
+  chatOpen=open;
+  document.getElementById('chatPanel').classList.toggle('open',open);
+  document.getElementById('chatFab').classList.toggle('hidden',open);
+  if(open&&document.getElementById('chatMessages').children.length===0) initChat();
+  if(open) document.getElementById('chatInput').focus();
+}
+function initChat(){
+  const g=state.lang==='zh'
+    ?'👋 你好！我是亲子出行助手。\n\n告诉我你的情况：\n• 你在哪个城市？\n• 孩子多大？\n• 想要室内还是室外？\n\n我会推荐最合适的去处！'
+    :state.lang==='nl'
+    ?'👋 Hallo! Ik ben je gezinsuitje-assistent.\n\nVertel me:\n• In welke stad?\n• Hoe oud zijn je kinderen?\n• Binnen of buiten?\n\nIk raad de beste plekken aan!'
+    :"👋 Hi! I'm your family outing assistant.\n\nTell me:\n• Which city?\n• How old are your kids?\n• Indoor or outdoor?\n\nI'll recommend the best places!";
+  addBotMsg(g);showQuickActions();
+}
+function showQuickActions(){
+  const el=document.getElementById('chatQuickActions');
+  const a=state.lang==='zh'
+    ?[['🏠 Amsterdam室内','我在Amsterdam，下雨天想找室内游乐场'],['🦁 带3岁宝宝看动物','我孩子3岁，想去看动物'],['🏖️ 海滩推荐','周末想带孩子去海滩'],['🏛️ 博物馆','想带8岁孩子去博物馆']]
+    :[['🏠 Indoor play','Indoor activities for rainy day'],['🦁 Zoo for toddler','Zoo or farm for 3 year old'],['🏖️ Beach trip','Beach trip with kids'],['🏛️ Museums','Museum for 8 year old']];
+  el.innerHTML=a.map(([l,m])=>`<button class="chat-quick-btn" onclick="sendQuick('${m.replace(/'/g,"\\'")}')">${l}</button>`).join('');
+}
+function sendQuick(m){document.getElementById('chatInput').value=m;handleChatSend();}
+function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function addBotMsg(t){const el=document.getElementById('chatMessages');const d=document.createElement('div');d.className='chat-msg bot';d.innerHTML=escHtml(t).replace(/\n/g,'<br>');el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function addUserMsg(t){const el=document.getElementById('chatMessages');const d=document.createElement('div');d.className='chat-msg user';d.textContent=t;el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function showTyping(){const el=document.getElementById('chatMessages');const d=document.createElement('div');d.className='chat-typing';d.id='chatTyping';d.innerHTML='<span></span><span></span><span></span>';el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function removeTyping(){const t=document.getElementById('chatTyping');if(t)t.remove();}
+
+function handleChatSend(){
+  const input=document.getElementById('chatInput');
+  const msg=input.value.trim();if(!msg)return;
+  addUserMsg(msg);input.value='';
+  document.getElementById('chatQuickActions').innerHTML='';
+  showTyping();
+  setTimeout(()=>{
+    removeTyping();
+    const parsed=parseUserMessage(msg);
+    const venues=chatRecommend(parsed);
+    const response=buildChatResponse(parsed,venues);
+    const d=document.createElement('div');d.className='chat-msg bot';d.innerHTML=response;
+    document.getElementById('chatMessages').appendChild(d);
+    document.getElementById('chatMessages').scrollTop=document.getElementById('chatMessages').scrollHeight;
+  },600+Math.random()*400);
+}
+
+function chatShowVenue(lat,lon,id){
+  map.flyTo([lat,lon],14,{duration:1});
+  const v=VENUES.find(x=>x.id===id);
+  if(v) openDetail(v);
+  if(window.innerWidth<=768) toggleChat(false);
+}
+
+document.getElementById('chatInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();handleChatSend();}
+});
+
+</script>
+
+<!-- AI Chat Widget -->
+<button class="chat-fab" id="chatFab" onclick="toggleChat(true)" title="AI Assistant" aria-label="Open AI chat assistant">🧸</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header">
+    <div class="chat-header-icon">🧸</div>
+    <div class="chat-header-text">AI Assistant<br><span class="chat-header-sub" id="chatSubtitle">亲子出行助手</span></div>
+    <button class="chat-close" onclick="toggleChat(false)">×</button>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-quick-actions" id="chatQuickActions"></div>
+  <div class="chat-input-area">
+    <input class="chat-input" id="chatInput" placeholder="描述你的需求… e.g. Amsterdam, 3岁, 室内" autocomplete="off">
+    <button class="chat-send" id="chatSend" onclick="handleChatSend()">➤</button>
+  </div>
+</div>
+
+</body>
+</html>

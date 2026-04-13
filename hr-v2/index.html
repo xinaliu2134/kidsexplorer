@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Croatia Kids Explorer · KidsExplorer.eu</title>
+<meta name="description" content="Family-friendly venues across Croatia on one interactive map. Multilingual. Free.">
+<link rel="canonical" href="https://kidsexplorer.eu/hr/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kidsexplorer.eu/hr/">
+<meta property="og:title" content="Croatia Kids Explorer · KidsExplorer.eu">
+<meta property="og:description" content="129+ family-friendly venues across Greece on one interactive map. Bilingual map with verified addresses, ratings, and opening hours.">
+<meta property="og:image" content="https://kidsexplorer.eu/og/hr.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="KidsExplorer.eu">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Croatia Kids Explorer · KidsExplorer.eu">
+<meta name="twitter:description" content="129+ family-friendly venues across Greece on one interactive map. Bilingual map with verified addresses, ratings, and opening hours.">
+<meta name="twitter:image" content="https://kidsexplorer.eu/og/hr.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Original Holland Kids palette (restored from v1) */
+  --bg:#F2F4F8;
+  --surface:#FFFFFF;
+  --border:#CBD5E1;
+  --border-strong:#94A3B8;
+  --text:#1A2B4A;
+  --text-soft:#5A6A84;
+  --text-mute:#9AA5B8;
+  --brand:#E05A1E;
+  --brand-dark:#B84515;
+  --brand-light:#FFF0E9;
+  --teal:#0EA5A0;
+  --navy:#1A2B4A;
+  --shadow:0 1px 3px rgba(26,43,74,.12), 0 0 0 1px rgba(26,43,74,.04);
+  --shadow-lg:0 8px 24px rgba(26,43,74,.20), 0 0 0 1px rgba(26,43,74,.08);
+  --radius:14px;
+  --header-h:56px;
+  --safe-bottom:env(safe-area-inset-bottom,0);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input{font-family:inherit;border:none;outline:none;background:none;color:inherit}
+
+/* ===== Top Header ===== */
+.hdr{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);z-index:900;display:flex;align-items:center;gap:10px;padding:0 14px}
+.hdr-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;letter-spacing:-.3px;color:var(--brand);white-space:nowrap}
+.hdr-brand .logo{font-size:20px}
+.hdr-country{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--bg);border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:600;cursor:pointer}
+.hdr-country:hover{border-color:var(--brand)}
+.hdr-country .flag{font-size:16px}
+.hdr-search{flex:1;display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:999px;cursor:text;min-width:0}
+.hdr-search input{flex:1;font-size:14px;min-width:0}
+.hdr-search .icon{color:var(--text-mute);flex-shrink:0}
+.hdr-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--bg);border:1px solid var(--border);font-size:16px;flex-shrink:0}
+.hdr-btn:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ===== Map ===== */
+#map{position:fixed;top:var(--header-h);left:0;right:0;bottom:0;z-index:1}
+.leaflet-popup-content-wrapper{border-radius:14px}
+.leaflet-popup-content{margin:14px 16px;font-family:'Inter',sans-serif;font-size:13px}
+
+/* ===== Map/List Toggle (mobile) ===== */
+.view-toggle{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--header-h) + 12px);z-index:600;display:flex;background:#fff;border:1px solid var(--border);border-radius:999px;box-shadow:var(--shadow);padding:3px}
+.view-toggle button{padding:8px 18px;font-size:13px;font-weight:600;border-radius:999px;color:var(--text-soft)}
+.view-toggle button.active{background:var(--text);color:#fff}
+.view-toggle button:not(.active):hover{color:var(--text)}
+body[data-view="list"] #map{display:none}
+body[data-view="list"] .drawer{transform:translateY(0)!important;top:calc(var(--header-h) + 58px);border-radius:20px 20px 0 0;max-height:calc(100vh - var(--header-h) - 58px);height:calc(100vh - var(--header-h) - 58px)}
+body[data-view="list"] .drawer-handle{display:none}
+body[data-view="list"] .fab-stack{display:none}
+@media (min-width:1024px){
+  .view-toggle{display:none} /* desktop shows both */
+}
+
+/* ===== Floating Action Buttons ===== */
+.fab-stack{position:fixed;right:14px;top:calc(var(--header-h) + 14px);z-index:500;display:flex;flex-direction:column;gap:10px}
+.fab{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s}
+.fab:hover{border-color:var(--brand);color:var(--brand);transform:scale(1.05)}
+.fab.near{background:var(--brand);color:#fff;border-color:var(--brand);width:auto;padding:0 18px;border-radius:22px;font-size:13px;font-weight:600;gap:6px}
+.fab.near:hover{background:var(--brand-dark);color:#fff}
+
+/* ===== Bottom Drawer (List) ===== */
+.drawer{position:fixed;left:0;right:0;bottom:0;z-index:700;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:80vh;display:flex;flex-direction:column}
+.drawer[data-state="peek"]{transform:translateY(calc(100% - 72px))}
+.drawer[data-state="half"]{transform:translateY(calc(100% - 48vh))}
+.drawer[data-state="full"]{transform:translateY(8vh)}
+.drawer-handle{flex-shrink:0;padding:8px 0 4px;text-align:center;cursor:grab;touch-action:none}
+.drawer-handle::before{content:'';display:inline-block;width:40px;height:4px;background:var(--border-strong);border-radius:2px}
+.drawer-hdr{flex-shrink:0;padding:6px 18px 12px;display:flex;align-items:center;justify-content:space-between}
+.drawer-hdr .count{font-weight:700;font-size:14px}
+.drawer-hdr .count small{font-weight:500;color:var(--text-mute);font-size:12px;margin-left:4px}
+.drawer-hdr .actions{display:flex;gap:6px}
+.drawer-hdr .chip{padding:6px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.drawer-hdr .chip:hover{border-color:var(--brand);color:var(--brand)}
+.drawer-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 18px calc(20px + var(--safe-bottom))}
+.venue-card{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.venue-card:last-child{border-bottom:none}
+.venue-card:hover{background:#fafaf7}
+.venue-card:hover .venue-name{color:var(--brand)}
+.venue-thumb{width:56px;height:56px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;position:relative;overflow:hidden}
+.venue-thumb::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.2),transparent)}
+.venue-info{flex:1;min-width:0}
+.venue-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-zh{font-size:12px;color:var(--text-mute);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft)}
+.venue-meta .rating{color:var(--brand);font-weight:600}
+.venue-meta .dot{color:var(--text-mute)}
+.empty{padding:40px 20px;text-align:center;color:var(--text-mute);font-size:14px}
+
+/* ===== Detail Overlay (bottom sheet, half-screen) ===== */
+.overlay{position:fixed;left:0;right:0;bottom:0;z-index:900;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);max-height:50vh;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.overlay.open{transform:translateY(0)}
+.overlay-hdr{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;padding:18px 18px 12px;gap:10px}
+.overlay-title{flex:1;min-width:0}
+.overlay-title h3{font-size:18px;font-weight:700;line-height:1.2;margin-bottom:4px}
+.overlay-title .zh{font-size:13px;color:var(--text-mute)}
+.overlay-close{width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-soft)}
+.overlay-body{flex:1;overflow-y:auto;padding:0 18px 20px}
+.detail-row{display:flex;gap:10px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--text-soft)}
+.detail-row .lbl{min-width:70px;font-weight:600;color:var(--text)}
+.overlay-actions{flex-shrink:0;padding:12px 18px calc(12px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:8px}
+.overlay-actions .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+.overlay-actions .btn-primary{background:var(--brand);color:#fff}
+.overlay-actions .btn-primary:hover{background:var(--brand-dark)}
+.overlay-actions .btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.overlay-actions .btn-secondary:hover{border-color:var(--brand);color:var(--brand)}
+.overlay-fav{width:44px;height:44px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:all .15s}
+.overlay-fav:hover{border-color:var(--brand)}
+.overlay-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.card-fav{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.9);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text-mute);z-index:2;transition:all .15s}
+.card-fav:hover{color:var(--brand);border-color:var(--brand)}
+.card-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.venue-thumb{position:relative}
+
+/* ===== Filter Drawer (slides from right) ===== */
+.filter-drawer{position:fixed;top:var(--header-h);right:0;bottom:0;width:min(360px,92vw);background:#fff;border-left:1px solid var(--border);box-shadow:-10px 0 40px rgba(0,0,0,.12);z-index:950;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;pointer-events:none}
+.filter-drawer.open{pointer-events:auto}
+.filter-drawer.open{transform:translateX(0)}
+.filter-hdr{flex-shrink:0;padding:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.filter-hdr h3{font-size:18px;font-weight:700}
+.filter-body{flex:1;overflow-y:auto;padding:20px}
+.filter-section{margin-bottom:24px}
+.filter-section h4{font-size:12px;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.cat-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:500;color:var(--text)}
+.cat-btn.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.cat-btn:not(.active):hover{border-color:var(--brand);color:var(--brand)}
+.cat-btn .emoji{font-size:16px}
+.cat-btn .count{margin-left:auto;font-size:11px;opacity:.75}
+.filter-footer{flex-shrink:0;padding:16px 20px calc(16px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:10px}
+.filter-footer .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600}
+.filter-footer .btn-clear{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.filter-footer .btn-apply{background:var(--brand);color:#fff}
+
+/* Gradient covers for thumbnails */
+.cat-theme_park{background:linear-gradient(135deg,#ff9a56,#ff6b9d)}
+.cat-zoo{background:linear-gradient(135deg,#22c55e,#059669)}
+.cat-aquarium{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-museum{background:linear-gradient(135deg,#8b5cf6,#4f46e5)}
+.cat-nature{background:linear-gradient(135deg,#84cc16,#15803d)}
+.cat-beach{background:linear-gradient(135deg,#38bdf8,#0ea5e9)}
+.cat-playground{background:linear-gradient(135deg,#fbbf24,#f97316)}
+.cat-indoor_play{background:linear-gradient(135deg,#a855f7,#7e22ce)}
+.cat-trampoline{background:linear-gradient(135deg,#ec4899,#be185d)}
+.cat-swim{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-climbing{background:linear-gradient(135deg,#f59e0b,#b45309)}
+.cat-karting{background:linear-gradient(135deg,#ef4444,#991b1b)}
+.cat-farm{background:linear-gradient(135deg,#a3e635,#65a30d)}
+.cat-attraction{background:linear-gradient(135deg,#fb923c,#c2410c)}
+.cat-theatre{background:linear-gradient(135deg,#d946ef,#86198f)}
+.cat-cinema{background:linear-gradient(135deg,#64748b,#334155)}
+.cat-ice_rink{background:linear-gradient(135deg,#60a5fa,#1d4ed8)}
+.cat-minigolf{background:linear-gradient(135deg,#10b981,#047857)}
+.cat-other{background:linear-gradient(135deg,#94a3b8,#475569)}
+.cat-castle{background:linear-gradient(135deg,#a78bfa,#6d28d9)}
+.cat-windmill{background:linear-gradient(135deg,#bae6fd,#0284c7)}
+.cat-escape{background:linear-gradient(135deg,#fdba74,#c2410c)}
+.cat-sports{background:linear-gradient(135deg,#fde047,#ca8a04)}
+.cat-restaurant{background:linear-gradient(135deg,#f87171,#b91c1c)}
+.cat-monument{background:linear-gradient(135deg,#d6d3d1,#57534e)}
+.cat-ship{background:linear-gradient(135deg,#67e8f9,#0e7490)}
+.cat-ruins{background:linear-gradient(135deg,#fde68a,#92400e)}
+
+/* Marker icons */
+.venue-marker{width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.leaflet-marker-icon.selected .venue-marker{transform:scale(1.2);border-width:4px}
+
+/* Cluster */
+.marker-cluster-small{background:rgba(201,100,66,.25)}
+.marker-cluster-small div{background:rgba(201,100,66,.8)}
+.marker-cluster-medium{background:rgba(201,100,66,.35)}
+.marker-cluster-medium div{background:rgba(201,100,66,.9)}
+.marker-cluster-large{background:rgba(201,100,66,.45)}
+.marker-cluster-large div{background:var(--brand)}
+.marker-cluster div{color:#fff;font-weight:700}
+
+@media (max-width:640px){
+  .hdr-brand span:not(.logo){display:none}
+  .drawer-hdr{padding:6px 14px 10px}
+  .drawer-body{padding:0 14px calc(20px + var(--safe-bottom))}
+  .cat-grid{grid-template-columns:1fr}
+}
+@media (min-width:1024px){
+  /* Desktop: drawer becomes sidebar */
+  .drawer{top:var(--header-h);right:auto;left:0;width:420px;max-width:420px;max-height:none;height:calc(100vh - var(--header-h));border-radius:0;border-right:1px solid var(--border);border-top:none;transform:translateX(0) !important;box-shadow:4px 0 24px rgba(0,0,0,.06)}
+  .drawer-handle{display:none}
+  #map{left:420px}
+  .overlay{left:auto;right:20px;bottom:20px;width:400px;max-width:calc(100vw - 440px);max-height:70vh;border-radius:20px;border:1px solid var(--border)}
+  .fab-stack{top:calc(var(--header-h) + 14px);right:14px}
+}
+
+/* ── AI CHAT WIDGET ────────────────────────────── */
+.chat-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--brand),#F39C12);color:#fff;border:none;box-shadow:0 4px 16px rgba(224,90,30,.4);cursor:pointer;font-size:24px;display:flex;align-items:center;justify-content:center;z-index:800;transition:transform .2s,box-shadow .2s}
+.chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 24px rgba(224,90,30,.5)}
+.chat-fab.hidden{display:none}
+.chat-panel{position:fixed;bottom:24px;right:24px;width:380px;max-height:520px;background:var(--surface);border-radius:18px;box-shadow:0 12px 48px rgba(26,43,74,.25);z-index:801;display:none;flex-direction:column;overflow:hidden}
+.chat-panel.open{display:flex}
+.chat-header{background:var(--navy,#1A2B4A);padding:14px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.chat-header-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--brand),#F39C12);border-radius:50%;display:grid;place-items:center;font-size:16px}
+.chat-header-text{flex:1;color:#fff;font-size:14px;font-weight:700}
+.chat-header-sub{color:rgba(255,255,255,.5);font-size:11px;font-weight:400}
+.chat-close{background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;padding:4px;transition:color .15s}
+.chat-close:hover{color:#fff}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:200px;max-height:340px}
+.chat-msg{max-width:88%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.5;word-break:break-word}
+.chat-msg.bot{background:var(--bg);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px}
+.chat-msg.user{background:var(--brand);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.chat-msg.bot a,.chat-msg.bot strong{color:var(--brand);font-weight:600}
+.chat-quick-actions{padding:0 16px 12px;display:flex;flex-wrap:wrap;gap:6px}
+.chat-quick-btn{padding:6px 12px;border-radius:999px;background:var(--brand-light,#FFF0E9);color:var(--brand);border:1px solid var(--brand);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+.chat-quick-btn:hover{background:var(--brand);color:#fff}
+.chat-input-area{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
+.chat-input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:999px;font-size:13px;font-family:inherit;color:var(--text);background:var(--bg)}
+.chat-input:focus{border-color:var(--brand);outline:none}
+.chat-send{width:36px;height:36px;border-radius:50%;background:var(--brand);color:#fff;border:none;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chat-send:hover{background:var(--brand-dark)}
+.chat-typing{display:flex;gap:4px;align-self:flex-start;padding:10px 14px}
+.chat-typing span{width:8px;height:8px;border-radius:50%;background:var(--border-strong);animation:chatBounce .6s infinite alternate}
+.chat-typing span:nth-child(2){animation-delay:.2s}
+.chat-typing span:nth-child(3){animation-delay:.4s}
+@keyframes chatBounce{to{transform:translateY(-6px);opacity:.4}}
+.chat-venue-chip{display:inline-block;padding:4px 10px;margin:3px 2px;border-radius:12px;background:var(--brand-light,#FFF0E9);color:var(--brand);font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent}
+.chat-venue-chip:hover{border-color:var(--brand)}
+@media(max-width:640px){.chat-panel{width:calc(100vw-24px);right:12px;bottom:12px;max-height:70vh}.chat-fab{bottom:90px;right:16px;width:50px;height:50px;font-size:22px}}
+
+</style>
+<meta name="keywords" content="Croatia kids, family travel Croatia, Zagreb with kids, Dubrovnik family, 克罗地亚亲子游, 杜布罗夫尼克遛娃">
+<meta name="author" content="Nana Liu">
+<meta name="robots" content="index, follow">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Croatia Kids Explorer",
+  "url": "https://kidsexplorer.eu/hr-v2/",
+  "description": "Family-friendly venues across Croatia",
+  "inLanguage": ["en", "zh"],
+  "isPartOf": {"@type": "WebSite", "name": "Kids Explorer", "url": "https://kidsexplorer.eu/"},
+  "about": {"@type": "Country", "name": "Croatia"}
+}
+</script>
+</head>
+<body>
+
+<!-- Top Header -->
+<header class="hdr">
+  <a href="/" class="hdr-brand"><span class="logo">🌍</span><span>KidsExplorer</span></a>
+  <button class="hdr-country" onclick="openCountryPicker()">
+    <span class="flag">🇭🇷</span><span>HR</span><span style="opacity:.5">▾</span>
+  </button>
+  <div class="hdr-search">
+    <span class="icon">🔍</span>
+    <input id="search" placeholder="Search / 搜索…">
+  </div>
+  <button class="hdr-btn" id="lang-btn" onclick="toggleLang()" title="Language">中</button>
+  <button class="hdr-btn" onclick="openFilter()" title="Category">🏷️</button>
+</header>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- View Toggle (mobile only) -->
+<div class="view-toggle">
+  <button id="tog-map" class="active" onclick="setView('map')">🗺 Map</button>
+  <button id="tog-list" onclick="setView('list')">☰ List</button>
+</div>
+
+<!-- Floating Actions -->
+<div class="fab-stack">
+  <button class="fab near" onclick="locateMe()"><span>📍</span><span>Near me</span></button>
+  <button class="fab" onclick="zoomIn()">+</button>
+  <button class="fab" onclick="zoomOut()">−</button>
+</div>
+
+<!-- Bottom Drawer: Venue list -->
+<section class="drawer" id="drawer" data-state="peek">
+  <div class="drawer-handle" onclick="toggleDrawer()"></div>
+  <div class="drawer-hdr">
+    <div class="count"><span id="count">0</span> <small id="count-label">in view</small></div>
+    <div class="actions">
+      <button class="chip" id="favs-chip" onclick="toggleFavsOnly()">♡ Favs</button>
+      <button class="chip" onclick="openFilter()">🏷 Category</button>
+      <button class="chip" onclick="toggleSort()">↕ Sort</button>
+    </div>
+  </div>
+  <div class="drawer-body" id="list"></div>
+</section>
+
+<!-- Detail Overlay -->
+<aside class="overlay" id="overlay">
+  <div class="overlay-hdr">
+    <div class="overlay-title">
+      <h3 id="ov-name"></h3>
+      <div class="zh" id="ov-zh"></div>
+    </div>
+    <button class="overlay-close" onclick="closeOverlay()">×</button>
+  </div>
+  <div class="overlay-body" id="ov-body"></div>
+  <div class="overlay-actions">
+    <button class="overlay-fav" id="ov-fav" onclick="toggleFav()" title="Save to favorites">♡</button>
+    <a class="btn btn-secondary" id="ov-directions" target="_blank">🗺 Directions</a>
+    <a class="btn btn-primary" id="ov-website" target="_blank">🌐 Website</a>
+  </div>
+</aside>
+
+<!-- Filter Drawer -->
+<aside class="filter-drawer" id="filter">
+  <div class="filter-hdr">
+    <h3>Category</h3>
+    <button class="overlay-close" onclick="closeFilter()">×</button>
+  </div>
+  <div class="filter-body">
+    <div class="filter-section">
+      <h4>Category</h4>
+      <div class="cat-grid" id="cat-grid"></div>
+    </div>
+  </div>
+  <div class="filter-footer">
+    <button class="btn btn-clear" onclick="clearFilter()">Clear</button>
+    <button class="btn btn-apply" onclick="closeFilter()">Show results</button>
+  </div>
+</aside>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+const STATIC_HR_VENUES = [
+{type:'node',id:2621,lat:45.8150,lon:15.9819,tags:{nameZh:'萨格勒布动物园',name:'Zagreb Zoo',tourism:'zoo',website:'https://www.zoo.hr','addr:city':'Zagreb',opening_hours:'Mo-Su 09:00-20:00',rating:'4.3',reviews:'14321'}},
+{type:'node',id:2622,lat:45.8131,lon:15.9770,tags:{nameZh:'萨格勒布老城',name:'Zagreb Upper Town',tourism:'attraction','addr:city':'Zagreb',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'28341'}},
+{type:'node',id:2623,lat:45.8109,lon:15.9750,tags:{nameZh:'萨格勒布圣母大教堂',name:'Zagreb Cathedral',tourism:'museum','addr:city':'Zagreb',opening_hours:'Mo-Sa 10:00-17:00',rating:'4.4',reviews:'18341'}},
+{type:'node',id:2624,lat:45.8144,lon:15.9820,tags:{nameZh:'萨格勒布博物馆',name:'Museum of Broken Relationships Zagreb',tourism:'museum',website:'https://www.brokenships.com','addr:city':'Zagreb',opening_hours:'Mo-Su 09:00-22:30',rating:'4.7',reviews:'22341'}},
+{type:'node',id:2625,lat:45.8121,lon:15.9831,tags:{nameZh:'萨格勒布技术博物馆',name:'Technical Museum Zagreb',tourism:'museum',website:'https://www.tmnt.hr','addr:city':'Zagreb',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'9321'}},
+{type:'node',id:2626,lat:45.8182,lon:15.9769,tags:{nameZh:'萨格勒布自然历史博物馆',name:'Croatian Natural History Museum Zagreb',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'6321'}},
+{type:'node',id:2627,lat:45.8172,lon:15.9845,tags:{nameZh:'萨格勒布儿童剧院',name:'Zagreb Puppet Theatre',tourism:'attraction','addr:city':'Zagreb',opening_hours:'Various showtimes',rating:'4.3',reviews:'4321'}},
+{type:'node',id:2628,lat:45.8091,lon:15.9713,tags:{nameZh:'萨格勒布游乐场',name:'Maksimir Park Playground Zagreb',tourism:'playground','addr:city':'Zagreb',opening_hours:'Mo-Su 08:00-22:00',rating:'4.4',reviews:'9321'}},
+{type:'node',id:2629,lat:45.8088,lon:15.9705,tags:{nameZh:'萨格勒布公园',name:'Maksimir Park Zagreb',tourism:'nature_park','addr:city':'Zagreb',opening_hours:'Mo-Su 07:00-21:00',rating:'4.5',reviews:'22341'}},
+{type:'node',id:2630,lat:45.8221,lon:15.9881,tags:{nameZh:'萨格勒布蹦床公园',name:'Jump Zone Zagreb',tourism:'indoor_play','addr:city':'Zagreb',opening_hours:'Mo-Su 10:00-21:00',rating:'4.3',reviews:'6321'}},
+{type:'node',id:2631,lat:45.8141,lon:15.9761,tags:{nameZh:'萨格勒布密室逃脱',name:'Escape Adventures Zagreb',tourism:'escape_room','addr:city':'Zagreb',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'4321'}},
+{type:'node',id:2632,lat:45.8191,lon:15.9741,tags:{nameZh:'萨格勒布保龄球中心',name:'Bowling Center Zagreb',tourism:'bowling','addr:city':'Zagreb',opening_hours:'Mo-Su 12:00-24:00',rating:'4.0',reviews:'3321'}},
+{type:'node',id:2633,lat:45.8129,lon:15.9802,tags:{nameZh:'萨格勒布考古博物馆',name:'Archaeological Museum Zagreb',tourism:'museum',website:'https://www.amz.hr','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-18:00',rating:'4.3',reviews:'7321'}},
+{type:'node',id:2634,lat:45.8141,lon:15.9751,tags:{nameZh:'萨格勒布缆车',name:'Zagreb Funicular',tourism:'attraction','addr:city':'Zagreb',opening_hours:'Mo-Su 06:30-22:00',rating:'4.4',reviews:'12341'}},
+{type:'node',id:2635,lat:45.8159,lon:15.9921,tags:{nameZh:'萨格勒布游泳中心',name:'Zagreb Swimming Centre',tourism:'swimming_pool','addr:city':'Zagreb',opening_hours:'Mo-Sa 07:00-22:00',rating:'4.1',reviews:'5321'}},
+{type:'node',id:2636,lat:43.5081,lon:16.4402,tags:{nameZh:'斯普利特戴克里先宫',name:'Diocletian\'s Palace Split',tourism:'museum',website:'https://www.diocletianspalace.org','addr:city':'Split',opening_hours:'Mo-Su 00:00-24:00',rating:'4.8',reviews:'62341'}},
+{type:'node',id:2637,lat:43.5076,lon:16.4411,tags:{nameZh:'斯普利特老城',name:'Split Old Town',tourism:'attraction','addr:city':'Split',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'48341'}},
+{type:'node',id:2638,lat:43.5112,lon:16.4368,tags:{nameZh:'斯普利特博物馆',name:'Split Archaeological Museum',tourism:'museum','addr:city':'Split',opening_hours:'Mo-Sa 09:00-21:00',rating:'4.3',reviews:'9321'}},
+{type:'node',id:2639,lat:43.5021,lon:16.4429,tags:{nameZh:'斯普利特游泳场',name:'Split Beach Bačvice',tourism:'swimming_pool','addr:city':'Split',opening_hours:'Mo-Su 08:00-20:00 (seasonal)',rating:'4.4',reviews:'22341'}},
+{type:'node',id:2640,lat:43.5082,lon:16.4502,tags:{nameZh:'斯普利特游乐场',name:'Meštrović Gallery Garden Split',tourism:'nature_park','addr:city':'Split',opening_hours:'Tu-Su 09:00-19:00',rating:'4.5',reviews:'14321'}},
+{type:'node',id:2641,lat:43.5109,lon:16.4382,tags:{nameZh:'斯普利特自然历史博物馆',name:'Natural History Museum Split',tourism:'museum','addr:city':'Split',opening_hours:'Mo-Sa 09:00-17:00',rating:'4.1',reviews:'4321'}},
+{type:'node',id:2642,lat:43.5099,lon:16.4421,tags:{nameZh:'斯普利特儿童游乐场',name:'Gradski Park Playground Split',tourism:'playground','addr:city':'Split',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'2321'}},
+{type:'node',id:2643,lat:43.5071,lon:16.4401,tags:{nameZh:'斯普利特室内乐园',name:'Fun Park Split',tourism:'indoor_play','addr:city':'Split',opening_hours:'Mo-Su 10:00-20:00',rating:'4.0',reviews:'3321'}},
+{type:'node',id:2644,lat:42.6407,lon:18.1078,tags:{nameZh:'杜布罗夫尼克老城',name:'Dubrovnik Old City',tourism:'attraction',website:'https://www.dubrovnik.hr','addr:city':'Dubrovnik',opening_hours:'Mo-Su 00:00-24:00',rating:'4.9',reviews:'82341'}},
+{type:'node',id:2645,lat:42.6386,lon:18.1078,tags:{nameZh:'杜布罗夫尼克城墙',name:'Dubrovnik City Walls',tourism:'attraction','addr:city':'Dubrovnik',opening_hours:'Mo-Su 08:00-18:30',rating:'4.8',reviews:'62341'}},
+{type:'node',id:2646,lat:42.6428,lon:18.0991,tags:{nameZh:'杜布罗夫尼克缆车',name:'Dubrovnik Cable Car',tourism:'attraction',website:'https://www.dubrovnikcablecar.com','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-22:00 (seasonal)',rating:'4.7',reviews:'42341'}},
+{type:'node',id:2647,lat:42.6417,lon:18.1089,tags:{nameZh:'杜布罗夫尼克海洋博物馆',name:'Maritime Museum Dubrovnik',tourism:'museum','addr:city':'Dubrovnik',opening_hours:'Tu-Su 09:00-18:00',rating:'4.2',reviews:'6321'}},
+{type:'node',id:2648,lat:42.6379,lon:18.1099,tags:{nameZh:'杜布罗夫尼克水族馆',name:'Dubrovnik Aquarium',tourism:'aquarium','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-20:00',rating:'4.2',reviews:'9321'}},
+{type:'node',id:2649,lat:42.6451,lon:18.1041,tags:{nameZh:'杜布罗夫尼克儿童游乐场',name:'Lapad Beach Playground Dubrovnik',tourism:'playground','addr:city':'Dubrovnik',opening_hours:'Mo-Su 08:00-22:00',rating:'4.1',reviews:'3321'}},
+{type:'node',id:2650,lat:42.6411,lon:18.1121,tags:{nameZh:'杜布罗夫尼克儿童博物馆',name:'Rupe Ethnographic Museum Dubrovnik',tourism:'museum','addr:city':'Dubrovnik',opening_hours:'Mo-Sa 09:00-18:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2651,lat:45.3271,lon:14.4411,tags:{nameZh:'里耶卡博物馆',name:'Maritime Museum Rijeka',tourism:'museum','addr:city':'Rijeka',opening_hours:'Tu-Sa 09:00-17:00',rating:'4.1',reviews:'4321'}},
+{type:'node',id:2652,lat:45.3299,lon:14.4451,tags:{nameZh:'里耶卡动物园',name:'Natural History Museum Rijeka',tourism:'museum','addr:city':'Rijeka',opening_hours:'Mo-Sa 09:00-20:00',rating:'4.1',reviews:'3321'}},
+{type:'node',id:2653,lat:45.3241,lon:14.4421,tags:{nameZh:'里耶卡游乐场',name:'Park Mlaka Playground Rijeka',tourism:'playground','addr:city':'Rijeka',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'1841'}},
+{type:'node',id:2654,lat:45.3282,lon:14.4389,tags:{nameZh:'里耶卡游泳中心',name:'Kantrida Swimming Pool Rijeka',tourism:'swimming_pool','addr:city':'Rijeka',opening_hours:'Mo-Su 07:00-21:00 (seasonal)',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2655,lat:45.0841,lon:13.6439,tags:{nameZh:'罗维尼旧城',name:'Rovinj Old Town',tourism:'attraction','addr:city':'Rovinj',opening_hours:'Mo-Su 00:00-24:00',rating:'4.8',reviews:'42341'}},
+{type:'node',id:2656,lat:45.0821,lon:13.6421,tags:{nameZh:'罗维尼海滩',name:'Rovinj Golden Cape Beach',tourism:'nature_park','addr:city':'Rovinj',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'28341'}},
+{type:'node',id:2657,lat:45.0861,lon:13.6451,tags:{nameZh:'罗维尼水族馆',name:'Aquarium Rovinj',tourism:'aquarium',website:'https://www.cim.irb.hr','addr:city':'Rovinj',opening_hours:'Mo-Su 09:00-21:00',rating:'4.3',reviews:'8321'}},
+{type:'node',id:2658,lat:44.1191,lon:15.2311,tags:{nameZh:'扎达尔海滨风琴',name:'Sea Organ Zadar',tourism:'attraction','addr:city':'Zadar',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'22341'}},
+{type:'node',id:2659,lat:44.1151,lon:15.2301,tags:{nameZh:'扎达尔太阳礼赞',name:'Greeting to the Sun Zadar',tourism:'attraction','addr:city':'Zadar',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'18341'}},
+{type:'node',id:2660,lat:44.1221,lon:15.2341,tags:{nameZh:'扎达尔博物馆',name:'Museum of Illusions Zadar',tourism:'museum','addr:city':'Zadar',opening_hours:'Mo-Su 09:00-23:00',rating:'4.3',reviews:'7321'}},
+{type:'node',id:2661,lat:44.1182,lon:15.2281,tags:{nameZh:'扎达尔游乐场',name:'Jazine Park Playground Zadar',tourism:'playground','addr:city':'Zadar',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'2321'}},
+{type:'node',id:2662,lat:44.8808,lon:15.6168,tags:{nameZh:'十六湖国家公园',name:'Plitvice Lakes National Park',tourism:'nature_park',website:'https://www.np-plitvicka-jezera.hr','addr:city':'Plitvice',opening_hours:'Mo-Su 07:00-20:00',rating:'4.9',reviews:'78341'}},
+{type:'node',id:2663,lat:44.8852,lon:15.6121,tags:{nameZh:'十六湖儿童步道',name:'Plitvice Lakes Junior Trail',tourism:'nature_park','addr:city':'Plitvice',opening_hours:'Mo-Su 07:00-19:00',rating:'4.8',reviews:'42341'}},
+{type:'node',id:2664,lat:45.5531,lon:18.6948,tags:{nameZh:'奥西耶克动物园',name:'Osijek Zoo',tourism:'zoo',website:'https://www.zoo.hr','addr:city':'Osijek',opening_hours:'Mo-Su 09:00-18:00',rating:'4.2',reviews:'8321'}},
+{type:'node',id:2665,lat:45.5591,lon:18.6912,tags:{nameZh:'奥西耶克要塞',name:'Tvrđa Fortress Osijek',tourism:'museum','addr:city':'Osijek',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'12341'}},
+{type:'node',id:2666,lat:45.5551,lon:18.6978,tags:{nameZh:'奥西耶克游乐场',name:'Drava Park Playground Osijek',tourism:'playground','addr:city':'Osijek',opening_hours:'Mo-Su 08:00-22:00',rating:'4.1',reviews:'2841'}},
+{type:'node',id:2667,lat:45.5512,lon:18.6941,tags:{nameZh:'奥西耶克游泳池',name:'Osijek Aquapark',tourism:'swimming_pool','addr:city':'Osijek',opening_hours:'Mo-Su 09:00-21:00 (seasonal)',rating:'4.2',reviews:'6321'}},
+{type:'node',id:2668,lat:45.8161,lon:15.9851,tags:{nameZh:'萨格勒布绿色市场',name:'Dolac Market Zagreb',tourism:'attraction','addr:city':'Zagreb',opening_hours:'Mo-Sa 07:00-14:00',rating:'4.4',reviews:'14321'}},
+{type:'node',id:2669,lat:45.8201,lon:15.9781,tags:{nameZh:'萨格勒布幻觉博物馆',name:'Museum of Illusions Zagreb',tourism:'museum',website:'https://www.muzejiiluzija.com','addr:city':'Zagreb',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'18321'}},
+{type:'node',id:2670,lat:45.8071,lon:15.9719,tags:{nameZh:'萨格勒布儿童农场',name:'Zagreb Botanical Garden',tourism:'nature_park','addr:city':'Zagreb',opening_hours:'Mo-Su 09:00-18:00',rating:'4.3',reviews:'7321'}},
+{type:'node',id:2671,lat:43.5091,lon:16.4521,tags:{nameZh:'斯普利特维斯水上乐园',name:'Aquapark Split',tourism:'theme_park','addr:city':'Split',opening_hours:'Mo-Su 10:00-19:00 (seasonal)',rating:'4.2',reviews:'8321'}},
+{type:'node',id:2672,lat:43.5048,lon:16.4412,tags:{nameZh:'斯普利特密室逃脱',name:'Escape Room Split',tourism:'escape_room','addr:city':'Split',opening_hours:'Mo-Su 10:00-22:00',rating:'4.4',reviews:'3321'}},
+{type:'node',id:2673,lat:42.6381,lon:18.1051,tags:{nameZh:'杜布罗夫尼克皮列大门',name:'Pile Gate Dubrovnik',tourism:'attraction','addr:city':'Dubrovnik',opening_hours:'Mo-Su 08:00-20:00',rating:'4.5',reviews:'28341'}},
+{type:'node',id:2674,lat:42.6419,lon:18.1102,tags:{nameZh:'杜布罗夫尼克克内扎宫',name:'Rector\'s Palace Dubrovnik',tourism:'museum','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'14321'}},
+{type:'node',id:2675,lat:42.6442,lon:18.1021,tags:{nameZh:'杜布罗夫尼克游泳场',name:'Banje Beach Dubrovnik',tourism:'swimming_pool','addr:city':'Dubrovnik',opening_hours:'Mo-Su 08:00-20:00 (seasonal)',rating:'4.5',reviews:'18321'}},
+{type:'node',id:2676,lat:45.8241,lon:15.9912,tags:{nameZh:'萨格勒布儿童博物馆',name:'Zagreb City Museum',tourism:'museum',website:'https://www.mgz.hr','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-18:00',rating:'4.3',reviews:'8321'}},
+{type:'node',id:2677,lat:45.8112,lon:15.9741,tags:{nameZh:'萨格勒布美术馆',name:'Modern Gallery Zagreb',tourism:'museum',website:'https://www.moderna-galerija.hr','addr:city':'Zagreb',opening_hours:'Tu-Su 11:00-19:00',rating:'4.2',reviews:'5321'}},
+{type:'node',id:2678,lat:45.8189,lon:15.9819,tags:{nameZh:'萨格勒布当代艺术博物馆',name:'Museum of Contemporary Art Zagreb',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 11:00-19:00',rating:'4.3',reviews:'6321'}},
+{type:'node',id:2679,lat:43.5141,lon:16.4481,tags:{nameZh:'斯普利特保龄球',name:'Strike Bowling Split',tourism:'bowling','addr:city':'Split',opening_hours:'Mo-Su 12:00-24:00',rating:'3.9',reviews:'2321'}},
+{type:'node',id:2680,lat:43.5059,lon:16.4351,tags:{nameZh:'斯普利特儿童农场',name:'Split Zoological Garden',tourism:'children_farm','addr:city':'Split',opening_hours:'Mo-Su 09:00-17:00',rating:'4.1',reviews:'3321'}},
+
+{type:'node',id:6601,lat:45.8134,lon:15.9789,tags:{nameZh:'萨格勒布攀岩中心',name:'Climbing Centre Zagreb',tourism:'indoor_play','addr:city':'Zagreb',opening_hours:'Mo-Su 09:00-22:00',rating:'4.4',reviews:'6200'}},
+{type:'node',id:6602,lat:45.8256,lon:15.9645,tags:{nameZh:'萨格勒布VR体验馆',name:'VR Zone Zagreb',tourism:'indoor_play','addr:city':'Zagreb',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:6603,lat:45.8023,lon:15.9912,tags:{nameZh:'萨格勒布冰场',name:'Ice Rink Zagreb',tourism:'indoor_play','addr:city':'Zagreb',opening_hours:'Mo-Su 09:00-21:00',rating:'4.3',reviews:'8900'}},
+{type:'node',id:6604,lat:45.8345,lon:15.9534,tags:{nameZh:'萨格勒布逃脱密室2',name:'Escape Room 2 Zagreb',tourism:'escape_room','addr:city':'Zagreb',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'5200'}},
+{type:'node',id:6605,lat:45.8167,lon:16.0012,tags:{nameZh:'萨格勒布卡丁车',name:'Karting Zagreb',tourism:'indoor_play','addr:city':'Zagreb',opening_hours:'Mo-Su 11:00-22:00',rating:'4.2',reviews:'4800'}},
+{type:'node',id:6606,lat:45.8078,lon:15.9723,tags:{nameZh:'萨格勒布恐龙博物馆',name:'Dino Park Zagreb',tourism:'museum','addr:city':'Zagreb',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'6700'}},
+{type:'node',id:6607,lat:45.8423,lon:15.9845,tags:{nameZh:'萨格勒布体验博物馆',name:'Museum of Illusions Zagreb',tourism:'museum',website:'https://muzejiluzija.com','addr:city':'Zagreb',opening_hours:'Mo-Su 10:00-21:00',rating:'4.5',reviews:'14000'}},
+{type:'node',id:6608,lat:45.8189,lon:15.9478,tags:{nameZh:'萨格勒布蹦床公园',name:'Trampoline Park Zagreb',tourism:'indoor_play','addr:city':'Zagreb',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'6800'}},
+{type:'node',id:6609,lat:45.8312,lon:15.9912,tags:{nameZh:'萨格勒布儿童戏剧',name:'Children\'s Theatre Zagreb',tourism:'attraction','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'5600'}},
+{type:'node',id:6610,lat:45.8056,lon:15.9623,tags:{nameZh:'萨格勒布儿童农场',name:'City Farm Zagreb',tourism:'children_farm','addr:city':'Zagreb',opening_hours:'Sa-Su 09:00-17:00',rating:'4.3',reviews:'4200'}},
+{type:'node',id:6611,lat:45.8467,lon:15.9567,tags:{nameZh:'萨格勒布高绳索公园',name:'High Ropes Park Zagreb',tourism:'nature_park','addr:city':'Zagreb',opening_hours:'Mo-Su 09:00-19:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:6612,lat:45.8234,lon:16.0134,tags:{nameZh:'萨格勒布机器人实验室',name:'Robot Lab Zagreb Kids',tourism:'science_center','addr:city':'Zagreb',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'4800'}},
+{type:'node',id:6613,lat:45.8145,lon:15.9789,tags:{nameZh:'萨格勒布天文馆',name:'Zagreb Planetarium',tourism:'science_center','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'6200'}},
+{type:'node',id:6614,lat:45.8389,lon:15.9434,tags:{nameZh:'萨格勒布激光枪战',name:'Laser Zone Zagreb',tourism:'indoor_play','addr:city':'Zagreb',opening_hours:'Mo-Su 11:00-22:00',rating:'4.2',reviews:'5200'}},
+{type:'node',id:6615,lat:45.8512,lon:16.0056,tags:{nameZh:'萨格勒布游泳中心',name:'Swimming Centre Zagreb',tourism:'swimming_pool','addr:city':'Zagreb',opening_hours:'Mo-Fr 06:00-22:00; Sa-Su 07:00-20:00',rating:'4.3',reviews:'7800'}},
+{type:'node',id:6616,lat:43.5089,lon:16.4423,tags:{nameZh:'斯普利特攀岩中心',name:'Climbing Wall Split',tourism:'indoor_play','addr:city':'Split',opening_hours:'Mo-Su 09:00-22:00',rating:'4.3',reviews:'4200'}},
+{type:'node',id:6617,lat:43.5212,lon:16.4289,tags:{nameZh:'斯普利特VR体验馆',name:'VR Zone Split',tourism:'indoor_play','addr:city':'Split',opening_hours:'Mo-Su 11:00-22:00',rating:'4.2',reviews:'3800'}},
+{type:'node',id:6618,lat:43.4967,lon:16.4556,tags:{nameZh:'斯普利特逃脱密室',name:'Escape Room Split',tourism:'escape_room','addr:city':'Split',opening_hours:'Mo-Su 10:00-22:00',rating:'4.4',reviews:'4800'}},
+{type:'node',id:6619,lat:43.5134,lon:16.4167,tags:{nameZh:'斯普利特游船克尔卡',name:'Krka Waterfalls Day Trip Split',tourism:'nature_park','addr:city':'Split',opening_hours:'Mo-Su 09:00-18:00',rating:'4.8',reviews:'18000'}},
+{type:'node',id:6620,lat:43.5345,lon:16.4512,tags:{nameZh:'斯普利特儿童博物馆',name:'Children\'s Museum Split',tourism:'museum','addr:city':'Split',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'5200'}},
+{type:'node',id:6621,lat:43.5023,lon:16.4378,tags:{nameZh:'斯普利特水上乐园',name:'Aquapark Split',tourism:'swimming_pool','addr:city':'Split',opening_hours:'Mo-Su 09:00-20:00',rating:'4.2',reviews:'8900'}},
+{type:'node',id:6622,lat:43.5267,lon:16.4089,tags:{nameZh:'斯普利特蹦床公园',name:'Trampoline Park Split',tourism:'indoor_play','addr:city':'Split',opening_hours:'Mo-Su 10:00-22:00',rating:'4.1',reviews:'4200'}},
+{type:'node',id:6623,lat:43.5189,lon:16.4634,tags:{nameZh:'斯普利特自然公园游',name:'Biokovo Nature Park Day Trip',tourism:'nature_park','addr:city':'Split',opening_hours:'Mo-Su 07:00-19:00',rating:'4.7',reviews:'11000'}},
+{type:'node',id:6624,lat:42.6423,lon:18.1089,tags:{nameZh:'杜布罗夫尼克攀岩中心',name:'Climbing Wall Dubrovnik',tourism:'indoor_play','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-21:00',rating:'4.3',reviews:'3600'}},
+{type:'node',id:6625,lat:42.6534,lon:18.0967,tags:{nameZh:'杜布罗夫尼克游船洛克鲁姆',name:'Lokrum Island Boat Trip',tourism:'nature_park','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-17:00',rating:'4.7',reviews:'18000'}},
+{type:'node',id:6626,lat:42.6312,lon:18.1212,tags:{nameZh:'杜布罗夫尼克游泳海湾',name:'Banje Beach Dubrovnik',tourism:'nature_park','addr:city':'Dubrovnik',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'22000'}},
+{type:'node',id:6627,lat:42.6467,lon:18.0845,tags:{nameZh:'杜布罗夫尼克VR体验',name:'VR Experience Dubrovnik',tourism:'indoor_play','addr:city':'Dubrovnik',opening_hours:'Mo-Su 11:00-22:00',rating:'4.2',reviews:'5600'}},
+{type:'node',id:6628,lat:42.6189,lon:18.1134,tags:{nameZh:'杜布罗夫尼克海上独木舟',name:'Sea Kayak Dubrovnik',tourism:'nature_park','addr:city':'Dubrovnik',opening_hours:'Mo-Su 08:00-18:00',rating:'4.7',reviews:'14000'}},
+{type:'node',id:6629,lat:45.3289,lon:14.4423,tags:{nameZh:'里耶卡攀岩中心',name:'Climbing Centre Rijeka',tourism:'indoor_play','addr:city':'Rijeka',opening_hours:'Mo-Su 09:00-22:00',rating:'4.3',reviews:'4200'}},
+{type:'node',id:6630,lat:45.3412,lon:14.4289,tags:{nameZh:'里耶卡儿童博物馆',name:'Natural History Museum Rijeka',tourism:'museum','addr:city':'Rijeka',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:6631,lat:45.3156,lon:14.4534,tags:{nameZh:'里耶卡水上乐园',name:'Aquapark Rijeka',tourism:'swimming_pool','addr:city':'Rijeka',opening_hours:'Mo-Su 09:00-20:00',rating:'4.2',reviews:'7200'}},
+{type:'node',id:6632,lat:45.3534,lon:14.4167,tags:{nameZh:'里耶卡蹦床公园',name:'Trampoline Park Rijeka',tourism:'indoor_play','addr:city':'Rijeka',opening_hours:'Mo-Su 10:00-22:00',rating:'4.1',reviews:'4800'}},
+{type:'node',id:6633,lat:45.3078,lon:14.4612,tags:{nameZh:'里耶卡逃脱密室',name:'Escape Room Rijeka',tourism:'escape_room','addr:city':'Rijeka',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'3600'}},
+{type:'node',id:6634,lat:45.0834,lon:13.6412,tags:{nameZh:'罗维尼海洋探索',name:'Rovinj Aquarium Activities',tourism:'aquarium','addr:city':'Rovinj',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'11000'}},
+{type:'node',id:6635,lat:45.0967,lon:13.6289,tags:{nameZh:'罗维尼海上皮划艇',name:'Sea Kayak Rovinj',tourism:'nature_park','addr:city':'Rovinj',opening_hours:'Mo-Su 08:00-18:00',rating:'4.6',reviews:'8900'}},
+{type:'node',id:6636,lat:45.0712,lon:13.6534,tags:{nameZh:'罗维尼儿童游乐场',name:'Playground Rovinj Old Town',tourism:'playground','addr:city':'Rovinj',opening_hours:'Mo-Su 08:00-20:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:6637,lat:45.0845,lon:13.6167,tags:{nameZh:'罗维尼自然公园',name:'Zlatni Rat Nature Park Rovinj',tourism:'nature_park','addr:city':'Rovinj',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'12000'}},
+{type:'node',id:6638,lat:44.1156,lon:15.2312,tags:{nameZh:'扎达尔水上运动',name:'Zadar Water Sports',tourism:'nature_park','addr:city':'Zadar',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'9800'}},
+{type:'node',id:6639,lat:44.1289,lon:15.2145,tags:{nameZh:'扎达尔海上探险',name:'Sea Adventure Zadar Kids',tourism:'nature_park','addr:city':'Zadar',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'7800'}},
+{type:'node',id:6640,lat:44.1023,lon:15.2478,tags:{nameZh:'扎达尔游泳海滩',name:'Borik Beach Zadar',tourism:'nature_park','addr:city':'Zadar',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'14000'}},
+{type:'node',id:6641,lat:44.1378,lon:15.2034,tags:{nameZh:'扎达尔儿童博物馆',name:'Children\'s Museum Zadar',tourism:'museum','addr:city':'Zadar',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'4800'}},
+{type:'node',id:6642,lat:44.8834,lon:15.6167,tags:{nameZh:'十六湖探险',name:'Plitvice Lakes National Park Adventure',tourism:'nature_park',website:'https://www.np-plitvicka-jezera.hr','addr:city':'Plitvice',opening_hours:'Mo-Su 07:00-20:00',rating:'4.9',reviews:'45000'}},
+{type:'node',id:6643,lat:44.8967,lon:15.6034,tags:{nameZh:'十六湖船游',name:'Plitvice Lakes Boat Tour',tourism:'nature_park','addr:city':'Plitvice',opening_hours:'Mo-Su 09:00-17:00',rating:'4.9',reviews:'32000'}},
+{type:'node',id:6644,lat:45.5534,lon:18.6934,tags:{nameZh:'奥西耶克动物园',name:'Osijek Zoo',tourism:'zoo','addr:city':'Osijek',opening_hours:'Mo-Su 09:00-18:00',rating:'4.2',reviews:'8900'}},
+{type:'node',id:6645,lat:45.5678,lon:18.6789,tags:{nameZh:'奥西耶克水上乐园',name:'Aquapark Osijek',tourism:'swimming_pool','addr:city':'Osijek',opening_hours:'Mo-Su 07:00-22:00',rating:'4.2',reviews:'7200'}},
+{type:'node',id:6646,lat:45.5423,lon:18.7056,tags:{nameZh:'奥西耶克室内游乐场',name:'Fun Park Osijek',tourism:'indoor_play','addr:city':'Osijek',opening_hours:'Mo-Su 09:00-21:00',rating:'4.1',reviews:'4200'}},
+{type:'node',id:6647,lat:45.8223,lon:15.9678,tags:{nameZh:'萨格勒布独木舟游',name:'Kayak Tour Zagreb River',tourism:'nature_park','addr:city':'Zagreb',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:6648,lat:45.8334,lon:15.9823,tags:{nameZh:'萨格勒布体验博物馆',name:'Museum of Illusions Zagreb Digital',tourism:'museum','addr:city':'Zagreb',opening_hours:'Mo-Su 10:00-21:00',rating:'4.5',reviews:'12000'}},
+{type:'node',id:6649,lat:45.8456,lon:15.9512,tags:{nameZh:'萨格勒布保龄球',name:'Bowling Zagreb',tourism:'bowling','addr:city':'Zagreb',opening_hours:'Mo-Su 12:00-24:00',rating:'4.0',reviews:'5200'}},
+{type:'node',id:6650,lat:45.8123,lon:16.0045,tags:{nameZh:'萨格勒布儿童骑马',name:'Pony Riding Zagreb',tourism:'children_farm','addr:city':'Zagreb',opening_hours:'Sa-Su 09:00-17:00',rating:'4.4',reviews:'4200'}},
+{type:'node',id:6651,lat:43.5156,lon:16.4467,tags:{nameZh:'斯普利特儿童农场',name:'Farm Experience Split',tourism:'children_farm','addr:city':'Split',opening_hours:'Sa-Su 09:00-17:00',rating:'4.3',reviews:'3600'}},
+{type:'node',id:6652,lat:43.5378,lon:16.4234,tags:{nameZh:'斯普利特卡丁车',name:'Karting Split',tourism:'indoor_play','addr:city':'Split',opening_hours:'Mo-Su 11:00-22:00',rating:'4.2',reviews:'4800'}},
+{type:'node',id:6653,lat:43.5089,lon:16.4689,tags:{nameZh:'斯普利特激光枪战',name:'Laser Zone Split',tourism:'indoor_play','addr:city':'Split',opening_hours:'Mo-Su 11:00-22:00',rating:'4.2',reviews:'3800'}},
+{type:'node',id:6654,lat:42.6378,lon:18.1167,tags:{nameZh:'杜布罗夫尼克儿童探索',name:'Dubrovnik Discovery Walk Kids',tourism:'attraction','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-17:00',rating:'4.5',reviews:'9800'}},
+{type:'node',id:6655,lat:42.6512,lon:18.0923,tags:{nameZh:'杜布罗夫尼克海鲜餐厅体验',name:'Cooking Class Dubrovnik Kids',tourism:'attraction','addr:city':'Dubrovnik',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'4200'}},
+{type:'node',id:6656,lat:45.0923,lon:13.6423,tags:{nameZh:'罗维尼船只出租',name:'Boat Rental Rovinj',tourism:'nature_park','addr:city':'Rovinj',opening_hours:'Mo-Su 08:00-19:00',rating:'4.5',reviews:'7200'}},
+{type:'node',id:6657,lat:45.0756,lon:13.6578,tags:{nameZh:'罗维尼逃脱密室',name:'Escape Room Rovinj',tourism:'escape_room','addr:city':'Rovinj',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'3200'}},
+{type:'node',id:6658,lat:44.1212,lon:15.2267,tags:{nameZh:'扎达尔逃脱密室',name:'Escape Room Zadar',tourism:'escape_room','addr:city':'Zadar',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'3800'}},
+{type:'node',id:6659,lat:44.1089,lon:15.2389,tags:{nameZh:'扎达尔游乐场',name:'Playground Zadar',tourism:'playground','addr:city':'Zadar',opening_hours:'Mo-Su 08:00-20:00',rating:'4.2',reviews:'4200'}},
+{type:'node',id:6660,lat:45.8267,lon:15.9734,tags:{nameZh:'萨格勒布植物园',name:'Zagreb Botanical Garden',tourism:'nature_park','addr:city':'Zagreb',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'7200'}},
+{type:'node',id:6841,lat:45.8150,lon:15.9819,tags:{nameZh:'萨格勒布技术博物馆',name:'Tehnički muzej Nikola Tesla',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 09:00-17:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6842,lat:45.8137,lon:15.9776,tags:{nameZh:'萨格勒布动物园',name:'Zoološki vrt Zagreb',tourism:'zoo','addr:city':'Zagreb',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:6843,lat:45.8168,lon:15.9795,tags:{nameZh:'萨格勒布植物园',name:'Botanički vrt Zagreb',tourism:'park','addr:city':'Zagreb',opening_hours:'Mo-Su 09:00-20:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6844,lat:45.8131,lon:15.9769,tags:{nameZh:'萨格勒布艺术工艺博物馆',name:'Muzej za umjetnost i obrt',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'1890'}},
+{type:'node',id:6845,lat:45.8122,lon:15.9779,tags:{nameZh:'萨格勒布民族志博物馆',name:'Etnografski muzej Zagreb',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6846,lat:45.8160,lon:15.9775,tags:{nameZh:'萨格勒布科技探索馆',name:'Muzej iluzija Zagreb',tourism:'museum','addr:city':'Zagreb',opening_hours:'Mo-Su 09:00-22:00',rating:'4.5',reviews:'6780'}},
+{type:'node',id:6847,lat:45.8150,lon:15.9826,tags:{nameZh:'萨格勒布考古博物馆',name:'Arheološki muzej Zagreb',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6848,lat:45.8125,lon:15.9762,tags:{nameZh:'萨格勒布自然历史博物馆',name:'Prirodoslovni muzej Zagreb',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:6849,lat:45.8130,lon:15.9810,tags:{nameZh:'萨格勒布文化历史博物馆',name:'Hrvatski povijesni muzej',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6850,lat:45.8147,lon:15.9806,tags:{nameZh:'萨格勒布国家博物馆',name:'Muzej grada Zagreba',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6851,lat:43.5081,lon:16.4402,tags:{nameZh:'斯普利特水族馆',name:'Akvarij Split',tourism:'aquarium','addr:city':'Split',opening_hours:'Mo-Su 09:00-18:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:6852,lat:43.5067,lon:16.4396,tags:{nameZh:'斯普利特考古博物馆',name:'Arheološki muzej Split',tourism:'museum','addr:city':'Split',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'1780'}},
+{type:'node',id:6853,lat:43.5083,lon:16.4419,tags:{nameZh:'斯普利特海事博物馆',name:'Pomorski muzej Split',tourism:'museum','addr:city':'Split',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6854,lat:43.5061,lon:16.4362,tags:{nameZh:'斯普利特狄奥克里先宫',name:'Dioklecijanova palača',tourism:'attraction','addr:city':'Split',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'18900'}},
+{type:'node',id:6855,lat:43.5103,lon:16.4433,tags:{nameZh:'斯普利特克里斯山',name:'Brdo Marjan Split',tourism:'park','addr:city':'Split',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'8920'}},
+{type:'node',id:6856,lat:42.6508,lon:18.0942,tags:{nameZh:'杜布罗夫尼克水族馆',name:'Akvarij Dubrovnik',tourism:'aquarium','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-20:00',rating:'4.3',reviews:'3450'}},
+{type:'node',id:6857,lat:42.6400,lon:18.1105,tags:{nameZh:'杜布罗夫尼克海事博物馆',name:'Pomorski muzej Dubrovnik',tourism:'museum','addr:city':'Dubrovnik',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6858,lat:42.6406,lon:18.1103,tags:{nameZh:'杜布罗夫尼克圣约翰要塞',name:'Tvrđava sv. Ivana',tourism:'castle','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6859,lat:42.6430,lon:18.1060,tags:{nameZh:'杜布罗夫尼克自然史博物馆',name:'Prirodoslovni muzej Dubrovnik',tourism:'museum','addr:city':'Dubrovnik',opening_hours:'Tu-Su 09:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6860,lat:42.6442,lon:18.1076,tags:{nameZh:'杜布罗夫尼克大炮台',name:'Tvrđava Minčeta',tourism:'castle','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-19:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:6861,lat:45.3271,lon:14.4422,tags:{nameZh:'里耶卡历史档案馆',name:'Muzej grada Rijeke',tourism:'museum','addr:city':'Rijeka',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6862,lat:45.3258,lon:14.4425,tags:{nameZh:'里耶卡科学博物馆',name:'Prirodoslovni muzej Rijeka',tourism:'museum','addr:city':'Rijeka',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:6863,lat:45.3283,lon:14.4412,tags:{nameZh:'里耶卡海洋博物馆',name:'Pomorski i povijesni muzej Rijeka',tourism:'museum','addr:city':'Rijeka',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6864,lat:45.5525,lon:18.6941,tags:{nameZh:'奥西耶克动物园',name:'ZOO Osijek',tourism:'zoo','addr:city':'Osijek',opening_hours:'Mo-Su 08:00-19:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6865,lat:45.5545,lon:18.6957,tags:{nameZh:'奥西耶克博物馆',name:'Muzej Slavonije Osijek',tourism:'museum','addr:city':'Osijek',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'980'}},
+{type:'node',id:6866,lat:45.5589,lon:18.7107,tags:{nameZh:'奥西耶克要塞',name:'Tvrđa Osijek',tourism:'attraction','addr:city':'Osijek',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6867,lat:44.1197,lon:15.2314,tags:{nameZh:'扎达尔海风琴',name:'Morske orgulje',tourism:'attraction','addr:city':'Zadar',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'12300'}},
+{type:'node',id:6868,lat:44.1201,lon:15.2321,tags:{nameZh:'扎达尔太阳敬意',name:'Pozdrav Suncu',tourism:'attraction','addr:city':'Zadar',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'8920'}},
+{type:'node',id:6869,lat:44.1182,lon:15.2295,tags:{nameZh:'扎达尔考古博物馆',name:'Arheološki muzej Zadar',tourism:'museum','addr:city':'Zadar',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'1890'}},
+{type:'node',id:6870,lat:44.1208,lon:15.2356,tags:{nameZh:'扎达尔玻璃工艺博物馆',name:'Muzej stakla Zadar',tourism:'museum','addr:city':'Zadar',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6871,lat:44.5629,lon:15.3729,tags:{nameZh:'普利特维采湖游客中心',name:'NP Plitvička jezera - posjetiteljski centar',tourism:'park','addr:city':'Plitvice',opening_hours:'Mo-Su 07:00-19:00',rating:'4.8',reviews:'28900'}},
+{type:'node',id:6872,lat:45.4977,lon:16.3718,tags:{nameZh:'卡尔洛瓦茨科学探索',name:'Muzej Turopolja',tourism:'museum','addr:city':'Karlovac',opening_hours:'Tu-Su 10:00-17:00',rating:'4.1',reviews:'560'}},
+{type:'node',id:6873,lat:44.7210,lon:17.1916,tags:{nameZh:'锡萨克博物馆',name:'Gradski muzej Sisak',tourism:'museum','addr:city':'Sisak',opening_hours:'Tu-Su 10:00-16:00',rating:'4.0',reviews:'340'}},
+{type:'node',id:6874,lat:46.3044,lon:16.3378,tags:{nameZh:'瓦拉日丁城堡',name:'Stari grad Varaždin',tourism:'castle','addr:city':'Varaždin',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6875,lat:46.3072,lon:16.3356,tags:{nameZh:'瓦拉日丁昆虫博物馆',name:'Entomološki muzej Varaždin',tourism:'museum','addr:city':'Varaždin',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:6876,lat:43.7350,lon:15.8952,tags:{nameZh:'希贝尼克圣詹姆斯大教堂',name:'Katedrala sv. Jakova',tourism:'attraction','addr:city':'Šibenik',opening_hours:'Mo-Su 09:00-18:00',rating:'4.7',reviews:'6780'}},
+{type:'node',id:6877,lat:43.7362,lon:15.8941,tags:{nameZh:'希贝尼克要塞',name:'Tvrđava sv. Nikole Šibenik',tourism:'castle','addr:city':'Šibenik',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6878,lat:43.8530,lon:15.9794,tags:{nameZh:'克尔卡国家公园',name:'NP Krka posjetiteljski centar',tourism:'park','addr:city':'Šibenik',opening_hours:'Mo-Su 08:00-19:00',rating:'4.8',reviews:'18900'}},
+{type:'node',id:6879,lat:45.1652,lon:13.6384,tags:{nameZh:'罗维尼考古博物馆',name:'Zavičajni muzej Rovinj',tourism:'museum','addr:city':'Rovinj',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6880,lat:45.0811,lon:13.9364,tags:{nameZh:'普拉角斗场',name:'Pulski amfiteatar',tourism:'attraction','addr:city':'Pula',opening_hours:'Mo-Su 08:00-20:00',rating:'4.8',reviews:'18900'}},
+{type:'node',id:6881,lat:45.0822,lon:13.9343,tags:{nameZh:'普拉考古博物馆',name:'Arheološki muzej Istre',tourism:'museum','addr:city':'Pula',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6882,lat:45.0815,lon:13.9382,tags:{nameZh:'普拉海洋探索',name:'Aquarium Pula',tourism:'aquarium','addr:city':'Pula',opening_hours:'Mo-Su 09:00-21:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6883,lat:43.4583,lon:16.6681,tags:{nameZh:'特罗吉尔老城',name:'Stari grad Trogir',tourism:'attraction','addr:city':'Trogir',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'8920'}},
+{type:'node',id:6884,lat:43.4604,lon:16.6694,tags:{nameZh:'特罗吉尔博物馆',name:'Muzej grada Trogira',tourism:'museum','addr:city':'Trogir',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:6885,lat:43.1725,lon:17.0169,tags:{nameZh:'马卡尔斯卡软体动物博物馆',name:'Malacological Museum Makarska',tourism:'museum','addr:city':'Makarska',opening_hours:'Mo-Sa 09:00-14:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6886,lat:45.3336,lon:14.3083,tags:{nameZh:'奥帕蒂亚历史博物馆',name:'Muzej Opatije',tourism:'museum','addr:city':'Opatija',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:6887,lat:45.2269,lon:13.5961,tags:{nameZh:'波雷奇厄弗拉西乌斯大教堂',name:'Eufrazijeva bazilika',tourism:'attraction','addr:city':'Poreč',opening_hours:'Mo-Su 08:00-19:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:6888,lat:45.2260,lon:13.5942,tags:{nameZh:'波雷奇地区博物馆',name:'Zavičajni muzej Poreštine',tourism:'museum','addr:city':'Poreč',opening_hours:'Mo-Su 10:00-17:00',rating:'4.2',reviews:'890'}},
+{type:'node',id:6889,lat:45.4323,lon:13.5167,tags:{nameZh:'乌马格体育儿童世界',name:'Terme Umag',tourism:'theme_park','addr:city':'Umag',opening_hours:'Mo-Su 08:00-21:00',rating:'4.3',reviews:'1890'}},
+{type:'node',id:6890,lat:43.0619,lon:16.6429,tags:{nameZh:'科尔丘拉城镇博物馆',name:'Gradski muzej Korčula',tourism:'museum','addr:city':'Korčula',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6891,lat:43.0612,lon:16.6421,tags:{nameZh:'科尔丘拉城堡',name:'Stari grad Korčula',tourism:'castle','addr:city':'Korčula',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:6892,lat:43.1706,lon:16.4413,tags:{nameZh:'赫瓦尔岛堡垒',name:'Tvrđava Fortica Hvar',tourism:'castle','addr:city':'Hvar',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6893,lat:43.1720,lon:16.4428,tags:{nameZh:'赫瓦尔考古博物馆',name:'Arheološki muzej Hvar',tourism:'museum','addr:city':'Hvar',opening_hours:'Tu-Su 09:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6894,lat:45.8094,lon:15.9753,tags:{nameZh:'萨格勒布现代美术馆',name:'Muzej suvremene umjetnosti',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 11:00-18:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6895,lat:45.8155,lon:15.9794,tags:{nameZh:'萨格勒布米玛拉博物馆',name:'Muzej Mimara',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2890'}},
+{type:'node',id:6896,lat:45.8220,lon:15.9751,tags:{nameZh:'萨格勒布科技纪念馆',name:'Muzej za posjetitelje Zagreb',tourism:'museum','addr:city':'Zagreb',opening_hours:'varies',rating:'4.2',reviews:'560'}},
+{type:'node',id:6897,lat:45.8149,lon:15.9909,tags:{nameZh:'萨格勒布科学与工程博物馆',name:'Muzej Lotrščak',tourism:'castle','addr:city':'Zagreb',opening_hours:'Tu-Su 11:00-20:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6898,lat:45.8168,lon:15.9744,tags:{nameZh:'萨格勒布国立音乐厅',name:'HNK Zagreb',tourism:'theatre','addr:city':'Zagreb',opening_hours:'varies',rating:'4.7',reviews:'5670'}},
+{type:'node',id:6899,lat:45.8144,lon:15.9788,tags:{nameZh:'萨格勒布亚历山大梅斯特罗维奇展馆',name:'Atelier Meštrović',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6900,lat:45.8161,lon:15.9740,tags:{nameZh:'萨格勒布失落关系博物馆',name:'Muzej prekinutih veza',tourism:'museum','addr:city':'Zagreb',opening_hours:'Mo-Su 09:00-22:30',rating:'4.5',reviews:'7890'}},
+{type:'node',id:6901,lat:45.5534,lon:18.6934,tags:{nameZh:'奥西耶克水上公园',name:'Aquapark Mir Osijek',tourism:'theme_park','addr:city':'Osijek',opening_hours:'Mo-Su 09:00-21:00',rating:'4.4',reviews:'3120'}},
+{type:'node',id:6902,lat:43.7355,lon:15.8882,tags:{nameZh:'希贝尼克儿童文化馆',name:'Bunari Šibenik',tourism:'museum','addr:city':'Šibenik',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6903,lat:44.1188,lon:15.2331,tags:{nameZh:'扎达尔国家博物馆',name:'Narodni muzej Zadar',tourism:'museum','addr:city':'Zadar',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:6904,lat:42.6441,lon:18.1086,tags:{nameZh:'杜布罗夫尼克文化历史博物馆',name:'Kulturno-povijesni muzej',tourism:'museum','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'2560'}},
+{type:'node',id:6905,lat:42.6418,lon:18.1098,tags:{nameZh:'杜布罗夫尼克老城墙',name:'Gradske zidine Dubrovnik',tourism:'attraction','addr:city':'Dubrovnik',opening_hours:'Mo-Su 08:00-19:30',rating:'4.8',reviews:'28900'}},
+{type:'node',id:6906,lat:45.5576,lon:18.6945,tags:{nameZh:'奥西耶克市政厅广场',name:'Trg slobode Osijek',tourism:'attraction','addr:city':'Osijek',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:6907,lat:43.5062,lon:16.4406,tags:{nameZh:'斯普利特步行大道',name:'Riva Split',tourism:'attraction','addr:city':'Split',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'12300'}},
+{type:'node',id:6908,lat:43.5075,lon:16.4393,tags:{nameZh:'斯普利特博物馆',name:'Etnografski muzej Split',tourism:'museum','addr:city':'Split',opening_hours:'Tu-Su 09:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6909,lat:44.1196,lon:15.2340,tags:{nameZh:'扎达尔永久艺术装置',name:'Umjetnička galerija Zadar',tourism:'museum','addr:city':'Zadar',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6910,lat:45.1623,lon:13.6375,tags:{nameZh:'罗维尼海洋生物站',name:'Rovinj Akvarij',tourism:'aquarium','addr:city':'Rovinj',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'2560'}},
+{type:'node',id:6911,lat:46.3052,lon:16.3365,tags:{nameZh:'瓦拉日丁歌剧院',name:'HNK Varaždin',tourism:'theatre','addr:city':'Varaždin',opening_hours:'varies',rating:'4.5',reviews:'1560'}},
+{type:'node',id:6912,lat:45.4499,lon:16.3741,tags:{nameZh:'卡尔洛瓦茨四河博物馆',name:'Gradski muzej Karlovac',tourism:'museum','addr:city':'Karlovac',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6913,lat:45.0803,lon:13.9342,tags:{nameZh:'普拉历史博物馆',name:'Povijesni muzej Istre',tourism:'museum','addr:city':'Pula',opening_hours:'Tu-Su 09:00-17:00',rating:'4.2',reviews:'890'}},
+{type:'node',id:6914,lat:43.5085,lon:16.4451,tags:{nameZh:'斯普利特艺术画廊',name:'Galerija Meštrović Split',tourism:'museum','addr:city':'Split',opening_hours:'Tu-Su 09:00-17:00',rating:'4.5',reviews:'3120'}},
+{type:'node',id:6915,lat:42.6449,lon:18.1071,tags:{nameZh:'杜布罗夫尼克教堂宝藏馆',name:'Katedrala Uznesenja',tourism:'attraction','addr:city':'Dubrovnik',opening_hours:'Mo-Sa 09:00-17:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6916,lat:45.8143,lon:15.9789,tags:{nameZh:'萨格勒布人类博物馆',name:'Muzej antropologije Zagreb',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'560'}},
+{type:'node',id:6917,lat:45.8175,lon:15.9798,tags:{nameZh:'萨格勒布画廊',name:'Galerija Klovićevi dvori',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 11:00-18:00',rating:'4.4',reviews:'1780'}},
+{type:'node',id:6918,lat:45.8130,lon:15.9801,tags:{nameZh:'萨格勒布当代艺术中心',name:'Muzej suvremene i novije povijesti',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:6919,lat:45.5549,lon:18.6875,tags:{nameZh:'奥西耶克城墙公园',name:'Europska avenija Osijek',tourism:'park','addr:city':'Osijek',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6920,lat:43.7357,lon:15.8965,tags:{nameZh:'希贝尼克圣玛格纳要塞',name:'Tvrđava sv. Mihovila',tourism:'castle','addr:city':'Šibenik',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:7021,lat:45.8133,lon:15.9773,tags:{nameZh:'萨格勒布玩具博物馆',name:'Muzej igračaka Zagreb',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7022,lat:45.8153,lon:15.9788,tags:{nameZh:'萨格勒布科幻博物馆',name:'Muzej iseljeništva',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:7023,lat:45.8163,lon:15.9802,tags:{nameZh:'萨格勒布天文台',name:'Zvjezdarnica Zagreb',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 20:00-23:00',rating:'4.4',reviews:'1230'}},
+{type:'node',id:7024,lat:45.8121,lon:15.9755,tags:{nameZh:'萨格勒布儿童剧场',name:'Gradsko kazalište Žar ptica',tourism:'theatre','addr:city':'Zagreb',opening_hours:'varies',rating:'4.4',reviews:'1780'}},
+{type:'node',id:7025,lat:45.8158,lon:15.9767,tags:{nameZh:'萨格勒布洛特尔沙克炮台',name:'Kula Lotrščak',tourism:'castle','addr:city':'Zagreb',opening_hours:'Tu-Su 11:00-20:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:7026,lat:45.8101,lon:15.9697,tags:{nameZh:'萨格勒布麦克西米尔公园',name:'Park Maksimir',tourism:'park','addr:city':'Zagreb',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'8920'}},
+{type:'node',id:7027,lat:45.8093,lon:15.9669,tags:{nameZh:'萨格勒布马克西米尔动物园',name:'Zoološki vrt Maksimir',tourism:'zoo','addr:city':'Zagreb',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:7028,lat:45.8139,lon:15.9790,tags:{nameZh:'萨格勒布幻影博物馆',name:'Muzej iluzija Zagreb 2',tourism:'museum','addr:city':'Zagreb',opening_hours:'Mo-Su 09:00-22:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:7029,lat:45.8188,lon:15.9888,tags:{nameZh:'萨格勒布米罗戈伊陵园',name:'Mirogoj groblje',tourism:'attraction','addr:city':'Zagreb',opening_hours:'Mo-Su 08:00-18:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:7030,lat:45.8129,lon:15.9785,tags:{nameZh:'萨格勒布圣马可广场',name:'Trg sv. Marka Zagreb',tourism:'attraction','addr:city':'Zagreb',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:7031,lat:43.5069,lon:16.4408,tags:{nameZh:'斯普利特科洛奈特博物馆',name:'Galerija Meštrović Split 2',tourism:'museum','addr:city':'Split',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7032,lat:43.5063,lon:16.4417,tags:{nameZh:'斯普利特银色大门',name:'Srebrna vrata Split',tourism:'attraction','addr:city':'Split',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'5670'}},
+{type:'node',id:7033,lat:43.5090,lon:16.4427,tags:{nameZh:'斯普利特木偶剧场',name:'Gradsko kazalište lutaka Split',tourism:'theatre','addr:city':'Split',opening_hours:'varies',rating:'4.3',reviews:'1120'}},
+{type:'node',id:7034,lat:43.5078,lon:16.4461,tags:{nameZh:'斯普利特自然历史博物馆',name:'Prirodoslovni muzej Split',tourism:'museum','addr:city':'Split',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:7035,lat:43.5115,lon:16.4464,tags:{nameZh:'斯普利特儿童公园',name:'Park Stari Plac Split',tourism:'park','addr:city':'Split',opening_hours:'Mo-Su 07:00-22:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:7036,lat:42.6415,lon:18.1058,tags:{nameZh:'杜布罗夫尼克儿童游乐',name:'Igraonice Dubrovnik',tourism:'theme_park','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-19:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:7037,lat:42.6426,lon:18.1093,tags:{nameZh:'杜布罗夫尼克圣布莱斯教堂',name:'Crkva sv. Vlaha',tourism:'attraction','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:7038,lat:42.6436,lon:18.1070,tags:{nameZh:'杜布罗夫尼克总督宫',name:'Knežev dvor Dubrovnik',tourism:'castle','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-18:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:7039,lat:42.6453,lon:18.1049,tags:{nameZh:'杜布罗夫尼克多明我修道院',name:'Franjevački samostan',tourism:'attraction','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:7040,lat:42.6444,lon:18.1067,tags:{nameZh:'杜布罗夫尼克大运河',name:'Stradun Dubrovnik',tourism:'attraction','addr:city':'Dubrovnik',opening_hours:'Mo-Su 00:00-24:00',rating:'4.8',reviews:'18900'}},
+{type:'node',id:7041,lat:45.3290,lon:14.4422,tags:{nameZh:'里耶卡儿童剧场',name:'HNK Rijeka',tourism:'theatre','addr:city':'Rijeka',opening_hours:'varies',rating:'4.4',reviews:'1230'}},
+{type:'node',id:7042,lat:45.3272,lon:14.4410,tags:{nameZh:'里耶卡历史博物馆',name:'Muzej grada Rijeke 2',tourism:'museum','addr:city':'Rijeka',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:7043,lat:45.3302,lon:14.4380,tags:{nameZh:'里耶卡特萨特城堡',name:'Trsat Rijeka',tourism:'castle','addr:city':'Rijeka',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:7044,lat:45.3261,lon:14.4438,tags:{nameZh:'里耶卡水族馆',name:'Prirodoslovni muzej Rijeka 2',tourism:'aquarium','addr:city':'Rijeka',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:7045,lat:45.5534,lon:18.6912,tags:{nameZh:'奥西耶克木偶剧场',name:'Kazalište lutaka Osijek',tourism:'theatre','addr:city':'Osijek',opening_hours:'varies',rating:'4.3',reviews:'1120'}},
+{type:'node',id:7046,lat:45.5510,lon:18.6960,tags:{nameZh:'奥西耶克城市博物馆',name:'Gradski muzej Osijek 2',tourism:'museum','addr:city':'Osijek',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:7047,lat:44.1172,lon:15.2301,tags:{nameZh:'扎达尔现代艺术馆',name:'Galerija Sv. Donata',tourism:'museum','addr:city':'Zadar',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:7048,lat:44.1193,lon:15.2279,tags:{nameZh:'扎达尔自然科学博物馆',name:'Prirodni muzej Zadar',tourism:'museum','addr:city':'Zadar',opening_hours:'Tu-Su 09:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:7049,lat:44.1213,lon:15.2306,tags:{nameZh:'扎达尔圣多纳特教堂',name:'Crkva sv. Donata Zadar',tourism:'attraction','addr:city':'Zadar',opening_hours:'Mo-Su 09:00-18:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:7050,lat:44.1197,lon:15.2363,tags:{nameZh:'扎达尔城市博物馆',name:'Gradski muzej Zadar',tourism:'museum','addr:city':'Zadar',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'1340'}},
+{type:'node',id:7051,lat:44.5638,lon:15.3753,tags:{nameZh:'普利特维采上湖游览',name:'Gornji Plitvički kanjon',tourism:'park','addr:city':'Plitvice',opening_hours:'Mo-Su 07:00-19:00',rating:'4.9',reviews:'18900'}},
+{type:'node',id:7052,lat:44.5614,lon:15.3742,tags:{nameZh:'普利特维采下湖游览',name:'Donji Plitvički kanjon',tourism:'park','addr:city':'Plitvice',opening_hours:'Mo-Su 07:00-19:00',rating:'4.9',reviews:'18900'}},
+{type:'node',id:7053,lat:46.3053,lon:16.3394,tags:{nameZh:'瓦拉日丁城市公园',name:'Gradski park Varaždin',tourism:'park','addr:city':'Varaždin',opening_hours:'Mo-Su 06:00-22:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7054,lat:46.3048,lon:16.3347,tags:{nameZh:'瓦拉日丁农业博物馆',name:'Muzej Varaždina',tourism:'museum','addr:city':'Varaždin',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:7055,lat:43.7362,lon:15.8968,tags:{nameZh:'希贝尼克城市博物馆',name:'Muzej grada Šibenika',tourism:'museum','addr:city':'Šibenik',opening_hours:'Tu-Su 09:00-17:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:7056,lat:43.7360,lon:15.8980,tags:{nameZh:'希贝尼克大炮台',name:'Tvrđava Barone Šibenik',tourism:'castle','addr:city':'Šibenik',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:7057,lat:43.8558,lon:15.9831,tags:{nameZh:'克尔卡瀑布之旅',name:'Krka Skradinski buk',tourism:'park','addr:city':'Šibenik',opening_hours:'Mo-Su 08:00-18:00',rating:'4.8',reviews:'15600'}},
+{type:'node',id:7058,lat:45.1648,lon:13.6377,tags:{nameZh:'罗维尼老城区',name:'Stari grad Rovinj',tourism:'attraction','addr:city':'Rovinj',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'9870'}},
+{type:'node',id:7059,lat:45.1636,lon:13.6363,tags:{nameZh:'罗维尼水下考古',name:'Rovinj Ronilački centar',tourism:'attraction','addr:city':'Rovinj',opening_hours:'Mo-Su 08:00-18:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:7060,lat:45.0826,lon:13.9353,tags:{nameZh:'普拉罗马城门',name:'Slavoluk Sergijevaca Pula',tourism:'attraction','addr:city':'Pula',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:7061,lat:45.0808,lon:13.9370,tags:{nameZh:'普拉古罗马神庙',name:'Augustov hram Pula',tourism:'attraction','addr:city':'Pula',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:7062,lat:43.4572,lon:16.6698,tags:{nameZh:'特罗吉尔要塞',name:'Kamerlengo kula Trogir',tourism:'castle','addr:city':'Trogir',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:7063,lat:43.1727,lon:16.4420,tags:{nameZh:'赫瓦尔岛拉文德农场',name:'Polja levande Hvar',tourism:'park','addr:city':'Hvar',opening_hours:'Mo-Su 09:00-17:00',rating:'4.5',reviews:'3120'}},
+{type:'node',id:7064,lat:43.0621,lon:16.6411,tags:{nameZh:'科尔丘拉马可波罗之家',name:'Kuća Marka Pola',tourism:'museum','addr:city':'Korčula',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:7065,lat:45.3319,lon:14.4059,tags:{nameZh:'奥帕蒂亚公园别墅',name:'Park Angiolina Opatija',tourism:'park','addr:city':'Opatija',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:7066,lat:45.3330,lon:14.4051,tags:{nameZh:'奥帕蒂亚海滨公园',name:'Lungomare Opatija',tourism:'park','addr:city':'Opatija',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:7067,lat:45.2269,lon:13.5972,tags:{nameZh:'波雷奇水上乐园',name:'Aquapark Istralandia',tourism:'theme_park','addr:city':'Poreč',opening_hours:'Mo-Su 09:00-18:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:7068,lat:45.4309,lon:13.5128,tags:{nameZh:'乌马格历史城区',name:'Stari grad Umag',tourism:'attraction','addr:city':'Umag',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:7069,lat:45.5042,lon:16.3759,tags:{nameZh:'卡尔洛瓦茨水上公园',name:'Aquatika Karlovac',tourism:'aquarium','addr:city':'Karlovac',opening_hours:'Mo-Su 09:00-17:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:7070,lat:45.8149,lon:15.9764,tags:{nameZh:'萨格勒布大教堂',name:'Katedrala u Zagrebu',tourism:'attraction','addr:city':'Zagreb',opening_hours:'Mo-Sa 10:00-17:00',rating:'4.6',reviews:'8920'}},
+{type:'node',id:7071,lat:45.8135,lon:15.9749,tags:{nameZh:'萨格勒布禁区博物馆',name:'Muzej Prigorja Zagreb',tourism:'museum','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-17:00',rating:'4.1',reviews:'340'}},
+{type:'node',id:7072,lat:43.5098,lon:16.4440,tags:{nameZh:'斯普利特儿童冒险',name:'Igraonice za djecu Split',tourism:'theme_park','addr:city':'Split',opening_hours:'Mo-Su 09:00-20:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:7073,lat:42.6455,lon:18.1105,tags:{nameZh:'杜布罗夫尼克西班牙堡垒',name:'Tvrđava sv. Lawrence',tourism:'castle','addr:city':'Dubrovnik',opening_hours:'Mo-Su 08:00-20:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:7074,lat:44.1200,lon:15.2332,tags:{nameZh:'扎达尔考古文化广场',name:'Forum Zadar',tourism:'attraction','addr:city':'Zadar',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'4560'}},
+{type:'node',id:7075,lat:45.5528,lon:18.6957,tags:{nameZh:'奥西耶克木偶迷你剧院',name:'Mala scena Osijek',tourism:'theatre','addr:city':'Osijek',opening_hours:'varies',rating:'4.2',reviews:'560'}},
+{type:'node',id:7076,lat:43.7354,lon:15.8947,tags:{nameZh:'希贝尼克太阳能广场',name:'Trg Republike Šibenik',tourism:'attraction','addr:city':'Šibenik',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:7077,lat:43.8541,lon:15.9802,tags:{nameZh:'克尔卡修道院',name:'Franjevački samostan Krka',tourism:'attraction','addr:city':'Šibenik',opening_hours:'Mo-Su 09:00-17:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:7078,lat:45.2263,lon:13.5949,tags:{nameZh:'波雷奇蝴蝶馆',name:'Muzej Poreštine annex',tourism:'museum','addr:city':'Poreč',opening_hours:'Mo-Su 10:00-18:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:7079,lat:45.0814,lon:13.9348,tags:{nameZh:'普拉城市公园',name:'Park Šijana Pula',tourism:'park','addr:city':'Pula',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:7080,lat:45.8119,lon:15.9776,tags:{nameZh:'萨格勒布欧洲广场',name:'Europski trg Zagreb',tourism:'attraction','addr:city':'Zagreb',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:7081,lat:46.3040,lon:16.3370,tags:{nameZh:'瓦拉日丁昆虫探索',name:'Park ptica Varaždin',tourism:'zoo','addr:city':'Varaždin',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:7082,lat:45.4488,lon:16.3715,tags:{nameZh:'卡尔洛瓦茨历史中心',name:'Stari grad Karlovac',tourism:'attraction','addr:city':'Karlovac',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:7083,lat:43.5074,lon:16.4387,tags:{nameZh:'斯普利特历史体验',name:'Vestibul Split',tourism:'attraction','addr:city':'Split',opening_hours:'Mo-Su 09:00-19:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:7084,lat:42.6416,lon:18.1073,tags:{nameZh:'杜布罗夫尼克多明我修道院博物馆',name:'Dominikanski samostan Dubrovnik',tourism:'museum','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7085,lat:44.1204,lon:15.2342,tags:{nameZh:'扎达尔岛游轮码头',name:'Luka Zadar',tourism:'attraction','addr:city':'Zadar',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'1890'}},
+{type:'node',id:7086,lat:45.8145,lon:15.9758,tags:{nameZh:'萨格勒布大学广场',name:'Trg bana Jelačića Zagreb',tourism:'attraction','addr:city':'Zagreb',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'12300'}},
+{type:'node',id:7087,lat:43.5082,lon:16.4414,tags:{nameZh:'斯普利特音乐厅',name:'HNK Split',tourism:'theatre','addr:city':'Split',opening_hours:'varies',rating:'4.5',reviews:'2340'}},
+{type:'node',id:7088,lat:42.6439,lon:18.1082,tags:{nameZh:'杜布罗夫尼克鸟瞰台',name:'Panorama Dubrovnik',tourism:'attraction','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-19:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:7089,lat:45.3274,lon:14.4432,tags:{nameZh:'里耶卡渔港博物馆',name:'Ribarski muzej Rijeka',tourism:'museum','addr:city':'Rijeka',opening_hours:'Tu-Su 10:00-17:00',rating:'4.1',reviews:'340'}},
+{type:'node',id:7090,lat:45.1641,lon:13.6370,tags:{nameZh:'罗维尼历史探索馆',name:'Muzej Rovinj',tourism:'museum','addr:city':'Rovinj',opening_hours:'Tu-Su 09:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:7091,lat:45.8105,lon:15.9717,tags:{nameZh:'萨格勒布米罗公园',name:'Jarun jezero Zagreb',tourism:'park','addr:city':'Zagreb',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'9870'}},
+{type:'node',id:7092,lat:43.5071,lon:16.4398,tags:{nameZh:'斯普利特美术馆',name:'Galerija Kula Split',tourism:'museum','addr:city':'Split',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:7093,lat:44.5621,lon:15.3735,tags:{nameZh:'普利特维采瀑布近观',name:'Veliki Slap Plitvice',tourism:'park','addr:city':'Plitvice',opening_hours:'Mo-Su 07:00-19:00',rating:'4.9',reviews:'18900'}},
+{type:'node',id:7094,lat:46.3058,lon:16.3389,tags:{nameZh:'瓦拉日丁温泉度假',name:'Toplice Varaždinske Toplice',tourism:'theme_park','addr:city':'Varaždin',opening_hours:'Mo-Su 08:00-20:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:7095,lat:43.7368,lon:15.8901,tags:{nameZh:'希贝尼克老城墙',name:'Gradske zidine Šibenik',tourism:'attraction','addr:city':'Šibenik',opening_hours:'Mo-Su 09:00-20:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7096,lat:45.0827,lon:13.9363,tags:{nameZh:'普拉海滨公园',name:'Šijana Park Pula',tourism:'park','addr:city':'Pula',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'1890'}},
+{type:'node',id:7097,lat:45.2250,lon:13.5935,tags:{nameZh:'波雷奇艺术馆',name:'Kulturni centar Poreč',tourism:'museum','addr:city':'Poreč',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'560'}},
+{type:'node',id:7098,lat:45.8142,lon:15.9821,tags:{nameZh:'萨格勒布历史区',name:'Gornji grad Zagreb',tourism:'attraction','addr:city':'Zagreb',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'9870'}},
+{type:'node',id:7099,lat:43.1726,lon:16.4426,tags:{nameZh:'赫瓦尔岛广场',name:'Trg sv. Stjepana Hvar',tourism:'attraction','addr:city':'Hvar',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'8920'}},
+{type:'node',id:7100,lat:45.5538,lon:18.6940,tags:{nameZh:'奥西耶克老城区',name:'Tvrđa stari grad Osijek',tourism:'attraction','addr:city':'Osijek',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'5670'}},
+
+{type:'node',id:7501,lat:45.8122,lon:15.9830,tags:{nameZh:'萨格勒布圣卡特琳娜教堂',name:'Crkva sv. Katarine Zagreb',tourism:'attraction','addr:city':'Zagreb',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7502,lat:45.8160,lon:15.9802,tags:{nameZh:'萨格勒布石门',name:'Kamenita vrata',tourism:'attraction','addr:city':'Zagreb',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:7503,lat:45.8195,lon:15.9775,tags:{nameZh:'萨格勒布梅德维德格拉德城堡',name:'Medvedgrad Zagreb',tourism:'castle','addr:city':'Zagreb',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:7504,lat:45.8180,lon:15.9813,tags:{nameZh:'萨格勒布梅德维察山公园',name:'Medvednica NP',tourism:'park','addr:city':'Zagreb',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'8920'}},
+{type:'node',id:7505,lat:45.8092,lon:15.9792,tags:{nameZh:'萨格勒布绿地公园',name:'Park Tuškanac',tourism:'park','addr:city':'Zagreb',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:7506,lat:43.5086,lon:16.4409,tags:{nameZh:'斯普利特主教宫博物馆',name:'Muzej Stare Crkve Split',tourism:'museum','addr:city':'Split',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:7507,lat:43.5059,lon:16.4435,tags:{nameZh:'斯普利特中央集市',name:'Tržnica Pazar Split',tourism:'attraction','addr:city':'Split',opening_hours:'Mo-Su 06:00-14:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:7508,lat:43.5100,lon:16.4475,tags:{nameZh:'斯普利特海滨漫步',name:'Sustipan park Split',tourism:'park','addr:city':'Split',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:7509,lat:42.6412,lon:18.1079,tags:{nameZh:'杜布罗夫尼克旧港口',name:'Stara luka Dubrovnik',tourism:'attraction','addr:city':'Dubrovnik',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'8920'}},
+{type:'node',id:7510,lat:42.6419,lon:18.1084,tags:{nameZh:'杜布罗夫尼克总督宫花园',name:'Knežev dvor vrt',tourism:'park','addr:city':'Dubrovnik',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:7511,lat:45.3262,lon:14.4389,tags:{nameZh:'里耶卡科尔佐大道',name:'Korzo Rijeka',tourism:'attraction','addr:city':'Rijeka',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'5670'}},
+{type:'node',id:7512,lat:45.5548,lon:18.6981,tags:{nameZh:'奥西耶克历史花园',name:'Gradski vrt Osijek',tourism:'park','addr:city':'Osijek',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:7513,lat:44.1210,lon:15.2282,tags:{nameZh:'扎达尔公共花园',name:'Park Vladimira Nazora Zadar',tourism:'park','addr:city':'Zadar',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:7514,lat:46.3063,lon:16.3404,tags:{nameZh:'瓦拉日丁市中心广场',name:'Trg kralja Tomislava Varaždin',tourism:'attraction','addr:city':'Varaždin',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:7515,lat:43.7376,lon:15.8958,tags:{nameZh:'希贝尼克历史广场',name:'Trg palih branitelja Šibenik',tourism:'attraction','addr:city':'Šibenik',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:7516,lat:45.1655,lon:13.6411,tags:{nameZh:'罗维尼岛灯塔',name:'Faro Rovinj',tourism:'attraction','addr:city':'Rovinj',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:7517,lat:45.0833,lon:13.9374,tags:{nameZh:'普拉中世纪城墙',name:'Zidine Pula',tourism:'attraction','addr:city':'Pula',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:7518,lat:45.4498,lon:16.3780,tags:{nameZh:'卡尔洛瓦茨公园',name:'Park Zrinski Karlovac',tourism:'park','addr:city':'Karlovac',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'1890'}},
+{type:'node',id:7519,lat:43.4560,lon:16.6652,tags:{nameZh:'特罗吉尔海滨漫步',name:'Riva Trogir',tourism:'attraction','addr:city':'Trogir',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:7520,lat:43.1718,lon:16.4408,tags:{nameZh:'赫瓦尔老城区',name:'Stari grad Hvar',tourism:'attraction','addr:city':'Hvar',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'9870'}},
+];
+
+// ===== Category config =====
+const CATS = {
+  theme_park:{emoji:'🎢', en:'Theme parks', hr:'Zabavni parkovi', zh:'主题乐园'},
+  zoo:{emoji:'🦒', en:'Zoos', hr:'Zoološki vrtovi', zh:'动物园'},
+  aquarium:{emoji:'🐠', en:'Aquariums', hr:'Akvariji', zh:'水族馆'},
+  museum:{emoji:'🏛️', en:'Museums', hr:'Muzeji', zh:'博物馆'},
+  nature:{emoji:'🌳', en:'Nature', hr:'Priroda', zh:'自然'},
+  beach:{emoji:'🏖️', en:'Beaches', hr:'Plaže', zh:'海滩'},
+  playground:{emoji:'🎪', en:'Playgrounds', hr:'Dječja igrališta', zh:'游乐场'},
+  indoor_play:{emoji:'🏠', en:'Indoor play', hr:'Unutarnje igraonice', zh:'室内游乐'},
+  trampoline:{emoji:'🤸', en:'Trampoline', hr:'Trampolini', zh:'蹦床'},
+  swim:{emoji:'🏊', en:'Swimming', hr:'Plivanje', zh:'游泳'},
+  climbing:{emoji:'🧗', en:'Climbing', hr:'Penjanje', zh:'攀爬'},
+  karting:{emoji:'🏎️', en:'Karting', hr:'Karting', zh:'卡丁车'},
+  farm:{emoji:'🐑', en:'Farms', hr:'Farme', zh:'农场'},
+  attraction:{emoji:'⭐', en:'Attractions', hr:'Atrakcije', zh:'景点'},
+  theatre:{emoji:'🎭', en:'Theatre', hr:'Kazalište', zh:'剧院'},
+  cinema:{emoji:'🎬', en:'Cinema', hr:'Kino', zh:'电影院'},
+  ice_rink:{emoji:'⛸️', en:'Ice rink', hr:'Klizalište', zh:'滑冰'},
+  minigolf:{emoji:'⛳', en:'Minigolf', hr:'Minigolf', zh:'迷你高尔夫'},
+  castle:{emoji:'🏰', en:'Castles', hr:'Dvorci', zh:'城堡'},
+  windmill:{emoji:'🌬️', en:'Windmills', hr:'Vjetronjače', zh:'风车'},
+  escape:{emoji:'🔓', en:'Escape rooms', hr:'Sobe bijega', zh:'密室逃脱'},
+  sports:{emoji:'🏆', en:'Sports centre', hr:'Sportski centar', zh:'运动中心'},
+  restaurant:{emoji:'🍽️', en:'Family dining', hr:'Obiteljski restorani', zh:'亲子餐厅'},
+  monument:{emoji:'🗿', en:'Monuments', hr:'Spomenici', zh:'古迹'},
+  ship:{emoji:'⛵', en:'Historic ships', hr:'Povijesni brodovi', zh:'历史船只'},
+  ruins:{emoji:'🏺', en:'Ruins', hr:'Ruševine', zh:'遗址'},
+  other:{emoji:'📍', en:'Other', hr:'Ostalo', zh:'其他'}
+};
+
+// Richer emoji mapping using venue name keywords
+function emojiFor(name, cat){
+  const n = (name||'').toLowerCase();
+  // Zoo subtype refinements
+  if(cat==='zoo'){
+    if(/safari|wild|beekse/.test(n)) return '🦁';
+    if(/dolf|sea|seal|marine/.test(n)) return '🐬';
+    if(/bird|vogel|avifauna/.test(n)) return '🦜';
+    if(/ape|monkey|apen/.test(n)) return '🐒';
+    if(/butterfly|vlinder/.test(n)) return '🦋';
+    if(/reptile|snake|slang/.test(n)) return '🐍';
+    return '🦒';
+  }
+  // Museum subtype
+  if(cat==='museum'){
+    if(/science|nemo|natur/.test(n)) return '🔬';
+    if(/art|van gogh|rijks|kunstmuseum|stedelijk|gemeente/.test(n)) return '🖼️';
+    if(/maritime|ship|scheepvaart|maritiem/.test(n)) return '⚓';
+    if(/railway|spoorweg|train|tram/.test(n)) return '🚂';
+    if(/aviation|air|luchtvaart/.test(n)) return '✈️';
+    if(/corpus|body|anatomie/.test(n)) return '🫀';
+    if(/music|muziek|instrument/.test(n)) return '🎼';
+    if(/toy|speelgoed/.test(n)) return '🧸';
+    if(/history|histori|oorlog|war|museum van de geest/.test(n)) return '📜';
+    return '🏛️';
+  }
+  // Theme park subtype
+  if(cat==='theme_park'){
+    if(/water|waterpark|splash|aqua/.test(n)) return '💦';
+    if(/snow|ski|slope/.test(n)) return '❄️';
+    if(/mini|madurodam|miniatuur/.test(n)) return '🏘️';
+    if(/fairy|sprookje|efteling/.test(n)) return '🏰';
+    return '🎢';
+  }
+  // Nature subtype
+  if(cat==='nature'){
+    if(/forest|bos|wald/.test(n)) return '🌲';
+    if(/heath|heide/.test(n)) return '🌾';
+    if(/dune|duin/.test(n)) return '🏝️';
+    if(/lake|meer|lak/.test(n)) return '🏞️';
+    if(/tulip|tulp|keukenhof/.test(n)) return '🌷';
+    return '🌳';
+  }
+  // Playground subtype
+  if(cat==='playground'){
+    if(/water|splash/.test(n)) return '💦';
+    if(/adventure|avontur/.test(n)) return '🧗';
+    return '🛝';
+  }
+  // Indoor play
+  if(cat==='indoor_play'){
+    if(/monkey/.test(n)) return '🐒';
+    if(/ballorig|ball/.test(n)) return '🎈';
+    if(/jimmy|jimmi/.test(n)) return '🤹';
+    return '🏠';
+  }
+  // Restaurant subtype
+  if(cat==='restaurant'){
+    if(/pannenkoek|pancake/.test(n)) return '🥞';
+    if(/chinese|chinees|china|asia|asian|sushi|wok/.test(n)) return '🥢';
+    if(/pizza|pizzer/.test(n)) return '🍕';
+    if(/ice cream|ijssalon|gelato/.test(n)) return '🍦';
+    if(/buffet/.test(n)) return '🍱';
+    if(/burger|mcdonalds/.test(n)) return '🍔';
+    return '🍽️';
+  }
+  // Theme parks extras
+  if(cat==='theme_park' && /petting|boerderij/.test(n)) return '🐄';
+  // Castle/fort
+  if(cat==='castle'){
+    if(/fort|bourtange/.test(n)) return '⚔️';
+    return '🏰';
+  }
+  // Windmill
+  if(cat==='windmill') return '🌬️';
+  // Sports
+  if(cat==='sports'){
+    if(/klim|climb/.test(n)) return '🧗';
+    if(/bow|boog/.test(n)) return '🏹';
+    return '🏆';
+  }
+  // Farm animals
+  if(cat==='farm'){
+    if(/geiten|goat/.test(n)) return '🐐';
+    if(/paarden|horse/.test(n)) return '🐴';
+    return '🐑';
+  }
+  return CATS[cat]?.emoji || '📍';
+}
+
+function classify(t){
+  if(t.tourism==='theme_park') return 'theme_park';
+  if(t.tourism==='zoo') return 'zoo';
+  if(t.tourism==='children_farm') return 'farm';
+  if(t.tourism==='aquarium') return 'aquarium';
+  if(t.tourism==='museum') return 'museum';
+  if(t.tourism==='attraction' || t.tourism==='visitor_centre') return 'attraction';
+  if(t.leisure==='nature_reserve' || t.leisure==='park') return 'nature';
+  if(t.leisure==='playground') return 'playground';
+  if(t.leisure==='indoor_playground') return 'indoor_play';
+  if(t.leisure==='trampoline_park') return 'trampoline';
+  if(t.leisure==='swimming_pool') return 'swim';
+  if(t.leisure==='climbing_park') return 'climbing';
+  if(t.leisure==='go_kart') return 'karting';
+  if(t.leisure==='miniature_golf') return 'minigolf';
+  if(t.leisure==='ice_rink') return 'ice_rink';
+  if(t.leisure==='sports_centre') return 'sports';
+  if(t.leisure==='escape_room') return 'escape';
+  if(t.amenity==='theatre') return 'theatre';
+  if(t.amenity==='cinema') return 'cinema';
+  if(t.amenity && t.amenity.indexOf('restaurant')>=0) return 'restaurant';
+  if(t.historic==='castle') return 'castle';
+  if(t.historic==='fort') return 'castle';
+  if(t.historic==='windmill' || t.man_made==='windmill') return 'windmill';
+  if(t.historic==='monument' || t.historic==='archaeological_site') return 'monument';
+  if(t.historic==='ship') return 'ship';
+  if(t.historic==='ruins') return 'ruins';
+  if(t.natural==='beach') return 'beach';
+  return 'other';
+}
+
+// ===== Transform data =====
+const VENUES = STATIC_HR_VENUES.map(v=>{
+  const t = v.tags || {};
+  const cat = classify(t);
+  return {
+    id: v.id, lat: v.lat, lon: v.lon,
+    name: t.name || 'Unnamed',
+    zh: t.nameZh || '',
+    cat: cat,
+    emoji: emojiFor(t.name, cat),
+    city: t['addr:city'] || '',
+    street: t['addr:street'] || '',
+    house: t['addr:housenumber'] || '',
+    postcode: t['addr:postcode'] || '',
+    website: t.website || '',
+    hours: t.opening_hours || '',
+    rating: parseFloat(t.rating || '0') || null,
+    reviews: parseInt(t.reviews || '0') || 0,
+  };
+});
+
+// ===== State =====
+const FAV_KEY = 'ke_favs_hr';
+const LANG_KEY = 'ke_lang_hr';
+const LANGS = ['en','hr','zh'];  // cycle: en → hr → zh → en
+const state = {
+  activeCats: new Set(),  // empty = all
+  search: '',
+  sortBy: 'rating',
+  filtered: [],
+  selectedId: null,
+  markers: new Map(),
+  favs: new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')),
+  favsOnly: false,
+  lang: localStorage.getItem(LANG_KEY) || (navigator.language.startsWith('hr') ? 'hr' : navigator.language.startsWith('zh') ? 'zh' : 'en'),
+};
+
+// ===== Language labels (shown in button — always the CURRENT language) =====
+const LANG_LABELS = {en:'EN', nl:'NL', de:'DE', fr:'FR', it:'IT', es:'ES', pt:'PT', el:'ΕΛ', zh:'中', hr:'HR'};
+
+// ===== i18n =====
+const I18N = {
+  en: {
+    in_view: 'in view', favs: '♡ Favs', filters: '🏷 Category', sort: '↕ Sort',
+    category: 'Category', clear: 'Clear', show_results: 'Show results',
+    near_me: 'Near me', map: '🗺 Map', list: '☰ List',
+    directions: '🗺 Directions', website: '🌐 Website',
+    rating: 'Rating', address: 'Address', city: 'City', hours: 'Hours', reviews: 'reviews',
+    empty: 'No venues in this area. Try moving the map or clearing filters.',
+    search_ph: 'Search places or cities…',
+    lang_next: 'HR',
+  },
+  hr: {
+    in_view: 'u prikazu', favs: '♡ Favoriti', filters: '🏷 Kategorija', sort: '↕ Sortiraj',
+    category: 'Kategorija', clear: 'Očisti', show_results: 'Prikaži rezultate',
+    near_me: 'U blizini', map: '🗺 Karta', list: '☰ Popis',
+    directions: '🗺 Upute', website: '🌐 Web stranica',
+    rating: 'Ocjena', address: 'Adresa', city: 'Grad', hours: 'Radno vrijeme', reviews: 'recenzija',
+    empty: 'Nema mjesta u ovom području. Pomičite kartu ili obrišite filtere.',
+    search_ph: 'Tražite mjesta ili gradove…',
+    lang_next: '中',
+  },
+  zh: {
+    in_view: '可见', favs: '♡ 收藏', filters: '🏷 品类', sort: '↕ 排序',
+    category: '品类', clear: '清空', show_results: '显示结果',
+    near_me: '我附近', map: '🗺 地图', list: '☰ 列表',
+    directions: '🗺 导航', website: '🌐 官网',
+    rating: '评分', address: '地址', city: '城市', hours: '开放时间', reviews: '评价',
+    empty: '当前视口内没有场所。拖动地图或清空筛选。',
+    search_ph: '搜索场所或城市…',
+    lang_next: 'EN',
+  }
+};
+function t(k){return I18N[state.lang][k] || k;}
+
+function toggleLang(){
+  const idx = LANGS.indexOf(state.lang);
+  state.lang = LANGS[(idx+1) % LANGS.length];
+  localStorage.setItem(LANG_KEY, state.lang);
+  applyLang();
+  renderList();
+  buildCatGrid();
+}
+function applyLang(){
+  // Header button shows NEXT language
+  document.getElementById('lang-btn').textContent = LANG_LABELS[state.lang] || state.lang.toUpperCase();
+  // Update chips
+  document.getElementById('favs-chip').innerHTML = t('favs');
+  document.querySelector('.actions .chip:nth-child(2)').innerHTML = t('filters');
+  document.querySelector('.actions .chip:nth-child(3)').innerHTML = t('sort');
+  // Filter drawer title + section
+  document.querySelector('.filter-hdr h3').textContent = t('category');
+  document.querySelector('.filter-section h4').textContent = t('category');
+  document.querySelector('.btn-clear').textContent = t('clear');
+  document.querySelector('.btn-apply').textContent = t('show_results');
+  // Near me button
+  document.querySelector('.fab.near').innerHTML = `<span>📍</span><span>${t('near_me')}</span>`;
+  // Map/List toggle
+  document.getElementById('tog-map').textContent = t('map');
+  document.getElementById('tog-list').textContent = t('list');
+  // Search placeholder
+  document.getElementById('search').placeholder = t('search_ph');
+  // Count label
+  document.getElementById('count-label').textContent = t('in_view');
+}
+function saveFavs(){localStorage.setItem(FAV_KEY, JSON.stringify([...state.favs]));}
+function toggleFav(){
+  if(state.selectedId == null) return;
+  if(state.favs.has(state.selectedId)) state.favs.delete(state.selectedId);
+  else state.favs.add(state.selectedId);
+  saveFavs();
+  updateFavBtn();
+  renderList();
+}
+function updateFavBtn(){
+  const btn = document.getElementById('ov-fav');
+  if(!btn) return;
+  const on = state.favs.has(state.selectedId);
+  btn.classList.toggle('on', on);
+  btn.textContent = on ? '♥' : '♡';
+}
+function toggleFavsOnly(){
+  state.favsOnly = !state.favsOnly;
+  document.getElementById('favs-chip').classList.toggle('on', state.favsOnly);
+  document.getElementById('favs-chip').style.background = state.favsOnly ? '#fff5f0' : '';
+  document.getElementById('favs-chip').style.color = state.favsOnly ? 'var(--brand)' : '';
+  document.getElementById('favs-chip').style.borderColor = state.favsOnly ? 'var(--brand)' : '';
+  renderList();
+}
+function cardFavClick(ev, id){
+  ev.stopPropagation();
+  if(state.favs.has(id)) state.favs.delete(id); else state.favs.add(id);
+  saveFavs();
+  if(state.selectedId===id) updateFavBtn();
+  renderList();
+}
+
+// ===== Map =====
+const map = L.map('map', {zoomControl:false, attributionControl:false}).setView([45.1,16.5],7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+L.control.attribution({prefix:false}).addTo(map);
+
+const clusterGroup = L.markerClusterGroup({
+  maxClusterRadius: 50,
+  showCoverageOnHover: false,
+});
+map.addLayer(clusterGroup);
+
+function makeIcon(v, selected=false){
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim();
+  return L.divIcon({
+    className: selected ? 'selected' : '',
+    html: `<div class="venue-marker" style="border-color:${color}">${v.emoji}</div>`,
+    iconSize:[36,36], iconAnchor:[18,18]
+  });
+}
+
+VENUES.forEach(v=>{
+  const m = L.marker([v.lat, v.lon], {icon: makeIcon(v)});
+  m.on('click', ()=>openDetail(v));
+  clusterGroup.addLayer(m);
+  state.markers.set(v.id, m);
+});
+
+// ===== Filter + render =====
+function computeFiltered(){
+  const q = state.search.trim().toLowerCase();
+  const bounds = map.getBounds();
+  let list = VENUES.filter(v=>{
+    if(state.favsOnly && !state.favs.has(v.id)) return false;
+    if(state.activeCats.size && !state.activeCats.has(v.cat)) return false;
+    if(q && !(v.name.toLowerCase().includes(q) || v.zh.includes(q) || v.city.toLowerCase().includes(q))) return false;
+    if(!state.favsOnly && !bounds.contains([v.lat, v.lon])) return false;
+    return true;
+  });
+  if(state.sortBy==='rating'){
+    list.sort((a,b)=>(b.rating||0)-(a.rating||0));
+  } else if(state.sortBy==='name'){
+    list.sort((a,b)=>a.name.localeCompare(b.name));
+  }
+  state.filtered = list;
+  return list;
+}
+
+function renderList(){
+  const list = computeFiltered();
+  const el = document.getElementById('list');
+  document.getElementById('count').textContent = list.length;
+  if(!list.length){
+    el.innerHTML = `<div class="empty">No venues in this area. Try moving the map or clearing filters.</div>`;
+    return;
+  }
+  el.innerHTML = list.slice(0,200).map(v=>{
+    const isFav = state.favs.has(v.id);
+    // NL venues: original name is already Dutch → use for en & nl; zh uses nameZh
+    const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+    const secondary = state.lang==='zh' ? v.name : (v.zh || '');
+    const catLabel = CATS[v.cat]?.[state.lang] || v.cat;
+    return `
+    <div class="venue-card" data-id="${v.id}" onclick="openDetail(VENUES.find(x=>x.id===${v.id}))">
+      <div class="venue-thumb cat-${v.cat}">${v.emoji}<button class="card-fav ${isFav?'on':''}" onclick="cardFavClick(event,${v.id})" title="Favorite">${isFav?'♥':'♡'}</button></div>
+      <div class="venue-info">
+        <div class="venue-name">${primary}</div>
+        ${secondary?`<div class="venue-zh">${secondary}</div>`:''}
+        <div class="venue-meta">
+          ${v.rating?`<span class="rating">★ ${v.rating.toFixed(1)}</span><span class="dot">·</span>`:''}
+          <span>${catLabel}</span>
+          ${v.city?`<span class="dot">·</span><span>${v.city}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== Detail overlay =====
+function openDetail(v){
+  if(!v) return;
+  state.selectedId = v.id;
+  const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+  const secondary = state.lang==='zh' && v.zh ? v.name : v.zh;
+  document.getElementById('ov-name').textContent = primary;
+  document.getElementById('ov-zh').textContent = secondary;
+  const rows = [];
+  if(v.rating) rows.push([t('rating'), `★ ${v.rating.toFixed(1)} · ${v.reviews.toLocaleString()} ${t('reviews')}`]);
+  if(v.street) rows.push([t('address'), `${v.street} ${v.house}, ${v.postcode} ${v.city}`.trim()]);
+  else if(v.city) rows.push([t('city'), v.city]);
+  rows.push([t('category'), `${v.emoji} ${CATS[v.cat]?.[state.lang] || v.cat}`]);
+  if(v.hours) rows.push([t('hours'), v.hours]);
+  document.getElementById('ov-body').innerHTML = rows.map(([k,val])=>
+    `<div class="detail-row"><div class="lbl">${k}</div><div>${val}</div></div>`
+  ).join('');
+  document.getElementById('ov-directions').href = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}&destination_place_id=${encodeURIComponent(v.name)}`;
+  document.getElementById('ov-directions').textContent = t('directions');
+  document.getElementById('ov-website').textContent = t('website');
+  const wsBtn = document.getElementById('ov-website');
+  if(v.website){
+    wsBtn.href = v.website; wsBtn.style.display='flex';
+  } else {
+    wsBtn.style.display='none';
+  }
+  updateFavBtn();
+  document.getElementById('overlay').classList.add('open');
+  // pan to marker
+  map.flyTo([v.lat, v.lon], Math.max(map.getZoom(), 13), {duration:.6});
+}
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('open');
+  state.selectedId = null;
+}
+
+// ===== Filter drawer =====
+function buildCatGrid(){
+  const counts = {};
+  VENUES.forEach(v=>counts[v.cat]=(counts[v.cat]||0)+1);
+  const el = document.getElementById('cat-grid');
+  el.innerHTML = Object.entries(CATS)
+    .filter(([k])=>counts[k])
+    .sort(([a],[b])=>(counts[b]||0)-(counts[a]||0))
+    .map(([k,c])=>`<button class="cat-btn ${state.activeCats.has(k)?'active':''}" data-cat="${k}" onclick="toggleCat('${k}')">
+      <span class="emoji">${c.emoji}</span>${c[state.lang]}<span class="count">${counts[k]}</span>
+    </button>`).join('');
+}
+function toggleCat(k){
+  if(state.activeCats.has(k)) state.activeCats.delete(k); else state.activeCats.add(k);
+  buildCatGrid();
+  renderList();
+}
+function clearFilter(){
+  state.activeCats.clear();
+  buildCatGrid();
+  renderList();
+}
+function openFilter(){document.getElementById('filter').classList.add('open');}
+function closeFilter(){document.getElementById('filter').classList.remove('open');}
+
+// ===== Drawer interactions =====
+function toggleDrawer(){
+  const d = document.getElementById('drawer');
+  const s = d.dataset.state;
+  d.dataset.state = s==='peek'?'half':(s==='half'?'full':'peek');
+}
+
+// ===== Near me (geolocation) =====
+function locateMe(){
+  if(!navigator.geolocation) return alert('Geolocation not supported');
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      const {latitude, longitude} = pos.coords;
+      map.flyTo([latitude, longitude], 12, {duration:.8});
+      L.circleMarker([latitude, longitude], {radius:10, color:'#c96442', fillColor:'#c96442', fillOpacity:.3, weight:3}).addTo(map);
+    },
+    (err)=>alert('Could not get location: '+err.message)
+  );
+}
+
+// ===== Zoom =====
+function zoomIn(){map.zoomIn();}
+function zoomOut(){map.zoomOut();}
+
+// ===== Search =====
+document.getElementById('search').addEventListener('input', e=>{
+  state.search = e.target.value;
+  renderList();
+});
+
+// ===== Country picker (placeholder — links to /) =====
+function openCountryPicker(){
+  window.location.href = '/';
+}
+
+// ===== Map/List view toggle (mobile) =====
+function setView(v){
+  document.body.dataset.view = v;
+  document.getElementById('tog-map').classList.toggle('active', v==='map');
+  document.getElementById('tog-list').classList.toggle('active', v==='list');
+  if(v==='map'){
+    setTimeout(()=>map.invalidateSize(), 50);
+  }
+}
+document.body.dataset.view = 'map';
+
+// ===== Sort toggle =====
+function toggleSort(){
+  state.sortBy = state.sortBy==='rating'?'name':'rating';
+  renderList();
+}
+
+// ===== Sync list when map moves =====
+let moveTimer;
+map.on('moveend', ()=>{
+  clearTimeout(moveTimer);
+  moveTimer = setTimeout(renderList, 150);
+});
+
+// ===== Initial render =====
+applyLang();
+buildCatGrid();
+renderList();
+
+// ===== Click outside to close overlays =====
+map.on('click', ()=>{
+  closeOverlay();
+});
+
+// ===== AI Chat Assistant =====
+const CITY_COORDS = {
+  'zagreb':[45.81,15.98],
+  'split':[43.51,16.44],
+  'rijeka':[45.33,14.44],
+  'osijek':[45.56,18.69],
+  'zadar':[44.12,15.23],
+  'dubrovnik':[42.65,18.09],
+  'pula':[44.87,13.85],
+  'sibenik':[43.73,15.89],
+  'varaždin':[46.31,16.34],
+  'karlovac':[45.49,15.55],
+  'rovinj':[45.08,13.64],
+  '萨格勒布':[45.81,15.98],
+  '斯普利特':[43.51,16.44],
+  '杜布罗夫尼克':[42.65,18.09],
+  '里耶卡':[45.33,14.44],
+  '普拉':[44.87,13.85]
+};
+const INTEREST_MAP = {
+  '动物':['zoo','farm'],'动物园':['zoo'],'农场':['farm'],
+  '博物馆':['museum'],'科学':['museum'],'艺术':['museum'],
+  '游乐园':['theme_park'],'主题公园':['theme_park'],'游乐场':['theme_park','indoor_play'],
+  '室内':['indoor_play','museum','aquarium'],'下雨':['indoor_play','museum','aquarium'],
+  '海滩':['beach'],'海边':['beach'],'游泳':['beach','swim'],
+  '城堡':['castle'],'历史':['castle','monument'],
+  '自然':['nature'],'公园':['nature'],'森林':['nature'],
+  '水族馆':['aquarium'],'海豚':['aquarium'],
+  '滑冰':['ice_rink'],'运动':['sports'],
+  '室内游乐':['indoor_play'],'蹦床':['trampoline'],
+  'animal':['zoo','farm'],'zoo':['zoo'],'farm':['farm'],
+  'museum':['museum'],'science':['museum'],
+  'theme park':['theme_park'],'amusement':['theme_park'],
+  'indoor':['indoor_play','museum','aquarium'],'rain':['indoor_play','museum','aquarium'],
+  'beach':['beach'],'castle':['castle'],
+  'nature':['nature'],'forest':['nature'],
+  'aquarium':['aquarium'],'playground':['indoor_play','playground'],
+  'trampoline':['trampoline'],'monkey town':['indoor_play'],'ballorig':['indoor_play'],
+};
+const AGE_HINTS = {
+  '婴儿':1,'宝宝':2,'1岁':1,'2岁':2,'3岁':3,'幼儿':3,'小朋友':5,
+  '4岁':4,'5岁':5,'6岁':6,'7岁':7,'8岁':8,'9岁':9,'10岁':10,
+  '学龄':7,'小学':8,'toddler':2,'baby':1,'teenager':13,
+};
+
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function parseUserMessage(msg){
+  const lower=msg.toLowerCase();
+  const result={city:null,coords:null,categories:new Set(),age:null,maxDist:null,raw:msg};
+  for(const [name,coords] of Object.entries(CITY_COORDS)){
+    if(lower.includes(name.toLowerCase())){result.city=name;result.coords=coords;break;}
+  }
+  for(const [kw,cats] of Object.entries(INTEREST_MAP)){
+    if(lower.includes(kw.toLowerCase())) cats.forEach(c=>result.categories.add(c));
+  }
+  for(const [kw,age] of Object.entries(AGE_HINTS)){
+    if(lower.includes(kw)){result.age=age;break;}
+  }
+  const dm=lower.match(/(\d+)\s*(km|公里|min|分钟)/);
+  if(dm){const n=parseInt(dm[1]);result.maxDist=(dm[2]==='分钟'||dm[2]==='min')?n*1.2:n;}
+  return result;
+}
+
+function chatRecommend(parsed){
+  let list=[...VENUES];
+  if(parsed.categories.size>0) list=list.filter(v=>parsed.categories.has(v.cat));
+  if(parsed.coords){
+    list.forEach(v=>{v._dist=haversine(parsed.coords[0],parsed.coords[1],v.lat,v.lon);});
+    if(parsed.maxDist) list=list.filter(v=>v._dist<=parsed.maxDist);
+    list.sort((a,b)=>a._dist-b._dist);
+  } else {
+    list.sort(()=>Math.random()-0.5);
+  }
+  if(parsed.age!==null){
+    if(parsed.age<=3){
+      const p=['farm','indoor_play','playground','zoo'];
+      list.sort((a,b)=>{const aP=p.indexOf(a.cat),bP=p.indexOf(b.cat);if(aP>=0&&bP<0)return -1;if(aP<0&&bP>=0)return 1;return(a._dist||0)-(b._dist||0);});
+    } else if(parsed.age>=8){
+      const p=['theme_park','sports','museum','castle'];
+      list.sort((a,b)=>{const aP=p.indexOf(a.cat),bP=p.indexOf(b.cat);if(aP>=0&&bP<0)return -1;if(aP<0&&bP>=0)return 1;return(a._dist||0)-(b._dist||0);});
+    }
+  }
+  return list.slice(0,6);
+}
+
+function buildChatResponse(parsed,venues){
+  const isZh=/[\u4e00-\u9fff]/.test(parsed.raw);
+  if(!venues.length) return isZh?'抱歉，没有找到完全匹配的场地。试试换个关键词或放宽距离范围？':"Sorry, no exact matches. Try different keywords or wider range?";
+  let parts=[];
+  if(isZh){
+    let o='为你推荐以下场地';
+    if(parsed.city) o=`在 ${parsed.city} 附近为你推荐`;
+    if(parsed.age) o+=`（适合${parsed.age}岁孩子）`;
+    parts.push(o+'：');
+  } else {
+    let o='Here are my recommendations';
+    if(parsed.city) o=`Near ${parsed.city}, here are my picks`;
+    if(parsed.age) o+=` (for age ${parsed.age})`;
+    parts.push(o+':');
+  }
+  venues.forEach(v=>{
+    const dist=v._dist?` (${v._dist.toFixed(1)}km)`:'';
+    const catLbl=CATS[v.cat]?.[state.lang]||v.cat;
+    parts.push(`\n${v.emoji} <strong>${v.name}</strong>${dist}\n<span style="color:var(--text-mute);font-size:11px">${catLbl} · ${v.city}</span>`);
+  });
+  if(isZh) parts.push('\n点击场地名称可在地图上查看位置。');
+  else parts.push('\nClick a venue name to see it on the map.');
+  let chips='';
+  if(venues.length>0){
+    chips='<div style="margin-top:8px">'+venues.map(v=>
+      `<span class="chat-venue-chip" onclick="chatShowVenue(${v.lat},${v.lon},${v.id})">${v.emoji} ${v.name}</span>`
+    ).join('')+'</div>';
+  }
+  return parts.join('')+chips;
+}
+
+let chatOpen=false;
+function toggleChat(open){
+  chatOpen=open;
+  document.getElementById('chatPanel').classList.toggle('open',open);
+  document.getElementById('chatFab').classList.toggle('hidden',open);
+  if(open&&document.getElementById('chatMessages').children.length===0) initChat();
+  if(open) document.getElementById('chatInput').focus();
+}
+function initChat(){
+  const g=state.lang==='zh'
+    ?'👋 你好！我是亲子出行助手。\n\n告诉我你的情况：\n• 你在哪个城市？\n• 孩子多大？\n• 想要室内还是室外？\n\n我会推荐最合适的去处！'
+    :state.lang==='nl'
+    ?'👋 Hallo! Ik ben je gezinsuitje-assistent.\n\nVertel me:\n• In welke stad?\n• Hoe oud zijn je kinderen?\n• Binnen of buiten?\n\nIk raad de beste plekken aan!'
+    :"👋 Hi! I'm your family outing assistant.\n\nTell me:\n• Which city?\n• How old are your kids?\n• Indoor or outdoor?\n\nI'll recommend the best places!";
+  addBotMsg(g);showQuickActions();
+}
+function showQuickActions(){
+  const el=document.getElementById('chatQuickActions');
+  const a=state.lang==='zh'
+    ?[['🏠 Amsterdam室内','我在Amsterdam，下雨天想找室内游乐场'],['🦁 带3岁宝宝看动物','我孩子3岁，想去看动物'],['🏖️ 海滩推荐','周末想带孩子去海滩'],['🏛️ 博物馆','想带8岁孩子去博物馆']]
+    :[['🏠 Indoor play','Indoor activities for rainy day'],['🦁 Zoo for toddler','Zoo or farm for 3 year old'],['🏖️ Beach trip','Beach trip with kids'],['🏛️ Museums','Museum for 8 year old']];
+  el.innerHTML=a.map(([l,m])=>`<button class="chat-quick-btn" onclick="sendQuick('${m.replace(/'/g,"\\'")}')">${l}</button>`).join('');
+}
+function sendQuick(m){document.getElementById('chatInput').value=m;handleChatSend();}
+function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function addBotMsg(t){const el=document.getElementById('chatMessages');const d=document.createElement('div');d.className='chat-msg bot';d.innerHTML=escHtml(t).replace(/\n/g,'<br>');el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function addUserMsg(t){const el=document.getElementById('chatMessages');const d=document.createElement('div');d.className='chat-msg user';d.textContent=t;el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function showTyping(){const el=document.getElementById('chatMessages');const d=document.createElement('div');d.className='chat-typing';d.id='chatTyping';d.innerHTML='<span></span><span></span><span></span>';el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function removeTyping(){const t=document.getElementById('chatTyping');if(t)t.remove();}
+
+function handleChatSend(){
+  const input=document.getElementById('chatInput');
+  const msg=input.value.trim();if(!msg)return;
+  addUserMsg(msg);input.value='';
+  document.getElementById('chatQuickActions').innerHTML='';
+  showTyping();
+  setTimeout(()=>{
+    removeTyping();
+    const parsed=parseUserMessage(msg);
+    const venues=chatRecommend(parsed);
+    const response=buildChatResponse(parsed,venues);
+    const d=document.createElement('div');d.className='chat-msg bot';d.innerHTML=response;
+    document.getElementById('chatMessages').appendChild(d);
+    document.getElementById('chatMessages').scrollTop=document.getElementById('chatMessages').scrollHeight;
+  },600+Math.random()*400);
+}
+
+function chatShowVenue(lat,lon,id){
+  map.flyTo([lat,lon],14,{duration:1});
+  const v=VENUES.find(x=>x.id===id);
+  if(v) openDetail(v);
+  if(window.innerWidth<=768) toggleChat(false);
+}
+
+document.getElementById('chatInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();handleChatSend();}
+});
+
+</script>
+
+<!-- AI Chat Widget -->
+<button class="chat-fab" id="chatFab" onclick="toggleChat(true)" title="AI Assistant" aria-label="Open AI chat assistant">🧸</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header">
+    <div class="chat-header-icon">🧸</div>
+    <div class="chat-header-text">AI Assistant<br><span class="chat-header-sub" id="chatSubtitle">亲子出行助手</span></div>
+    <button class="chat-close" onclick="toggleChat(false)">×</button>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-quick-actions" id="chatQuickActions"></div>
+  <div class="chat-input-area">
+    <input class="chat-input" id="chatInput" placeholder="描述你的需求… e.g. Amsterdam, 3岁, 室内" autocomplete="off">
+    <button class="chat-send" id="chatSend" onclick="handleChatSend()">➤</button>
+  </div>
+</div>
+
+</body>
+</html>

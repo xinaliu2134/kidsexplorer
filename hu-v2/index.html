@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Hungary Kids Explorer · KidsExplorer.eu</title>
+<meta name="description" content="Family-friendly venues across Hungary on one interactive map. Multilingual. Free.">
+<link rel="canonical" href="https://kidsexplorer.eu/hu/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kidsexplorer.eu/hu/">
+<meta property="og:title" content="Hungary Kids Explorer · KidsExplorer.eu">
+<meta property="og:description" content="129+ family-friendly venues across Greece on one interactive map. Bilingual map with verified addresses, ratings, and opening hours.">
+<meta property="og:image" content="https://kidsexplorer.eu/og/hu.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="KidsExplorer.eu">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Hungary Kids Explorer · KidsExplorer.eu">
+<meta name="twitter:description" content="129+ family-friendly venues across Greece on one interactive map. Bilingual map with verified addresses, ratings, and opening hours.">
+<meta name="twitter:image" content="https://kidsexplorer.eu/og/hu.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Original Holland Kids palette (restored from v1) */
+  --bg:#F2F4F8;
+  --surface:#FFFFFF;
+  --border:#CBD5E1;
+  --border-strong:#94A3B8;
+  --text:#1A2B4A;
+  --text-soft:#5A6A84;
+  --text-mute:#9AA5B8;
+  --brand:#E05A1E;
+  --brand-dark:#B84515;
+  --brand-light:#FFF0E9;
+  --teal:#0EA5A0;
+  --navy:#1A2B4A;
+  --shadow:0 1px 3px rgba(26,43,74,.12), 0 0 0 1px rgba(26,43,74,.04);
+  --shadow-lg:0 8px 24px rgba(26,43,74,.20), 0 0 0 1px rgba(26,43,74,.08);
+  --radius:14px;
+  --header-h:56px;
+  --safe-bottom:env(safe-area-inset-bottom,0);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input{font-family:inherit;border:none;outline:none;background:none;color:inherit}
+
+/* ===== Top Header ===== */
+.hdr{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);z-index:900;display:flex;align-items:center;gap:10px;padding:0 14px}
+.hdr-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;letter-spacing:-.3px;color:var(--brand);white-space:nowrap}
+.hdr-brand .logo{font-size:20px}
+.hdr-country{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--bg);border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:600;cursor:pointer}
+.hdr-country:hover{border-color:var(--brand)}
+.hdr-country .flag{font-size:16px}
+.hdr-search{flex:1;display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:999px;cursor:text;min-width:0}
+.hdr-search input{flex:1;font-size:14px;min-width:0}
+.hdr-search .icon{color:var(--text-mute);flex-shrink:0}
+.hdr-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--bg);border:1px solid var(--border);font-size:16px;flex-shrink:0}
+.hdr-btn:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ===== Map ===== */
+#map{position:fixed;top:var(--header-h);left:0;right:0;bottom:0;z-index:1}
+.leaflet-popup-content-wrapper{border-radius:14px}
+.leaflet-popup-content{margin:14px 16px;font-family:'Inter',sans-serif;font-size:13px}
+
+/* ===== Map/List Toggle (mobile) ===== */
+.view-toggle{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--header-h) + 12px);z-index:600;display:flex;background:#fff;border:1px solid var(--border);border-radius:999px;box-shadow:var(--shadow);padding:3px}
+.view-toggle button{padding:8px 18px;font-size:13px;font-weight:600;border-radius:999px;color:var(--text-soft)}
+.view-toggle button.active{background:var(--text);color:#fff}
+.view-toggle button:not(.active):hover{color:var(--text)}
+body[data-view="list"] #map{display:none}
+body[data-view="list"] .drawer{transform:translateY(0)!important;top:calc(var(--header-h) + 58px);border-radius:20px 20px 0 0;max-height:calc(100vh - var(--header-h) - 58px);height:calc(100vh - var(--header-h) - 58px)}
+body[data-view="list"] .drawer-handle{display:none}
+body[data-view="list"] .fab-stack{display:none}
+@media (min-width:1024px){
+  .view-toggle{display:none} /* desktop shows both */
+}
+
+/* ===== Floating Action Buttons ===== */
+.fab-stack{position:fixed;right:14px;top:calc(var(--header-h) + 14px);z-index:500;display:flex;flex-direction:column;gap:10px}
+.fab{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s}
+.fab:hover{border-color:var(--brand);color:var(--brand);transform:scale(1.05)}
+.fab.near{background:var(--brand);color:#fff;border-color:var(--brand);width:auto;padding:0 18px;border-radius:22px;font-size:13px;font-weight:600;gap:6px}
+.fab.near:hover{background:var(--brand-dark);color:#fff}
+
+/* ===== Bottom Drawer (List) ===== */
+.drawer{position:fixed;left:0;right:0;bottom:0;z-index:700;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:80vh;display:flex;flex-direction:column}
+.drawer[data-state="peek"]{transform:translateY(calc(100% - 72px))}
+.drawer[data-state="half"]{transform:translateY(calc(100% - 48vh))}
+.drawer[data-state="full"]{transform:translateY(8vh)}
+.drawer-handle{flex-shrink:0;padding:8px 0 4px;text-align:center;cursor:grab;touch-action:none}
+.drawer-handle::before{content:'';display:inline-block;width:40px;height:4px;background:var(--border-strong);border-radius:2px}
+.drawer-hdr{flex-shrink:0;padding:6px 18px 12px;display:flex;align-items:center;justify-content:space-between}
+.drawer-hdr .count{font-weight:700;font-size:14px}
+.drawer-hdr .count small{font-weight:500;color:var(--text-mute);font-size:12px;margin-left:4px}
+.drawer-hdr .actions{display:flex;gap:6px}
+.drawer-hdr .chip{padding:6px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.drawer-hdr .chip:hover{border-color:var(--brand);color:var(--brand)}
+.drawer-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 18px calc(20px + var(--safe-bottom))}
+.venue-card{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.venue-card:last-child{border-bottom:none}
+.venue-card:hover{background:#fafaf7}
+.venue-card:hover .venue-name{color:var(--brand)}
+.venue-thumb{width:56px;height:56px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;position:relative;overflow:hidden}
+.venue-thumb::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.2),transparent)}
+.venue-info{flex:1;min-width:0}
+.venue-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-zh{font-size:12px;color:var(--text-mute);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft)}
+.venue-meta .rating{color:var(--brand);font-weight:600}
+.venue-meta .dot{color:var(--text-mute)}
+.empty{padding:40px 20px;text-align:center;color:var(--text-mute);font-size:14px}
+
+/* ===== Detail Overlay (bottom sheet, half-screen) ===== */
+.overlay{position:fixed;left:0;right:0;bottom:0;z-index:900;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);max-height:50vh;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.overlay.open{transform:translateY(0)}
+.overlay-hdr{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;padding:18px 18px 12px;gap:10px}
+.overlay-title{flex:1;min-width:0}
+.overlay-title h3{font-size:18px;font-weight:700;line-height:1.2;margin-bottom:4px}
+.overlay-title .zh{font-size:13px;color:var(--text-mute)}
+.overlay-close{width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-soft)}
+.overlay-body{flex:1;overflow-y:auto;padding:0 18px 20px}
+.detail-row{display:flex;gap:10px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--text-soft)}
+.detail-row .lbl{min-width:70px;font-weight:600;color:var(--text)}
+.overlay-actions{flex-shrink:0;padding:12px 18px calc(12px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:8px}
+.overlay-actions .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+.overlay-actions .btn-primary{background:var(--brand);color:#fff}
+.overlay-actions .btn-primary:hover{background:var(--brand-dark)}
+.overlay-actions .btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.overlay-actions .btn-secondary:hover{border-color:var(--brand);color:var(--brand)}
+.overlay-fav{width:44px;height:44px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:all .15s}
+.overlay-fav:hover{border-color:var(--brand)}
+.overlay-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.card-fav{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.9);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text-mute);z-index:2;transition:all .15s}
+.card-fav:hover{color:var(--brand);border-color:var(--brand)}
+.card-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.venue-thumb{position:relative}
+
+/* ===== Filter Drawer (slides from right) ===== */
+.filter-drawer{position:fixed;top:var(--header-h);right:0;bottom:0;width:min(360px,92vw);background:#fff;border-left:1px solid var(--border);box-shadow:-10px 0 40px rgba(0,0,0,.12);z-index:950;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;pointer-events:none}
+.filter-drawer.open{pointer-events:auto}
+.filter-drawer.open{transform:translateX(0)}
+.filter-hdr{flex-shrink:0;padding:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.filter-hdr h3{font-size:18px;font-weight:700}
+.filter-body{flex:1;overflow-y:auto;padding:20px}
+.filter-section{margin-bottom:24px}
+.filter-section h4{font-size:12px;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.cat-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:500;color:var(--text)}
+.cat-btn.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.cat-btn:not(.active):hover{border-color:var(--brand);color:var(--brand)}
+.cat-btn .emoji{font-size:16px}
+.cat-btn .count{margin-left:auto;font-size:11px;opacity:.75}
+.filter-footer{flex-shrink:0;padding:16px 20px calc(16px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:10px}
+.filter-footer .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600}
+.filter-footer .btn-clear{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.filter-footer .btn-apply{background:var(--brand);color:#fff}
+
+/* Gradient covers for thumbnails */
+.cat-theme_park{background:linear-gradient(135deg,#ff9a56,#ff6b9d)}
+.cat-zoo{background:linear-gradient(135deg,#22c55e,#059669)}
+.cat-aquarium{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-museum{background:linear-gradient(135deg,#8b5cf6,#4f46e5)}
+.cat-nature{background:linear-gradient(135deg,#84cc16,#15803d)}
+.cat-beach{background:linear-gradient(135deg,#38bdf8,#0ea5e9)}
+.cat-playground{background:linear-gradient(135deg,#fbbf24,#f97316)}
+.cat-indoor_play{background:linear-gradient(135deg,#a855f7,#7e22ce)}
+.cat-trampoline{background:linear-gradient(135deg,#ec4899,#be185d)}
+.cat-swim{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-climbing{background:linear-gradient(135deg,#f59e0b,#b45309)}
+.cat-karting{background:linear-gradient(135deg,#ef4444,#991b1b)}
+.cat-farm{background:linear-gradient(135deg,#a3e635,#65a30d)}
+.cat-attraction{background:linear-gradient(135deg,#fb923c,#c2410c)}
+.cat-theatre{background:linear-gradient(135deg,#d946ef,#86198f)}
+.cat-cinema{background:linear-gradient(135deg,#64748b,#334155)}
+.cat-ice_rink{background:linear-gradient(135deg,#60a5fa,#1d4ed8)}
+.cat-minigolf{background:linear-gradient(135deg,#10b981,#047857)}
+.cat-other{background:linear-gradient(135deg,#94a3b8,#475569)}
+.cat-castle{background:linear-gradient(135deg,#a78bfa,#6d28d9)}
+.cat-windmill{background:linear-gradient(135deg,#bae6fd,#0284c7)}
+.cat-escape{background:linear-gradient(135deg,#fdba74,#c2410c)}
+.cat-sports{background:linear-gradient(135deg,#fde047,#ca8a04)}
+.cat-restaurant{background:linear-gradient(135deg,#f87171,#b91c1c)}
+.cat-monument{background:linear-gradient(135deg,#d6d3d1,#57534e)}
+.cat-ship{background:linear-gradient(135deg,#67e8f9,#0e7490)}
+.cat-ruins{background:linear-gradient(135deg,#fde68a,#92400e)}
+
+/* Marker icons */
+.venue-marker{width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.leaflet-marker-icon.selected .venue-marker{transform:scale(1.2);border-width:4px}
+
+/* Cluster */
+.marker-cluster-small{background:rgba(201,100,66,.25)}
+.marker-cluster-small div{background:rgba(201,100,66,.8)}
+.marker-cluster-medium{background:rgba(201,100,66,.35)}
+.marker-cluster-medium div{background:rgba(201,100,66,.9)}
+.marker-cluster-large{background:rgba(201,100,66,.45)}
+.marker-cluster-large div{background:var(--brand)}
+.marker-cluster div{color:#fff;font-weight:700}
+
+@media (max-width:640px){
+  .hdr-brand span:not(.logo){display:none}
+  .drawer-hdr{padding:6px 14px 10px}
+  .drawer-body{padding:0 14px calc(20px + var(--safe-bottom))}
+  .cat-grid{grid-template-columns:1fr}
+}
+@media (min-width:1024px){
+  /* Desktop: drawer becomes sidebar */
+  .drawer{top:var(--header-h);right:auto;left:0;width:420px;max-width:420px;max-height:none;height:calc(100vh - var(--header-h));border-radius:0;border-right:1px solid var(--border);border-top:none;transform:translateX(0) !important;box-shadow:4px 0 24px rgba(0,0,0,.06)}
+  .drawer-handle{display:none}
+  #map{left:420px}
+  .overlay{left:auto;right:20px;bottom:20px;width:400px;max-width:calc(100vw - 440px);max-height:70vh;border-radius:20px;border:1px solid var(--border)}
+  .fab-stack{top:calc(var(--header-h) + 14px);right:14px}
+}
+
+/* ── AI CHAT WIDGET ────────────────────────────── */
+.chat-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--brand),#F39C12);color:#fff;border:none;box-shadow:0 4px 16px rgba(224,90,30,.4);cursor:pointer;font-size:24px;display:flex;align-items:center;justify-content:center;z-index:800;transition:transform .2s,box-shadow .2s}
+.chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 24px rgba(224,90,30,.5)}
+.chat-fab.hidden{display:none}
+.chat-panel{position:fixed;bottom:24px;right:24px;width:380px;max-height:520px;background:var(--surface);border-radius:18px;box-shadow:0 12px 48px rgba(26,43,74,.25);z-index:801;display:none;flex-direction:column;overflow:hidden}
+.chat-panel.open{display:flex}
+.chat-header{background:var(--navy,#1A2B4A);padding:14px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.chat-header-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--brand),#F39C12);border-radius:50%;display:grid;place-items:center;font-size:16px}
+.chat-header-text{flex:1;color:#fff;font-size:14px;font-weight:700}
+.chat-header-sub{color:rgba(255,255,255,.5);font-size:11px;font-weight:400}
+.chat-close{background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;padding:4px;transition:color .15s}
+.chat-close:hover{color:#fff}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:200px;max-height:340px}
+.chat-msg{max-width:88%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.5;word-break:break-word}
+.chat-msg.bot{background:var(--bg);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px}
+.chat-msg.user{background:var(--brand);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.chat-msg.bot a,.chat-msg.bot strong{color:var(--brand);font-weight:600}
+.chat-quick-actions{padding:0 16px 12px;display:flex;flex-wrap:wrap;gap:6px}
+.chat-quick-btn{padding:6px 12px;border-radius:999px;background:var(--brand-light,#FFF0E9);color:var(--brand);border:1px solid var(--brand);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+.chat-quick-btn:hover{background:var(--brand);color:#fff}
+.chat-input-area{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
+.chat-input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:999px;font-size:13px;font-family:inherit;color:var(--text);background:var(--bg)}
+.chat-input:focus{border-color:var(--brand);outline:none}
+.chat-send{width:36px;height:36px;border-radius:50%;background:var(--brand);color:#fff;border:none;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chat-send:hover{background:var(--brand-dark)}
+.chat-typing{display:flex;gap:4px;align-self:flex-start;padding:10px 14px}
+.chat-typing span{width:8px;height:8px;border-radius:50%;background:var(--border-strong);animation:chatBounce .6s infinite alternate}
+.chat-typing span:nth-child(2){animation-delay:.2s}
+.chat-typing span:nth-child(3){animation-delay:.4s}
+@keyframes chatBounce{to{transform:translateY(-6px);opacity:.4}}
+.chat-venue-chip{display:inline-block;padding:4px 10px;margin:3px 2px;border-radius:12px;background:var(--brand-light,#FFF0E9);color:var(--brand);font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent}
+.chat-venue-chip:hover{border-color:var(--brand)}
+@media(max-width:640px){.chat-panel{width:calc(100vw-24px);right:12px;bottom:12px;max-height:70vh}.chat-fab{bottom:90px;right:16px;width:50px;height:50px;font-size:22px}}
+
+</style>
+<meta name="keywords" content="Hungary kids, family travel Hungary, Budapest with kids, 匈牙利亲子游, 布达佩斯遛娃">
+<meta name="author" content="Nana Liu">
+<meta name="robots" content="index, follow">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Hungary Kids Explorer",
+  "url": "https://kidsexplorer.eu/hu-v2/",
+  "description": "Family-friendly venues across Hungary",
+  "inLanguage": ["en", "zh"],
+  "isPartOf": {"@type": "WebSite", "name": "Kids Explorer", "url": "https://kidsexplorer.eu/"},
+  "about": {"@type": "Country", "name": "Hungary"}
+}
+</script>
+</head>
+<body>
+
+<!-- Top Header -->
+<header class="hdr">
+  <a href="/" class="hdr-brand"><span class="logo">🌍</span><span>KidsExplorer</span></a>
+  <button class="hdr-country" onclick="openCountryPicker()">
+    <span class="flag">🇭🇺</span><span>HU</span><span style="opacity:.5">▾</span>
+  </button>
+  <div class="hdr-search">
+    <span class="icon">🔍</span>
+    <input id="search" placeholder="Search / 搜索…">
+  </div>
+  <button class="hdr-btn" id="lang-btn" onclick="toggleLang()" title="Language">中</button>
+  <button class="hdr-btn" onclick="openFilter()" title="Category">🏷️</button>
+</header>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- View Toggle (mobile only) -->
+<div class="view-toggle">
+  <button id="tog-map" class="active" onclick="setView('map')">🗺 Map</button>
+  <button id="tog-list" onclick="setView('list')">☰ List</button>
+</div>
+
+<!-- Floating Actions -->
+<div class="fab-stack">
+  <button class="fab near" onclick="locateMe()"><span>📍</span><span>Near me</span></button>
+  <button class="fab" onclick="zoomIn()">+</button>
+  <button class="fab" onclick="zoomOut()">−</button>
+</div>
+
+<!-- Bottom Drawer: Venue list -->
+<section class="drawer" id="drawer" data-state="peek">
+  <div class="drawer-handle" onclick="toggleDrawer()"></div>
+  <div class="drawer-hdr">
+    <div class="count"><span id="count">0</span> <small id="count-label">in view</small></div>
+    <div class="actions">
+      <button class="chip" id="favs-chip" onclick="toggleFavsOnly()">♡ Favs</button>
+      <button class="chip" onclick="openFilter()">🏷 Category</button>
+      <button class="chip" onclick="toggleSort()">↕ Sort</button>
+    </div>
+  </div>
+  <div class="drawer-body" id="list"></div>
+</section>
+
+<!-- Detail Overlay -->
+<aside class="overlay" id="overlay">
+  <div class="overlay-hdr">
+    <div class="overlay-title">
+      <h3 id="ov-name"></h3>
+      <div class="zh" id="ov-zh"></div>
+    </div>
+    <button class="overlay-close" onclick="closeOverlay()">×</button>
+  </div>
+  <div class="overlay-body" id="ov-body"></div>
+  <div class="overlay-actions">
+    <button class="overlay-fav" id="ov-fav" onclick="toggleFav()" title="Save to favorites">♡</button>
+    <a class="btn btn-secondary" id="ov-directions" target="_blank">🗺 Directions</a>
+    <a class="btn btn-primary" id="ov-website" target="_blank">🌐 Website</a>
+  </div>
+</aside>
+
+<!-- Filter Drawer -->
+<aside class="filter-drawer" id="filter">
+  <div class="filter-hdr">
+    <h3>Category</h3>
+    <button class="overlay-close" onclick="closeFilter()">×</button>
+  </div>
+  <div class="filter-body">
+    <div class="filter-section">
+      <h4>Category</h4>
+      <div class="cat-grid" id="cat-grid"></div>
+    </div>
+  </div>
+  <div class="filter-footer">
+    <button class="btn btn-clear" onclick="clearFilter()">Clear</button>
+    <button class="btn btn-apply" onclick="closeFilter()">Show results</button>
+  </div>
+</aside>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+const STATIC_HU_VENUES = [
+{type:'node',id:2421,lat:47.5024,lon:19.0514,tags:{nameZh:'布达佩斯动物园',name:'Budapest Zoo',tourism:'zoo',website:'https://www.zoobudapest.com','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'28341'}},
+{type:'node',id:2422,lat:47.4980,lon:19.0404,tags:{nameZh:'布达佩斯塞切尼温泉',name:'Széchenyi Thermal Bath Budapest',tourism:'swimming_pool',website:'https://www.szechenyibath.com','addr:city':'Budapest',opening_hours:'Mo-Su 06:00-22:00',rating:'4.6',reviews:'42341'}},
+{type:'node',id:2423,lat:47.4976,lon:19.0398,tags:{nameZh:'布达佩斯城市公园',name:'Városliget City Park Budapest',tourism:'nature_park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'32341'}},
+{type:'node',id:2424,lat:47.4956,lon:19.0401,tags:{nameZh:'布达佩斯英雄广场',name:'Heroes Square Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'48341'}},
+{type:'node',id:2425,lat:47.5018,lon:19.0472,tags:{nameZh:'布达佩斯科技博物馆',name:'Hungarian Museum of Science Technology Budapest',tourism:'science_center','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'8341'}},
+{type:'node',id:2426,lat:47.5141,lon:19.0341,tags:{nameZh:'布达佩斯议会大厦',name:'Hungarian Parliament Building',tourism:'museum',website:'https://www.parlament.hu','addr:city':'Budapest',opening_hours:'Mo-Su 08:00-16:00',rating:'4.7',reviews:'62341'}},
+{type:'node',id:2427,lat:47.4992,lon:19.0382,tags:{nameZh:'布达佩斯美术馆',name:'Museum of Fine Arts Budapest',tourism:'museum',website:'https://www.mfab.hu','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'18341'}},
+{type:'node',id:2428,lat:47.5067,lon:19.0346,tags:{nameZh:'布达佩斯自然历史博物馆',name:'Hungarian Natural History Museum Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'We-Mo 10:00-18:00',rating:'4.3',reviews:'9341'}},
+{type:'node',id:2429,lat:47.4962,lon:19.0396,tags:{nameZh:'布达佩斯娱乐公园',name:'Vidámpark Budapest',tourism:'theme_park','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-19:00 (seasonal)',rating:'4.1',reviews:'8341'}},
+{type:'node',id:2430,lat:47.5034,lon:19.0501,tags:{nameZh:'布达佩斯科学中心',name:'KLIK Science Center Budapest',tourism:'science_center','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'12341'}},
+{type:'node',id:2431,lat:47.4821,lon:19.0531,tags:{nameZh:'布达佩斯蹦床公园',name:'Air Jump Budapest',tourism:'indoor_play',website:'https://www.airjump.hu','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-21:00',rating:'4.3',reviews:'8341'}},
+{type:'node',id:2432,lat:47.4878,lon:19.0462,tags:{nameZh:'布达佩斯儿童铁路',name:'Children\'s Railway Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'14321'}},
+{type:'node',id:2433,lat:47.4980,lon:19.0508,tags:{nameZh:'布达佩斯密室逃脱',name:'Trap Budapest Escape Room',tourism:'escape_room',website:'https://www.trap.hu','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-23:00',rating:'4.5',reviews:'7341'}},
+{type:'node',id:2434,lat:47.4892,lon:19.0413,tags:{nameZh:'布达佩斯保龄球中心',name:'MOM Bowling Budapest',tourism:'bowling','addr:city':'Budapest',opening_hours:'Mo-Su 12:00-24:00',rating:'4.0',reviews:'3421'}},
+{type:'node',id:2435,lat:47.4941,lon:19.0583,tags:{nameZh:'布达佩斯游乐场',name:'Karolyi Kert Playground Budapest',tourism:'playground','addr:city':'Budapest',opening_hours:'Mo-Su 07:00-22:00',rating:'4.1',reviews:'3421'}},
+{type:'node',id:2436,lat:47.5082,lon:19.0212,tags:{nameZh:'布达城堡',name:'Buda Castle Budapest',tourism:'museum',website:'https://www.mng.hu','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.7',reviews:'62341'}},
+{type:'node',id:2437,lat:47.5041,lon:19.0379,tags:{nameZh:'布达佩斯马修斯教堂',name:'Matthias Church Budapest',tourism:'museum',website:'https://www.matyas-templom.hu','addr:city':'Budapest',opening_hours:'Mo-Fr 09:00-17:00, Sa 09:00-12:00, Su 13:00-17:00',rating:'4.5',reviews:'24341'}},
+{type:'node',id:2438,lat:47.5021,lon:19.0351,tags:{nameZh:'布达佩斯渔人堡',name:'Fisherman\'s Bastion Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-23:00',rating:'4.7',reviews:'72341'}},
+{type:'node',id:2439,lat:47.5141,lon:19.0422,tags:{nameZh:'布达佩斯洗手间博物馆',name:'Margit Island Budapest',tourism:'nature_park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'42341'}},
+{type:'node',id:2440,lat:47.4929,lon:19.0508,tags:{nameZh:'布达佩斯游泳馆',name:'Lukács Baths Budapest',tourism:'swimming_pool','addr:city':'Budapest',opening_hours:'Mo-Fr 06:00-22:00, Sa-Su 07:00-20:00',rating:'4.3',reviews:'12341'}},
+{type:'node',id:2441,lat:47.4960,lon:19.0380,tags:{nameZh:'布达佩斯中国餐厅',name:'Shanghai Restaurant Budapest',amenity:'chinese_restaurant','addr:city':'Budapest',opening_hours:'Mo-Su 11:00-23:00',rating:'4.0',reviews:'2841'}},
+{type:'node',id:2442,lat:47.4981,lon:19.0411,tags:{nameZh:'布达佩斯自助餐',name:'Sakura Buffet Budapest',amenity:'buffet_restaurant','addr:city':'Budapest',opening_hours:'Mo-Su 11:00-22:00',rating:'3.9',reviews:'3241'}},
+{type:'node',id:2443,lat:47.4972,lon:19.0451,tags:{nameZh:'布达佩斯儿童农场',name:'Pannon Farm Budapest',tourism:'children_farm','addr:city':'Budapest',opening_hours:'We-Su 10:00-17:00',rating:'4.2',reviews:'2841'}},
+{type:'node',id:2444,lat:47.5312,lon:21.6241,tags:{nameZh:'德布勒森动物园',name:'Debrecen Zoo',tourism:'zoo',website:'https://www.zoo-debrecen.hu','addr:city':'Debrecen',opening_hours:'Mo-Su 09:00-18:00',rating:'4.3',reviews:'12341'}},
+{type:'node',id:2445,lat:47.5290,lon:21.6302,tags:{nameZh:'德布勒森老教堂',name:'Reformed Great Church Debrecen',tourism:'museum','addr:city':'Debrecen',opening_hours:'Mo-Sa 09:00-18:00, Su 12:00-16:00',rating:'4.4',reviews:'14321'}},
+{type:'node',id:2446,lat:47.5278,lon:21.6258,tags:{nameZh:'德布勒森游乐场',name:'Nagyerdei Park Playground Debrecen',tourism:'playground','addr:city':'Debrecen',opening_hours:'Mo-Su 08:00-22:00',rating:'4.1',reviews:'4321'}},
+{type:'node',id:2447,lat:47.5219,lon:21.6291,tags:{nameZh:'德布勒森游泳馆',name:'Aquaticum Debrecen',tourism:'theme_park',website:'https://www.aquaticum.hu','addr:city':'Debrecen',opening_hours:'Mo-Su 08:00-22:00',rating:'4.4',reviews:'18321'}},
+{type:'node',id:2448,lat:47.5328,lon:21.6279,tags:{nameZh:'德布勒森科技博物馆',name:'MODEM Modern Art Museum Debrecen',tourism:'museum','addr:city':'Debrecen',opening_hours:'Tu-Su 10:00-18:00',rating:'4.1',reviews:'5321'}},
+{type:'node',id:2449,lat:46.0742,lon:18.2270,tags:{nameZh:'佩奇动物园',name:'Pécs Zoo',tourism:'zoo',website:'https://www.pecsizoo.hu','addr:city':'Pécs',opening_hours:'Mo-Su 09:00-17:00',rating:'4.2',reviews:'8321'}},
+{type:'node',id:2450,lat:46.0731,lon:18.2281,tags:{nameZh:'佩奇圆顶清真寺',name:'Mosque of Pasha Qasim Pécs',tourism:'museum','addr:city':'Pécs',opening_hours:'Mo-Sa 10:00-16:00',rating:'4.4',reviews:'12341'}},
+{type:'node',id:2451,lat:46.0761,lon:18.2241,tags:{nameZh:'佩奇儿童游乐场',name:'Pécs City Park Playground',tourism:'playground','addr:city':'Pécs',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'2341'}},
+{type:'node',id:2452,lat:46.0718,lon:18.2260,tags:{nameZh:'佩奇科学博物馆',name:'Pécs Natural History Museum',tourism:'museum','addr:city':'Pécs',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'5321'}},
+{type:'node',id:2453,lat:47.6841,lon:17.6348,tags:{nameZh:'哲尔儿童博物馆',name:'Győr Esterházy Palace Museum',tourism:'museum','addr:city':'Győr',opening_hours:'Tu-Su 10:00-18:00',rating:'4.3',reviews:'6321'}},
+{type:'node',id:2454,lat:47.6872,lon:17.6321,tags:{nameZh:'哲尔游乐场',name:'Győr City Park Playground',tourism:'playground','addr:city':'Győr',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'2341'}},
+{type:'node',id:2455,lat:47.6819,lon:17.6381,tags:{nameZh:'哲尔游泳中心',name:'Győr Aquapark',tourism:'theme_park','addr:city':'Győr',opening_hours:'Mo-Su 09:00-21:00',rating:'4.3',reviews:'8321'}},
+{type:'node',id:2456,lat:47.9021,lon:20.3751,tags:{nameZh:'埃格尔城堡',name:'Eger Castle',tourism:'museum',website:'https://www.egrivar.hu','addr:city':'Eger',opening_hours:'Tu-Su 08:00-18:00',rating:'4.5',reviews:'22341'}},
+{type:'node',id:2457,lat:47.9004,lon:20.3739,tags:{nameZh:'埃格尔大教堂',name:'Eger Cathedral',tourism:'museum','addr:city':'Eger',opening_hours:'Mo-Sa 09:00-17:00',rating:'4.3',reviews:'8321'}},
+{type:'node',id:2458,lat:47.9041,lon:20.3781,tags:{nameZh:'埃格尔儿童游乐场',name:'Eger City Park Playground',tourism:'playground','addr:city':'Eger',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'1841'}},
+{type:'node',id:2459,lat:47.7978,lon:17.2394,tags:{nameZh:'埃斯泰尔戈姆大教堂',name:'Esztergom Basilica',tourism:'museum',website:'https://www.bazilika-esztergom.hu','addr:city':'Esztergom',opening_hours:'Mo-Su 08:00-18:00',rating:'4.7',reviews:'18341'}},
+{type:'node',id:2460,lat:47.7941,lon:17.2381,tags:{nameZh:'埃斯泰尔戈姆老城',name:'Esztergom Castle Museum',tourism:'museum','addr:city':'Esztergom',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'8321'}},
+{type:'node',id:2461,lat:46.8182,lon:17.7841,tags:{nameZh:'巴拉顿湖游船',name:'Lake Balaton Cruise',tourism:'attraction','addr:city':'Balatonfüred',opening_hours:'Mo-Su 09:00-18:00 (seasonal)',rating:'4.6',reviews:'22341'}},
+{type:'node',id:2462,lat:46.8421,lon:17.7682,tags:{nameZh:'巴拉顿湖游泳场',name:'Balatonfüred Beach',tourism:'swimming_pool','addr:city':'Balatonfüred',opening_hours:'Mo-Su 08:00-20:00 (seasonal)',rating:'4.4',reviews:'12341'}},
+{type:'node',id:2463,lat:46.9782,lon:18.0821,tags:{nameZh:'凯斯泰伊水上乐园',name:'Keszthely Aquapark',tourism:'theme_park','addr:city':'Keszthely',opening_hours:'Mo-Su 10:00-19:00 (seasonal)',rating:'4.2',reviews:'8321'}},
+{type:'node',id:2464,lat:46.7682,lon:17.2441,tags:{nameZh:'弗尼科托尼主题公园',name:'Tropicarium Budapest Aquarium',tourism:'aquarium',website:'https://www.tropicarium.hu','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-20:00',rating:'4.4',reviews:'14321'}},
+{type:'node',id:2465,lat:47.5002,lon:19.0428,tags:{nameZh:'布达佩斯儿童铁路',name:'Libegő Chairlift Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'9321'}},
+{type:'node',id:2466,lat:47.5011,lon:19.0352,tags:{nameZh:'布达佩斯迷宫',name:'Buda Castle Labyrinth',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-19:00',rating:'4.1',reviews:'12341'}},
+{type:'node',id:2467,lat:47.4991,lon:19.0456,tags:{nameZh:'布达佩斯恐怖屋',name:'House of Terror Budapest',tourism:'museum',website:'https://www.terrorhaza.hu','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'18341'}},
+{type:'node',id:2468,lat:47.5041,lon:19.0401,tags:{nameZh:'布达佩斯国家博物馆',name:'Hungarian National Museum Budapest',tourism:'museum',website:'https://www.hnm.hu','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'12341'}},
+{type:'node',id:2469,lat:47.4960,lon:19.0431,tags:{nameZh:'布达佩斯市场大厅',name:'Central Market Hall Budapest',tourism:'attraction',website:'https://www.piaconline.hu','addr:city':'Budapest',opening_hours:'Mo-Sa 06:00-18:00',rating:'4.4',reviews:'32341'}},
+{type:'node',id:2470,lat:47.5059,lon:19.0379,tags:{nameZh:'布达佩斯圣以斯特万大教堂',name:'St. Stephen\'s Basilica Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Mo-Sa 09:00-19:00, Su 13:00-19:00',rating:'4.6',reviews:'42341'}},
+{type:'node',id:2471,lat:47.5091,lon:19.0569,tags:{nameZh:'布达佩斯儿童科学博物馆',name:'Palace of Arts Budapest',tourism:'museum',website:'https://www.mupa.hu','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-20:00',rating:'4.4',reviews:'9321'}},
+{type:'node',id:2472,lat:47.4929,lon:19.0534,tags:{nameZh:'布达佩斯蹦床乐园',name:'Funatics Trampoline Budapest',tourism:'indoor_play','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-21:00',rating:'4.2',reviews:'6321'}},
+{type:'node',id:2473,lat:47.4832,lon:19.0611,tags:{nameZh:'布达佩斯游乐场',name:'Gellért Hill Park Playground Budapest',tourism:'playground','addr:city':'Budapest',opening_hours:'Mo-Su 07:00-22:00',rating:'4.1',reviews:'3241'}},
+{type:'node',id:2474,lat:47.5181,lon:19.0241,tags:{nameZh:'布达佩斯自然公园',name:'Normafa Nature Reserve Budapest',tourism:'nature_park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'18341'}},
+{type:'node',id:2475,lat:47.5234,lon:19.0293,tags:{nameZh:'布达佩斯滑雪山',name:'Normafa Ski Slope Budapest',tourism:'nature_park','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-17:00 (winter)',rating:'4.2',reviews:'8321'}},
+{type:'node',id:2476,lat:47.5012,lon:19.0482,tags:{nameZh:'布达佩斯钢铁英雄博物馆',name:'Budapest Museum of Transportation',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.3',reviews:'7321'}},
+{type:'node',id:2477,lat:47.4982,lon:19.0374,tags:{nameZh:'布达佩斯邮票博物馆',name:'Hungarian Stamp Museum Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-16:00',rating:'4.0',reviews:'2321'}},
+{type:'node',id:2478,lat:47.5054,lon:19.0512,tags:{nameZh:'布达佩斯科学院',name:'Hungarian Academy of Sciences',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Fr 09:00-17:00',rating:'4.2',reviews:'5321'}},
+{type:'node',id:2479,lat:47.5011,lon:19.0562,tags:{nameZh:'布达佩斯玛格丽特岛游乐场',name:'Margit Island Sports Complex Budapest',tourism:'swimming_pool','addr:city':'Budapest',opening_hours:'Mo-Su 06:00-22:00 (seasonal)',rating:'4.4',reviews:'14321'}},
+{type:'node',id:2480,lat:47.5028,lon:19.0419,tags:{nameZh:'布达佩斯海明威餐厅码头',name:'Danube Waterfront Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'22341'}},
+
+{type:'node',id:6301,lat:47.5134,lon:19.0623,tags:{nameZh:'布达佩斯攀岩中心',name:'Climbing Centre Budapest',tourism:'indoor_play','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-22:00',rating:'4.4',reviews:'7800'}},
+{type:'node',id:6302,lat:47.5267,lon:19.0489,tags:{nameZh:'布达佩斯VR体验馆',name:'VR Zone Budapest',tourism:'indoor_play','addr:city':'Budapest',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'8900'}},
+{type:'node',id:6303,lat:47.4978,lon:19.0745,tags:{nameZh:'布达佩斯冰场',name:'Ice Rink Budapest',tourism:'indoor_play','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-21:00',rating:'4.4',reviews:'12000'}},
+{type:'node',id:6304,lat:47.5189,lon:19.0356,tags:{nameZh:'布达佩斯逃脱密室2',name:'Escape Room 2 Budapest',tourism:'escape_room','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-22:00',rating:'4.6',reviews:'7800'}},
+{type:'node',id:6305,lat:47.5345,lon:19.0512,tags:{nameZh:'布达佩斯卡丁车',name:'Indoor Karting Budapest',tourism:'indoor_play','addr:city':'Budapest',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'6200'}},
+{type:'node',id:6306,lat:47.5056,lon:19.0678,tags:{nameZh:'布达佩斯体验博物馆',name:'Immersive Art Museum Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-20:00',rating:'4.5',reviews:'14000'}},
+{type:'node',id:6307,lat:47.5212,lon:19.0145,tags:{nameZh:'布达佩斯机器人实验室',name:'Robot Lab Budapest Kids',tourism:'science_center','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'6700'}},
+{type:'node',id:6308,lat:47.4867,lon:19.0823,tags:{nameZh:'布达佩斯恐龙博物馆',name:'Dino Experience Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'9200'}},
+{type:'node',id:6309,lat:47.5423,lon:19.0389,tags:{nameZh:'布达佩斯多瑙河游船',name:'Danube Cruise Budapest Families',tourism:'nature_park','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-18:00',rating:'4.7',reviews:'22000'}},
+{type:'node',id:6310,lat:47.5089,lon:19.0934,tags:{nameZh:'布达佩斯高绳索公园',name:'High Ropes Course Budapest',tourism:'nature_park','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-19:00',rating:'4.4',reviews:'6800'}},
+{type:'node',id:6311,lat:47.5267,lon:19.0623,tags:{nameZh:'布达佩斯温泉2',name:'Rudas Bath Budapest',tourism:'swimming_pool','addr:city':'Budapest',opening_hours:'Mo-Su 06:00-22:00',rating:'4.5',reviews:'16000'}},
+{type:'node',id:6312,lat:47.4934,lon:19.0756,tags:{nameZh:'布达佩斯儿童戏剧',name:'Children\'s Theatre Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'6200'}},
+{type:'node',id:6313,lat:47.5145,lon:19.0267,tags:{nameZh:'布达佩斯迷你高尔夫',name:'Mini Golf Budapest',tourism:'indoor_play','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-20:00',rating:'4.1',reviews:'5600'}},
+{type:'node',id:6314,lat:47.5378,lon:19.0845,tags:{nameZh:'布达佩斯蹦床公园2',name:'Jump Zone Budapest 2',tourism:'indoor_play','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'8900'}},
+{type:'node',id:6315,lat:47.5023,lon:19.0534,tags:{nameZh:'布达佩斯激光枪战',name:'Laser Zone Budapest',tourism:'indoor_play','addr:city':'Budapest',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'7200'}},
+{type:'node',id:6316,lat:47.5312,lon:19.0156,tags:{nameZh:'布达佩斯儿童农场',name:'City Farm Budapest',tourism:'children_farm','addr:city':'Budapest',opening_hours:'Sa-Su 09:00-17:00',rating:'4.3',reviews:'5200'}},
+{type:'node',id:6317,lat:47.5189,lon:19.0934,tags:{nameZh:'布达佩斯天文馆',name:'Budapest Planetarium',tourism:'science_center','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'8900'}},
+{type:'node',id:6318,lat:47.5456,lon:19.0423,tags:{nameZh:'布达佩斯迷你城市',name:'Mini Hungary Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'7800'}},
+{type:'node',id:6319,lat:47.4845,lon:19.0612,tags:{nameZh:'布达佩斯创客空间',name:'Makerspace Kids Budapest',tourism:'science_center','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:6320,lat:47.5134,lon:19.0812,tags:{nameZh:'布达佩斯游乐场2',name:'Városliget Playground Budapest',tourism:'playground','addr:city':'Budapest',opening_hours:'Mo-Su 07:00-21:00',rating:'4.5',reviews:'14000'}},
+{type:'node',id:6321,lat:47.5567,lon:19.0267,tags:{nameZh:'布达佩斯儿童骑马',name:'Horse Riding Kids Budapest',tourism:'children_farm','addr:city':'Budapest',opening_hours:'Sa-Su 09:00-17:00',rating:'4.4',reviews:'4800'}},
+{type:'node',id:6322,lat:47.4967,lon:19.0445,tags:{nameZh:'布达佩斯保龄球',name:'Bowling Budapest',tourism:'bowling','addr:city':'Budapest',opening_hours:'Mo-Su 12:00-24:00',rating:'4.1',reviews:'5600'}},
+{type:'node',id:6323,lat:47.5289,lon:19.0734,tags:{nameZh:'布达佩斯儿童自然园',name:'Children Nature Garden Budapest',tourism:'nature_park','addr:city':'Budapest',opening_hours:'Mo-Su 08:00-20:00',rating:'4.5',reviews:'9800'}},
+{type:'node',id:6324,lat:47.5078,lon:19.0289,tags:{nameZh:'布达佩斯恐怖博物馆',name:'House of Terror Museum Budapest',tourism:'museum',website:'https://www.terrorhaza.hu','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.6',reviews:'18000'}},
+{type:'node',id:6325,lat:47.5412,lon:19.0567,tags:{nameZh:'布达佩斯大市场室内体验',name:'Great Market Hall Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Sa 06:00-18:00',rating:'4.5',reviews:'24000'}},
+{type:'node',id:6326,lat:47.4923,lon:19.0845,tags:{nameZh:'布达佩斯VR体验2',name:'Virtual Reality Experience 2 Budapest',tourism:'indoor_play','addr:city':'Budapest',opening_hours:'Mo-Su 11:00-22:00',rating:'4.4',reviews:'6700'}},
+{type:'node',id:6327,lat:47.5201,lon:18.9845,tags:{nameZh:'布达佩斯水上乐园',name:'Palatinus Water Park Budapest',tourism:'swimming_pool',website:'https://www.palatinusfurdo.hu','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-20:00',rating:'4.4',reviews:'16000'}},
+{type:'node',id:6328,lat:47.5634,lon:19.0389,tags:{nameZh:'布达佩斯儿童探索博物馆',name:'Discovery Museum Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'7200'}},
+{type:'node',id:6329,lat:47.6234,lon:17.6512,tags:{nameZh:'杰尔攀岩中心',name:'Climbing Wall Győr',tourism:'indoor_play','addr:city':'Győr',opening_hours:'Mo-Su 09:00-22:00',rating:'4.3',reviews:'4200'}},
+{type:'node',id:6330,lat:47.6156,lon:17.6645,tags:{nameZh:'杰尔水上乐园',name:'Aquapark Győr',tourism:'swimming_pool','addr:city':'Győr',opening_hours:'Mo-Su 07:00-22:00',rating:'4.3',reviews:'7800'}},
+{type:'node',id:6331,lat:47.6312,lon:17.6389,tags:{nameZh:'杰尔蹦床公园',name:'Trampoline Park Győr',tourism:'indoor_play','addr:city':'Győr',opening_hours:'Mo-Su 10:00-22:00',rating:'4.2',reviews:'4800'}},
+{type:'node',id:6332,lat:47.5023,lon:21.6312,tags:{nameZh:'德布勒森攀岩中心',name:'Climbing Wall Debrecen',tourism:'indoor_play','addr:city':'Debrecen',opening_hours:'Mo-Su 09:00-22:00',rating:'4.3',reviews:'4800'}},
+{type:'node',id:6333,lat:47.5178,lon:21.6189,tags:{nameZh:'德布勒森VR体验',name:'VR Zone Debrecen',tourism:'indoor_play','addr:city':'Debrecen',opening_hours:'Mo-Su 11:00-22:00',rating:'4.2',reviews:'3800'}},
+{type:'node',id:6334,lat:47.4867,lon:21.6445,tags:{nameZh:'德布勒森蹦床公园',name:'Trampoline Park Debrecen',tourism:'indoor_play','addr:city':'Debrecen',opening_hours:'Mo-Su 10:00-22:00',rating:'4.2',reviews:'4200'}},
+{type:'node',id:6335,lat:47.4978,lon:21.6089,tags:{nameZh:'德布勒森逃脱密室',name:'Escape Room Debrecen',tourism:'escape_room','addr:city':'Debrecen',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'3600'}},
+{type:'node',id:6336,lat:47.5123,lon:21.6534,tags:{nameZh:'德布勒森科学中心',name:'Science Centre Debrecen',tourism:'science_center','addr:city':'Debrecen',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:6337,lat:46.0712,lon:18.2234,tags:{nameZh:'佩奇攀岩中心',name:'Climbing Wall Pécs',tourism:'indoor_play','addr:city':'Pécs',opening_hours:'Mo-Su 09:00-22:00',rating:'4.2',reviews:'3800'}},
+{type:'node',id:6338,lat:46.0834,lon:18.2089,tags:{nameZh:'佩奇水上乐园',name:'Aquapark Pécs',tourism:'swimming_pool','addr:city':'Pécs',opening_hours:'Mo-Su 07:00-22:00',rating:'4.3',reviews:'6700'}},
+{type:'node',id:6339,lat:46.0956,lon:18.2367,tags:{nameZh:'佩奇蹦床公园',name:'Trampoline Park Pécs',tourism:'indoor_play','addr:city':'Pécs',opening_hours:'Mo-Su 10:00-22:00',rating:'4.1',reviews:'4200'}},
+{type:'node',id:6340,lat:46.0645,lon:18.2156,tags:{nameZh:'佩奇体验博物馆',name:'Digital Museum Pécs',tourism:'museum','addr:city':'Pécs',opening_hours:'Mo-Su 10:00-20:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:6341,lat:47.5689,lon:18.7789,tags:{nameZh:'艾斯泰尔戈姆多瑙河游船',name:'Danube River Cruise Esztergom',tourism:'nature_park','addr:city':'Esztergom',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'8900'}},
+{type:'node',id:6342,lat:47.5823,lon:18.7645,tags:{nameZh:'艾斯泰尔戈姆城堡游',name:'Esztergom Castle Tour',tourism:'museum','addr:city':'Esztergom',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'11000'}},
+{type:'node',id:6343,lat:46.9023,lon:17.8934,tags:{nameZh:'巴拉顿水上活动',name:'Lake Balaton Water Sports',tourism:'nature_park','addr:city':'Balatonfüred',opening_hours:'Mo-Su 09:00-19:00',rating:'4.6',reviews:'18000'}},
+{type:'node',id:6344,lat:46.9156,lon:17.9078,tags:{nameZh:'巴拉顿儿童沙滩',name:'Balaton Family Beach',tourism:'nature_park','addr:city':'Balatonfüred',opening_hours:'Mo-Su 08:00-20:00',rating:'4.6',reviews:'22000'}},
+{type:'node',id:6345,lat:46.8934,lon:17.8812,tags:{nameZh:'巴拉顿水上乐园',name:'Balaton Aquapark',tourism:'swimming_pool','addr:city':'Balatonfüred',opening_hours:'Mo-Su 09:00-19:00',rating:'4.4',reviews:'14000'}},
+{type:'node',id:6346,lat:47.8989,lon:20.3734,tags:{nameZh:'埃格尔城堡游览',name:'Eger Castle Tour',tourism:'museum','addr:city':'Eger',opening_hours:'Tu-Su 09:00-17:00',rating:'4.6',reviews:'14000'}},
+{type:'node',id:6347,lat:47.9123,lon:20.3589,tags:{nameZh:'埃格尔水上乐园',name:'Aquapark Eger',tourism:'swimming_pool','addr:city':'Eger',opening_hours:'Mo-Su 07:00-22:00',rating:'4.4',reviews:'9800'}},
+{type:'node',id:6348,lat:47.9056,lon:20.3812,tags:{nameZh:'埃格尔冒险公园',name:'Adventure Park Eger',tourism:'nature_park','addr:city':'Eger',opening_hours:'Mo-Su 09:00-19:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:6349,lat:48.1078,lon:20.7834,tags:{nameZh:'米什科尔茨温泉洞',name:'Cave Bath Miskolc Tapolca',tourism:'swimming_pool',website:'https://www.barlangfurdo.hu','addr:city':'Miskolc',opening_hours:'Mo-Su 09:00-20:00',rating:'4.7',reviews:'18000'}},
+{type:'node',id:6350,lat:48.0989,lon:20.7689,tags:{nameZh:'米什科尔茨水上乐园',name:'Aquapark Miskolc',tourism:'swimming_pool','addr:city':'Miskolc',opening_hours:'Mo-Su 07:00-22:00',rating:'4.4',reviews:'11000'}},
+{type:'node',id:6351,lat:47.5345,lon:19.0456,tags:{nameZh:'布达佩斯儿童铁路',name:'Children\'s Railway Budapest',tourism:'theme_park',website:'https://www.gyermekvasut.hu','addr:city':'Budapest',opening_hours:'Tu-Su 09:00-17:00',rating:'4.5',reviews:'12000'}},
+{type:'node',id:6352,lat:47.4867,lon:19.0623,tags:{nameZh:'布达佩斯迷宫城堡',name:'Labyrinth of Buda Castle',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-19:00',rating:'4.3',reviews:'9800'}},
+{type:'node',id:6353,lat:47.5189,lon:19.0512,tags:{nameZh:'布达佩斯蜡像馆',name:'Madame Tussauds Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-18:00',rating:'4.2',reviews:'14000'}},
+{type:'node',id:6354,lat:47.5456,lon:19.0712,tags:{nameZh:'布达佩斯逃脱密室3',name:'Locked Room Budapest',tourism:'escape_room','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'6700'}},
+{type:'node',id:6355,lat:47.5023,lon:19.0189,tags:{nameZh:'布达佩斯皮划艇',name:'Kayak Tour Budapest',tourism:'nature_park','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'7200'}},
+{type:'node',id:6541,lat:47.4979,lon:19.0402,tags:{nameZh:'布达佩斯科学探索馆',name:'Csodák Palotája',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 09:00-17:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:6542,lat:47.5116,lon:19.0506,tags:{nameZh:'布达佩斯古罗马博物馆',name:'Aquincum Museum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6543,lat:47.5123,lon:19.0512,tags:{nameZh:'布达佩斯水族馆',name:'Tropicarium Budapest',tourism:'aquarium','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-20:00',rating:'4.5',reviews:'8920'}},
+{type:'node',id:6544,lat:47.5000,lon:19.0540,tags:{nameZh:'布达佩斯游乐园',name:'Vidám Park Budapest',tourism:'theme_park','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-19:00',rating:'4.3',reviews:'5670'}},
+{type:'node',id:6545,lat:47.5190,lon:19.0832,tags:{nameZh:'布达佩斯科学院',name:'Magyar Tudományos Akadémia',tourism:'museum','addr:city':'Budapest',opening_hours:'Mo-Fr 10:00-18:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6546,lat:47.4986,lon:19.0398,tags:{nameZh:'布达佩斯历史博物馆',name:'Budapesti Történeti Múzeum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6547,lat:47.5063,lon:19.0467,tags:{nameZh:'布达佩斯匈牙利国家博物馆',name:'Magyar Nemzeti Múzeum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6548,lat:47.5180,lon:19.0820,tags:{nameZh:'布达佩斯东方博物馆',name:'Hopp Ferenc Múzeum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6549,lat:47.5050,lon:19.0468,tags:{nameZh:'布达佩斯匈牙利民族博物馆',name:'Néprajzi Múzeum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6550,lat:47.5162,lon:19.0774,tags:{nameZh:'布达佩斯音乐学院',name:'Liszt Ferenc Zeneakadémia',tourism:'theatre','addr:city':'Budapest',opening_hours:'varies',rating:'4.8',reviews:'3450'}},
+{type:'node',id:6551,lat:47.4951,lon:19.0445,tags:{nameZh:'布达佩斯鸟类公园',name:'Madárpark Budapest',tourism:'zoo','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-17:00',rating:'4.2',reviews:'1230'}},
+{type:'node',id:6552,lat:47.5046,lon:19.0462,tags:{nameZh:'布达佩斯大市场',name:'Nagyvásárcsarnok',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Sa 06:00-17:00',rating:'4.5',reviews:'12300'}},
+{type:'node',id:6553,lat:47.4983,lon:19.0415,tags:{nameZh:'布达佩斯城堡区',name:'Várnegyed Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'18900'}},
+{type:'node',id:6554,lat:47.4971,lon:19.0412,tags:{nameZh:'马加什教堂',name:'Mátyás-templom',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Fr 09:00-17:00',rating:'4.6',reviews:'9870'}},
+{type:'node',id:6555,lat:47.5020,lon:19.0460,tags:{nameZh:'布达佩斯圣伊斯特万大教堂',name:'Szent István-bazilika',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-17:00',rating:'4.7',reviews:'15600'}},
+{type:'node',id:6556,lat:47.4969,lon:19.0523,tags:{nameZh:'布达佩斯大犹太会堂',name:'Dohány utcai zsinagóga',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'9870'}},
+{type:'node',id:6557,lat:47.5139,lon:19.0821,tags:{nameZh:'布达佩斯英雄广场',name:'Hősök tere',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'18900'}},
+{type:'node',id:6558,lat:47.5149,lon:19.0788,tags:{nameZh:'布达佩斯美术博物馆',name:'Szépművészeti Múzeum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'6780'}},
+{type:'node',id:6559,lat:47.5144,lon:19.0797,tags:{nameZh:'布达佩斯城市公园',name:'Városliget Budapest',tourism:'park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'18900'}},
+{type:'node',id:6560,lat:47.5162,lon:19.0807,tags:{nameZh:'沃伊达奇城堡',name:'Vajdahunyad vára',tourism:'castle','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'8920'}},
+{type:'node',id:6561,lat:47.5181,lon:19.0828,tags:{nameZh:'匈牙利农业博物馆',name:'Magyar Mezőgazdasági Múzeum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'1230'}},
+{type:'node',id:6562,lat:47.5127,lon:19.0800,tags:{nameZh:'塞切尼温泉浴场',name:'Széchenyi gyógyfürdő',tourism:'theme_park','addr:city':'Budapest',opening_hours:'Mo-Su 06:00-22:00',rating:'4.6',reviews:'18900'}},
+{type:'node',id:6563,lat:47.5059,lon:19.0582,tags:{nameZh:'布达佩斯国家大剧院',name:'Magyar Állami Operaház',tourism:'theatre','addr:city':'Budapest',opening_hours:'varies',rating:'4.8',reviews:'7890'}},
+{type:'node',id:6564,lat:47.5002,lon:19.0419,tags:{nameZh:'布达佩斯地下铁道博物馆',name:'Földalatti Vasúti Múzeum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1340'}},
+{type:'node',id:6565,lat:47.4962,lon:19.0476,tags:{nameZh:'匈牙利自然史博物馆',name:'Természettudományi Múzeum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'3560'}},
+{type:'node',id:6566,lat:47.7103,lon:17.6353,tags:{nameZh:'杰尔历史博物馆',name:'Győr-Moson-Sopron megyei múzeum',tourism:'museum','addr:city':'Győr',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6567,lat:47.7079,lon:17.6282,tags:{nameZh:'杰尔动物园',name:'Xántus János Állatkert',tourism:'zoo','addr:city':'Győr',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6568,lat:47.5316,lon:21.6273,tags:{nameZh:'德布雷森动物园',name:'Debreceni Állat- és Növénykert',tourism:'zoo','addr:city':'Debrecen',opening_hours:'Mo-Su 09:00-17:00',rating:'4.5',reviews:'6780'}},
+{type:'node',id:6569,lat:47.5292,lon:21.6254,tags:{nameZh:'德布雷森科学博物馆',name:'Déri Múzeum',tourism:'museum','addr:city':'Debrecen',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:6570,lat:47.5244,lon:21.6264,tags:{nameZh:'德布雷森大学植物园',name:'Debreceni Egyetem Botanikus Kert',tourism:'park','addr:city':'Debrecen',opening_hours:'Mo-Su 08:00-18:00',rating:'4.4',reviews:'2130'}},
+{type:'node',id:6571,lat:46.0730,lon:18.2327,tags:{nameZh:'佩奇地下水族馆',name:'Bükk-forrás Aquapark',tourism:'aquarium','addr:city':'Pécs',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'1340'}},
+{type:'node',id:6572,lat:46.0769,lon:18.2312,tags:{nameZh:'佩奇博物馆',name:'Janus Pannonius Múzeum',tourism:'museum','addr:city':'Pécs',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6573,lat:46.0723,lon:18.2252,tags:{nameZh:'佩奇动物园',name:'Pécsi Állatkert',tourism:'zoo','addr:city':'Pécs',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6574,lat:47.9025,lon:20.3772,tags:{nameZh:'埃格尔城堡',name:'Egri vár',tourism:'castle','addr:city':'Eger',opening_hours:'Mo-Su 09:00-17:00',rating:'4.6',reviews:'8920'}},
+{type:'node',id:6575,lat:47.9005,lon:20.3778,tags:{nameZh:'埃格尔天文馆',name:'Csillagvizsgáló Eger',tourism:'museum','addr:city':'Eger',opening_hours:'Tu-Su 10:00-16:00',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6576,lat:48.1031,lon:20.7782,tags:{nameZh:'米什科尔茨洞穴浴场',name:'Miskolctapolcai barlangfürdő',tourism:'theme_park','addr:city':'Miskolc',opening_hours:'Mo-Su 08:00-20:00',rating:'4.7',reviews:'12300'}},
+{type:'node',id:6577,lat:48.1040,lon:20.7791,tags:{nameZh:'米什科尔茨博物馆',name:'Herman Ottó Múzeum',tourism:'museum','addr:city':'Miskolc',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:6578,lat:46.8401,lon:17.7343,tags:{nameZh:'巴拉顿湖度假公园',name:'Balatoni Múzeum Keszthely',tourism:'museum','addr:city':'Keszthely',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'1890'}},
+{type:'node',id:6579,lat:46.8980,lon:17.8866,tags:{nameZh:'蒂哈尼修道院',name:'Tihanyi Bencés Apátság',tourism:'attraction','addr:city':'Tihany',opening_hours:'Mo-Su 09:00-17:00',rating:'4.7',reviews:'8920'}},
+{type:'node',id:6580,lat:46.9058,lon:17.8979,tags:{nameZh:'蒂哈尼民俗博物馆',name:'Tihanyi Szabadtéri Múzeum',tourism:'museum','addr:city':'Tihany',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:6581,lat:46.9170,lon:17.5200,tags:{nameZh:'锡奥福克度假区',name:'Siófok Beach',tourism:'theme_park','addr:city':'Siófok',opening_hours:'Mo-Su 09:00-21:00',rating:'4.4',reviews:'5670'}},
+{type:'node',id:6582,lat:47.7946,lon:18.7452,tags:{nameZh:'埃斯泰尔戈姆大教堂',name:'Esztergomi Bazilika',tourism:'attraction','addr:city':'Esztergom',opening_hours:'Mo-Su 08:00-18:00',rating:'4.7',reviews:'9870'}},
+{type:'node',id:6583,lat:47.7903,lon:18.7487,tags:{nameZh:'埃斯泰尔戈姆王宫',name:'Esztergomi Várhegy',tourism:'castle','addr:city':'Esztergom',opening_hours:'Tu-Su 09:00-17:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6584,lat:47.7874,lon:18.7455,tags:{nameZh:'埃斯泰尔戈姆博物馆',name:'Balassa Bálint Múzeum',tourism:'museum','addr:city':'Esztergom',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6585,lat:47.7747,lon:18.9751,tags:{nameZh:'维谢格拉德城堡',name:'Visegrádi Fellegvár',tourism:'castle','addr:city':'Visegrád',opening_hours:'Tu-Su 09:00-17:00',rating:'4.6',reviews:'6780'}},
+{type:'node',id:6586,lat:47.7731,lon:18.9799,tags:{nameZh:'维谢格拉德宫殿博物馆',name:'Mátyás király palotamúzeum',tourism:'museum','addr:city':'Visegrád',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'2560'}},
+{type:'node',id:6587,lat:47.6014,lon:21.4050,tags:{nameZh:'哈伊杜索博斯洛温泉公园',name:'Hajdúszoboszlói Gyógy- és Élményfürdő',tourism:'theme_park','addr:city':'Hajdúszoboszló',opening_hours:'Mo-Su 08:00-21:00',rating:'4.6',reviews:'12300'}},
+{type:'node',id:6588,lat:48.1106,lon:21.3151,tags:{nameZh:'托卡伊葡萄酒博物馆',name:'Tokaji Múzeum',tourism:'museum','addr:city':'Tokaj',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6589,lat:47.9014,lon:20.3801,tags:{nameZh:'埃格尔米诺里特教堂',name:'Minorita-templom Eger',tourism:'attraction','addr:city':'Eger',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'1780'}},
+{type:'node',id:6590,lat:47.5076,lon:19.0395,tags:{nameZh:'布达佩斯佛陀迷宫',name:'Budai Labirintus',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-19:00',rating:'4.3',reviews:'4560'}},
+{type:'node',id:6591,lat:47.4960,lon:19.0493,tags:{nameZh:'布达佩斯中央市场',name:'Belváros piac',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Sa 06:00-18:00',rating:'4.4',reviews:'6780'}},
+{type:'node',id:6592,lat:47.4975,lon:19.0444,tags:{nameZh:'匈牙利铁路历史公园',name:'Magyar Vasúttörténeti Park',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6593,lat:47.4981,lon:19.0393,tags:{nameZh:'布达佩斯儿童铁路',name:'Gyermekvasút Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-17:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:6594,lat:47.5036,lon:19.0448,tags:{nameZh:'布达佩斯自由桥公园',name:'Szabadság híd sétány',tourism:'park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:6595,lat:47.5015,lon:19.0537,tags:{nameZh:'布达佩斯科学发现馆',name:'MOME Tér Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 11:00-18:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:6596,lat:47.9018,lon:20.3748,tags:{nameZh:'埃格尔洞穴游览',name:'Bükki Nemzeti Park',tourism:'park','addr:city':'Eger',opening_hours:'Mo-Su 08:00-18:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6597,lat:48.1008,lon:20.7772,tags:{nameZh:'布克山国家公园',name:'Aggteleki barlangok',tourism:'park','addr:city':'Miskolc',opening_hours:'Mo-Su 08:00-18:00',rating:'4.7',reviews:'7890'}},
+{type:'node',id:6598,lat:47.5156,lon:21.6342,tags:{nameZh:'德布雷森大学',name:'Debreceni Egyetem',tourism:'attraction','addr:city':'Debrecen',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6599,lat:46.0758,lon:18.2305,tags:{nameZh:'佩奇土耳其清真寺',name:'Gázi Kászim pasa mecset',tourism:'attraction','addr:city':'Pécs',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6600,lat:46.7461,lon:17.2468,tags:{nameZh:'佐姆巴特赫里博物馆',name:'Savaria Múzeum',tourism:'museum','addr:city':'Szombathely',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6601,lat:47.6842,lon:16.5847,tags:{nameZh:'肖普朗历史博物馆',name:'Soproni Múzeum',tourism:'museum','addr:city':'Sopron',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6602,lat:47.6870,lon:16.5898,tags:{nameZh:'肖普朗城堡区',name:'Sopron belváros',tourism:'attraction','addr:city':'Sopron',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:6603,lat:47.5034,lon:19.0413,tags:{nameZh:'布达佩斯体验海盗船',name:'Hajógyári Duna Kaland',tourism:'theme_park','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-19:00',rating:'4.2',reviews:'2340'}},
+{type:'node',id:6604,lat:47.5073,lon:19.0489,tags:{nameZh:'布达佩斯应用艺术博物馆',name:'Iparművészeti Múzeum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'2890'}},
+{type:'node',id:6605,lat:47.5099,lon:19.0511,tags:{nameZh:'布达佩斯国会大厦',name:'Országház Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 08:00-18:00',rating:'4.7',reviews:'18900'}},
+{type:'node',id:6606,lat:47.5028,lon:19.0529,tags:{nameZh:'匈牙利传统手工艺博物馆',name:'Kézművesek Háza',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.1',reviews:'560'}},
+{type:'node',id:6607,lat:47.4998,lon:19.0394,tags:{nameZh:'布达佩斯迷你世界',name:'Miniworld Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-19:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6608,lat:47.5195,lon:19.0793,tags:{nameZh:'布达佩斯儿童铁路公园',name:'Pionírvasút Park',tourism:'park','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6609,lat:47.7069,lon:17.6437,tags:{nameZh:'杰尔科学发现馆',name:'Rábaközi Múzeum',tourism:'museum','addr:city':'Győr',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:6610,lat:46.9040,lon:17.8902,tags:{nameZh:'蒂哈尼薰衣草农场',name:'Tihanyi Levendula',tourism:'park','addr:city':'Tihany',opening_hours:'Mo-Su 09:00-18:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:6611,lat:47.5008,lon:19.0511,tags:{nameZh:'布达佩斯民族剧院',name:'Nemzeti Színház Budapest',tourism:'theatre','addr:city':'Budapest',opening_hours:'varies',rating:'4.6',reviews:'3450'}},
+{type:'node',id:6612,lat:47.5149,lon:19.0744,tags:{nameZh:'布达佩斯玩具博物馆',name:'Mackóvilág Játékboltozó',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:6613,lat:47.5082,lon:19.0454,tags:{nameZh:'布达佩斯人类学博物馆',name:'Embertani tár',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.1',reviews:'340'}},
+{type:'node',id:6614,lat:47.5146,lon:19.0816,tags:{nameZh:'布达佩斯公园球场',name:'Városligeti jégpálya',tourism:'theme_park','addr:city':'Budapest',opening_hours:'Oct-Mar Mo-Su 09:00-21:00',rating:'4.5',reviews:'6780'}},
+{type:'node',id:6615,lat:47.5072,lon:19.0588,tags:{nameZh:'布达佩斯烟草博物馆',name:'Trafó Kortárs Művészetek Háza',tourism:'theatre','addr:city':'Budapest',opening_hours:'varies',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6616,lat:47.5019,lon:19.0461,tags:{nameZh:'布达佩斯犹太历史博物馆',name:'Zsidó Múzeum Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-17:00',rating:'4.4',reviews:'2560'}},
+{type:'node',id:6617,lat:46.0717,lon:18.2280,tags:{nameZh:'佩奇现代艺术馆',name:'Zsolnay Kulturális Negyed',tourism:'museum','addr:city':'Pécs',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6618,lat:47.9032,lon:20.3768,tags:{nameZh:'埃格尔主教宫',name:'Egri Érseki Palota',tourism:'attraction','addr:city':'Eger',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:6619,lat:46.8372,lon:17.7335,tags:{nameZh:'凯斯特海伊宫殿',name:'Festetics-kastély',tourism:'castle','addr:city':'Keszthely',opening_hours:'Tu-Su 09:00-17:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:6620,lat:47.9058,lon:20.3797,tags:{nameZh:'埃格尔罗马天主教博物馆',name:'Dobó István Vármúzeum',tourism:'museum','addr:city':'Eger',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6621,lat:47.7114,lon:17.6417,tags:{nameZh:'杰尔巴洛克博物馆',name:'Győri Barokk Negyed',tourism:'attraction','addr:city':'Győr',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6622,lat:47.5316,lon:21.6233,tags:{nameZh:'德布雷森卡尔文教堂',name:'Debreceni Református Nagytemplom',tourism:'attraction','addr:city':'Debrecen',opening_hours:'Mo-Sa 09:00-17:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6623,lat:48.1019,lon:20.7766,tags:{nameZh:'迪奥斯杰尔城堡',name:'Diósgyőri vár',tourism:'castle','addr:city':'Miskolc',opening_hours:'Tu-Su 09:00-17:00',rating:'4.5',reviews:'6780'}},
+{type:'node',id:6624,lat:47.5071,lon:19.0439,tags:{nameZh:'布达佩斯皇家宫殿国立画廊',name:'Magyar Nemzeti Galéria',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:6625,lat:47.5118,lon:19.0496,tags:{nameZh:'布达佩斯弗里季斯沃舍公园',name:'Margit-sziget',tourism:'park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'18900'}},
+{type:'node',id:6726,lat:47.4971,lon:19.0412,tags:{nameZh:'布达佩斯城堡迷宫',name:'Budavári Labirintus',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-19:00',rating:'4.4',reviews:'4560'}},
+{type:'node',id:6727,lat:47.5102,lon:19.0463,tags:{nameZh:'布达佩斯匈牙利铁路公园',name:'Magyar Vasúttörténeti Park',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6728,lat:47.5176,lon:19.0826,tags:{nameZh:'布达佩斯城市林业公园',name:'Városliget Erdő',tourism:'park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'9870'}},
+{type:'node',id:6729,lat:47.5025,lon:19.0524,tags:{nameZh:'布达佩斯蝴蝶馆',name:'Lepkészet Budapest',tourism:'zoo','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:6730,lat:47.5063,lon:19.0447,tags:{nameZh:'布达佩斯国立戏剧院',name:'Vígszínház Budapest',tourism:'theatre','addr:city':'Budapest',opening_hours:'varies',rating:'4.6',reviews:'2340'}},
+{type:'node',id:6731,lat:47.5086,lon:19.0469,tags:{nameZh:'布达佩斯历史展览馆',name:'Legújabbkori Múzeum Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6732,lat:47.5148,lon:19.0830,tags:{nameZh:'匈牙利文化宫',name:'Magyar Kultúra Háza',tourism:'theatre','addr:city':'Budapest',opening_hours:'varies',rating:'4.4',reviews:'1340'}},
+{type:'node',id:6733,lat:47.5040,lon:19.0476,tags:{nameZh:'布达佩斯市立大剧院',name:'Pesti Vigadó',tourism:'theatre','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:6734,lat:47.5117,lon:19.0508,tags:{nameZh:'布达佩斯古典艺术馆',name:'Szépművészeti Múzeum annex',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6735,lat:47.5014,lon:19.0451,tags:{nameZh:'布达佩斯古书局博物馆',name:'Ráday Gyűjtemény',tourism:'museum','addr:city':'Budapest',opening_hours:'Mo-Fr 10:00-16:00',rating:'4.0',reviews:'340'}},
+{type:'node',id:6736,lat:47.4988,lon:19.0462,tags:{nameZh:'布达佩斯大市场回廊',name:'Mester utca piac',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Sa 06:00-18:00',rating:'4.3',reviews:'3450'}},
+{type:'node',id:6737,lat:47.5003,lon:19.0534,tags:{nameZh:'布达佩斯科学中心',name:'ELTE TTK Múzeum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-16:00',rating:'4.2',reviews:'560'}},
+{type:'node',id:6738,lat:47.5198,lon:19.0810,tags:{nameZh:'布达佩斯体育运动博物馆',name:'Magyar Sport Múzeum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:6739,lat:47.5127,lon:19.0812,tags:{nameZh:'布达佩斯冬季冰场',name:'Városligeti Műjégpálya',tourism:'theme_park','addr:city':'Budapest',opening_hours:'Oct-Mar Mo-Su 09:00-21:00',rating:'4.6',reviews:'8920'}},
+{type:'node',id:6740,lat:47.4950,lon:19.0525,tags:{nameZh:'布达佩斯自然探索公园',name:'Gellért-hegy Park',tourism:'park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:6741,lat:47.5028,lon:19.0406,tags:{nameZh:'布达佩斯城堡区剧场',name:'Budavári Színház',tourism:'theatre','addr:city':'Budapest',opening_hours:'varies',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6742,lat:47.5066,lon:19.0537,tags:{nameZh:'布达佩斯邮政博物馆',name:'Postamúzeum Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'560'}},
+{type:'node',id:6743,lat:47.5141,lon:19.0760,tags:{nameZh:'布达佩斯舞台剧场',name:'Erkel Színház',tourism:'theatre','addr:city':'Budapest',opening_hours:'varies',rating:'4.5',reviews:'2340'}},
+{type:'node',id:6744,lat:47.5095,lon:19.0455,tags:{nameZh:'布达佩斯绘画小屋',name:'Festők Háza Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 11:00-18:00',rating:'4.2',reviews:'560'}},
+{type:'node',id:6745,lat:47.5073,lon:19.0430,tags:{nameZh:'布达佩斯国防博物馆',name:'Hadtörténeti Múzeum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2560'}},
+{type:'node',id:6746,lat:47.7095,lon:17.6402,tags:{nameZh:'杰尔历史城区',name:'Belváros Győr',tourism:'attraction','addr:city':'Győr',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6747,lat:47.5287,lon:21.6245,tags:{nameZh:'德布雷森水族馆',name:'Aquaticum Debrecen',tourism:'theme_park','addr:city':'Debrecen',opening_hours:'Mo-Su 09:00-21:00',rating:'4.6',reviews:'12300'}},
+{type:'node',id:6748,lat:47.5311,lon:21.6280,tags:{nameZh:'德布雷森自然探索',name:'Erdőspuszta Debrecen',tourism:'park','addr:city':'Debrecen',opening_hours:'Mo-Su 08:00-18:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6749,lat:46.0741,lon:18.2324,tags:{nameZh:'佩奇早期基督教博物馆',name:'Ókeresztény sírkamrák Pécs',tourism:'museum','addr:city':'Pécs',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2130'}},
+{type:'node',id:6750,lat:46.0771,lon:18.2348,tags:{nameZh:'佩奇国家剧院',name:'Pécsi Nemzeti Színház',tourism:'theatre','addr:city':'Pécs',opening_hours:'varies',rating:'4.5',reviews:'2340'}},
+{type:'node',id:6751,lat:47.9021,lon:20.3760,tags:{nameZh:'埃格尔历史展览',name:'Egri Bazilika',tourism:'attraction','addr:city':'Eger',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6752,lat:48.1012,lon:20.7778,tags:{nameZh:'米什科尔茨动物园',name:'Miskolci Állatkert',tourism:'zoo','addr:city':'Miskolc',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6753,lat:47.6879,lon:16.5888,tags:{nameZh:'肖普朗冒险公园',name:'Lővér Hotel Sopron',tourism:'theme_park','addr:city':'Sopron',opening_hours:'Mo-Su 09:00-18:00',rating:'4.3',reviews:'1890'}},
+{type:'node',id:6754,lat:47.7116,lon:17.6386,tags:{nameZh:'杰尔市立博物馆',name:'Városi Múzeum Győr',tourism:'museum','addr:city':'Győr',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:6755,lat:46.8394,lon:17.7358,tags:{nameZh:'凯斯特海伊动物园',name:'Keszthelyi Állatkert',tourism:'zoo','addr:city':'Keszthely',opening_hours:'Mo-Su 09:00-17:00',rating:'4.2',reviews:'1120'}},
+{type:'node',id:6756,lat:47.9039,lon:20.3752,tags:{nameZh:'埃格尔儿童科学馆',name:'Érseki Líceum Eger',tourism:'museum','addr:city':'Eger',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6757,lat:47.5315,lon:21.6307,tags:{nameZh:'德布雷森历史博物馆',name:'Déri Múzeum annex',tourism:'museum','addr:city':'Debrecen',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6758,lat:46.0764,lon:18.2279,tags:{nameZh:'佩奇维多利亚公园',name:'Sétatér Pécs',tourism:'park','addr:city':'Pécs',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6759,lat:47.4981,lon:19.0478,tags:{nameZh:'布达佩斯中华博物馆',name:'Kínai Múzeum Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.1',reviews:'560'}},
+{type:'node',id:6760,lat:47.5072,lon:19.0402,tags:{nameZh:'布达佩斯科技产业公园',name:'CET Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-20:00',rating:'4.3',reviews:'2340'}},
+
+{type:'node',id:7401,lat:47.5016,lon:19.0431,tags:{nameZh:'布达佩斯渔人堡',name:'Halászbástya',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-23:00',rating:'4.7',reviews:'18900'}},
+{type:'node',id:7402,lat:47.4966,lon:19.0440,tags:{nameZh:'布达佩斯盖勒特山',name:'Gellért-hegy',tourism:'park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'9870'}},
+{type:'node',id:7403,lat:47.4955,lon:19.0498,tags:{nameZh:'布达佩斯自由纪念碑',name:'Szabadság szobor',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:7404,lat:47.5048,lon:19.0524,tags:{nameZh:'布达佩斯议会街道',name:'Kossuth Lajos tér',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:7405,lat:47.5002,lon:19.0475,tags:{nameZh:'布达佩斯大中央市场',name:'Fővám tér piac',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Sa 06:00-18:00',rating:'4.5',reviews:'8920'}},
+{type:'node',id:7406,lat:47.4984,lon:19.0413,tags:{nameZh:'布达佩斯圣十字教堂',name:'Vár Church Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:7407,lat:47.5138,lon:19.0804,tags:{nameZh:'布达佩斯城市公园溜冰场',name:'Városliget Winter Ice Rink',tourism:'theme_park','addr:city':'Budapest',opening_hours:'Oct-Mar Mo-Su 10:00-22:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:7408,lat:47.5079,lon:19.0603,tags:{nameZh:'布达佩斯安德拉什大道',name:'Andrássy út',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'9870'}},
+{type:'node',id:7409,lat:47.5020,lon:19.0520,tags:{nameZh:'布达佩斯著名咖啡馆',name:'New York Café Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-23:00',rating:'4.6',reviews:'12300'}},
+{type:'node',id:7410,lat:47.7121,lon:17.6321,tags:{nameZh:'杰尔贝内迪克泉',name:'Benedek-kút Győr',tourism:'park','addr:city':'Győr',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:7411,lat:47.5297,lon:21.6269,tags:{nameZh:'德布雷森历史中心',name:'Belváros Debrecen',tourism:'attraction','addr:city':'Debrecen',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'4560'}},
+{type:'node',id:7412,lat:46.0746,lon:18.2346,tags:{nameZh:'佩奇早期基督教遗址',name:'Ókeresztény mauzóleum Pécs',tourism:'attraction','addr:city':'Pécs',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:7413,lat:47.9016,lon:20.3782,tags:{nameZh:'埃格尔中心广场',name:'Dobó István tér Eger',tourism:'attraction','addr:city':'Eger',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'6780'}},
+{type:'node',id:7414,lat:48.1045,lon:20.7801,tags:{nameZh:'米什科尔茨老城区',name:'Avas Hill Miskolc',tourism:'park','addr:city':'Miskolc',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7415,lat:46.8405,lon:17.7288,tags:{nameZh:'凯斯特海伊湖滩',name:'Keszthely beach',tourism:'park','addr:city':'Keszthely',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:7416,lat:47.6058,lon:21.4028,tags:{nameZh:'哈伊杜索博斯洛热水公园',name:'Hungarospa Hajdúszoboszló',tourism:'theme_park','addr:city':'Hajdúszoboszló',opening_hours:'Mo-Su 08:00-21:00',rating:'4.6',reviews:'9870'}},
+{type:'node',id:7417,lat:47.7740,lon:18.9765,tags:{nameZh:'维谢格拉德塔',name:'Salamon-torony Visegrád',tourism:'castle','addr:city':'Visegrád',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7418,lat:47.7958,lon:18.7460,tags:{nameZh:'埃斯泰尔戈姆历史博物馆',name:'Magyar Keresztény Múzeum',tourism:'museum','addr:city':'Esztergom',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:7419,lat:47.5059,lon:19.0481,tags:{nameZh:'布达佩斯独立自由广场',name:'Szabadság tér Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:7420,lat:47.5038,lon:19.0411,tags:{nameZh:'布达佩斯城堡公园',name:'Budavári sétány',tourism:'park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'6780'}},
+{type:'node',id:7421,lat:47.5083,lon:19.0505,tags:{nameZh:'布达佩斯室内儿童游乐园',name:'KidCity Budapest',tourism:'theme_park','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-20:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:7422,lat:47.5093,lon:19.0520,tags:{nameZh:'布达佩斯室内儿童乐园2',name:'Adventureland Budapest',tourism:'theme_park','addr:city':'Budapest',opening_hours:'Mo-Su 10:00-19:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:7423,lat:47.5063,lon:19.0594,tags:{nameZh:'布达佩斯艺术宫',name:'Müpa Budapest',tourism:'theatre','addr:city':'Budapest',opening_hours:'varies',rating:'4.7',reviews:'7890'}},
+{type:'node',id:7424,lat:47.7074,lon:17.6372,tags:{nameZh:'杰尔历史广场',name:'Széchenyi tér Győr',tourism:'attraction','addr:city':'Győr',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:7425,lat:47.5172,lon:19.0783,tags:{nameZh:'布达佩斯博物馆花园',name:'Hősök tere kert',tourism:'park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:7426,lat:47.5006,lon:19.0517,tags:{nameZh:'布达佩斯科维尼亚工业城',name:'Kőbánya sétány',tourism:'park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.2',reviews:'1560'}},
+{type:'node',id:7427,lat:46.0725,lon:18.2241,tags:{nameZh:'佩奇大学城区',name:'PTE campus Pécs',tourism:'attraction','addr:city':'Pécs',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:7428,lat:47.5316,lon:21.6261,tags:{nameZh:'德布雷森历史公园',name:'Nagyerdei park Debrecen',tourism:'park','addr:city':'Debrecen',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:7429,lat:47.9024,lon:20.3765,tags:{nameZh:'埃格尔小溪散步道',name:'Eger-patak sétány',tourism:'park','addr:city':'Eger',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7430,lat:48.1028,lon:20.7743,tags:{nameZh:'米什科尔茨历史公园',name:'Avas sétány',tourism:'park','addr:city':'Miskolc',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'1890'}},
+{type:'node',id:7431,lat:47.5133,lon:19.0810,tags:{nameZh:'布达佩斯温泉博物馆',name:'Gellért fürdő',tourism:'theme_park','addr:city':'Budapest',opening_hours:'Mo-Su 06:00-20:00',rating:'4.6',reviews:'9870'}},
+{type:'node',id:7432,lat:47.4998,lon:19.0409,tags:{nameZh:'布达佩斯历史步道',name:'Várhegyi kilátó',tourism:'park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:7433,lat:47.5165,lon:19.0795,tags:{nameZh:'布达佩斯武器博物馆',name:'Magyar Hadtörténeti Múzeum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1780'}},
+{type:'node',id:7434,lat:47.5048,lon:19.0506,tags:{nameZh:'布达佩斯伦理博物馆',name:'Terror Háza Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'9870'}},
+{type:'node',id:7435,lat:47.5056,lon:19.0479,tags:{nameZh:'布达佩斯大犹太会堂周边',name:'VII kerület Zsidónegyed',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'7890'}},
+
+{type:'node',id:7601,lat:47.4972,lon:19.0459,tags:{nameZh:'布达佩斯圣哲罗姆宫廷',name:'Belváros plébánia Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:7602,lat:47.5100,lon:19.0525,tags:{nameZh:'布达佩斯国家大图书馆',name:'Országos Széchényi Könyvtár',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7603,lat:47.5186,lon:19.0840,tags:{nameZh:'布达佩斯萨博游乐场',name:'Szabó Ervin Könyvtár kert',tourism:'park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'1890'}},
+{type:'node',id:7604,lat:47.5014,lon:19.0500,tags:{nameZh:'布达佩斯电话博物馆',name:'Telefónia Múzeum Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:7605,lat:47.5021,lon:19.0507,tags:{nameZh:'布达佩斯时装博物馆',name:'Magyar Divatintézet',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 11:00-18:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:7606,lat:47.5030,lon:19.0457,tags:{nameZh:'布达佩斯古典音乐馆',name:'Bartók Emlékház',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:7607,lat:47.5162,lon:19.0793,tags:{nameZh:'布达佩斯文化广场',name:'Kodály Körönd',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7608,lat:47.5187,lon:19.0820,tags:{nameZh:'布达佩斯现代雕塑公园',name:'Városliget szoborkert',tourism:'park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:7609,lat:47.5070,lon:19.0428,tags:{nameZh:'布达佩斯城堡空中缆车',name:'Budavári Sikló',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 07:30-22:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:7610,lat:47.5041,lon:19.0392,tags:{nameZh:'布达佩斯玛加什教堂周边',name:'Várkerület Budapest',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:7611,lat:47.5113,lon:19.0499,tags:{nameZh:'布达佩斯圆形大剧院',name:'Komédia Színház',tourism:'theatre','addr:city':'Budapest',opening_hours:'varies',rating:'4.5',reviews:'2340'}},
+{type:'node',id:7612,lat:47.4993,lon:19.0456,tags:{nameZh:'布达佩斯历史博物馆附馆',name:'Kiscell Múzeum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:7613,lat:47.5074,lon:19.0596,tags:{nameZh:'布达佩斯大学广场',name:'ELTE BTK campus',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:7614,lat:47.5055,lon:19.0555,tags:{nameZh:'布达佩斯中央邮局博物馆',name:'Magyar Posta Múzeum',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.1',reviews:'560'}},
+{type:'node',id:7615,lat:47.7101,lon:17.6348,tags:{nameZh:'杰尔木偶剧场',name:'Kisfaludy Színház Győr',tourism:'theatre','addr:city':'Győr',opening_hours:'varies',rating:'4.5',reviews:'2340'}},
+{type:'node',id:7616,lat:47.5290,lon:21.6244,tags:{nameZh:'德布雷森国家剧院',name:'Csokonai Nemzeti Színház',tourism:'theatre','addr:city':'Debrecen',opening_hours:'varies',rating:'4.5',reviews:'2890'}},
+{type:'node',id:7617,lat:46.0752,lon:18.2298,tags:{nameZh:'佩奇历史博物馆',name:'Pécs Várostörténeti Múzeum',tourism:'museum','addr:city':'Pécs',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:7618,lat:47.8997,lon:20.3756,tags:{nameZh:'埃格尔土耳其浴场',name:'Egri fürdő',tourism:'theme_park','addr:city':'Eger',opening_hours:'Mo-Su 08:00-20:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7619,lat:48.1021,lon:20.7759,tags:{nameZh:'米什科尔茨教堂广场',name:'Avasi református templom',tourism:'attraction','addr:city':'Miskolc',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:7620,lat:46.8388,lon:17.7280,tags:{nameZh:'凯斯特海伊巴拉顿海滩',name:'Keszthely strand',tourism:'theme_park','addr:city':'Keszthely',opening_hours:'Mo-Su 09:00-20:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:7621,lat:47.7762,lon:18.9738,tags:{nameZh:'维谢格拉德皇宫遗址公园',name:'Visegrádi palotakert',tourism:'park','addr:city':'Visegrád',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7622,lat:47.7900,lon:18.7441,tags:{nameZh:'埃斯泰尔戈姆多瑙河滨',name:'Esztergom Duna part',tourism:'park','addr:city':'Esztergom',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:7623,lat:47.6074,lon:21.4062,tags:{nameZh:'哈伊杜索博斯洛骑马场',name:'Hajdúszoboszló lovarda',tourism:'attraction','addr:city':'Hajdúszoboszló',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:7624,lat:48.1133,lon:21.3128,tags:{nameZh:'托卡伊葡萄园游览',name:'Tokaj szőlőbirtok',tourism:'attraction','addr:city':'Tokaj',opening_hours:'Mo-Su 09:00-17:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:7625,lat:47.5022,lon:19.0502,tags:{nameZh:'布达佩斯链桥广场',name:'Széchenyi lánchíd',tourism:'attraction','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'12300'}},
+{type:'node',id:7626,lat:47.5039,lon:19.0452,tags:{nameZh:'布达佩斯儿童游玩中心',name:'Óbuda sziget Budapest',tourism:'theme_park','addr:city':'Budapest',opening_hours:'Mo-Su 09:00-19:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:7627,lat:47.5094,lon:19.0454,tags:{nameZh:'布达佩斯创新艺术馆',name:'Ludwig Múzeum Budapest',tourism:'museum','addr:city':'Budapest',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'2560'}},
+{type:'node',id:7628,lat:47.5132,lon:19.0783,tags:{nameZh:'布达佩斯冰淇淋公园',name:'Andrássy köz kert',tourism:'park','addr:city':'Budapest',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'1780'}},
+{type:'node',id:7629,lat:47.7118,lon:17.6395,tags:{nameZh:'杰尔纺织博物馆',name:'Váczy Péter Múzeum Győr',tourism:'museum','addr:city':'Győr',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'560'}},
+{type:'node',id:7630,lat:47.5305,lon:21.6275,tags:{nameZh:'德布雷森室内游乐',name:'Vidámpark Debrecen',tourism:'theme_park','addr:city':'Debrecen',opening_hours:'Mo-Su 10:00-19:00',rating:'4.3',reviews:'2340'}},
+];
+
+// ===== Category config =====
+const CATS = {
+  theme_park:{emoji:'🎢', en:'Theme parks', hu:'Vidámparkok', zh:'主题乐园'},
+  zoo:{emoji:'🦒', en:'Zoos', hu:'Állatkert', zh:'动物园'},
+  aquarium:{emoji:'🐠', en:'Aquariums', hu:'Akváriumok', zh:'水族馆'},
+  museum:{emoji:'🏛️', en:'Museums', hu:'Múzeumok', zh:'博物馆'},
+  nature:{emoji:'🌳', en:'Nature', hu:'Természet', zh:'自然'},
+  beach:{emoji:'🏖️', en:'Beaches', hu:'Strandok', zh:'海滩'},
+  playground:{emoji:'🎪', en:'Playgrounds', hu:'Játszóterek', zh:'游乐场'},
+  indoor_play:{emoji:'🏠', en:'Indoor play', hu:'Beltéri játszótér', zh:'室内游乐'},
+  trampoline:{emoji:'🤸', en:'Trampoline', hu:'Trambulinok', zh:'蹦床'},
+  swim:{emoji:'🏊', en:'Swimming', hu:'Úszás', zh:'游泳'},
+  climbing:{emoji:'🧗', en:'Climbing', hu:'Mászópark', zh:'攀爬'},
+  karting:{emoji:'🏎️', en:'Karting', hu:'Gokart', zh:'卡丁车'},
+  farm:{emoji:'🐑', en:'Farms', hu:'Gazdaságok', zh:'农场'},
+  attraction:{emoji:'⭐', en:'Attractions', hu:'Látnivalók', zh:'景点'},
+  theatre:{emoji:'🎭', en:'Theatre', hu:'Színház', zh:'剧院'},
+  cinema:{emoji:'🎬', en:'Cinema', hu:'Mozi', zh:'电影院'},
+  ice_rink:{emoji:'⛸️', en:'Ice rink', hu:'Jégpálya', zh:'滑冰'},
+  minigolf:{emoji:'⛳', en:'Minigolf', hu:'Minigolf', zh:'迷你高尔夫'},
+  castle:{emoji:'🏰', en:'Castles', hu:'Várak', zh:'城堡'},
+  windmill:{emoji:'🌬️', en:'Windmills', hu:'Szélmalmok', zh:'风车'},
+  escape:{emoji:'🔓', en:'Escape rooms', hu:'Szabadulószobák', zh:'密室逃脱'},
+  sports:{emoji:'🏆', en:'Sports centre', hu:'Sportközpont', zh:'运动中心'},
+  restaurant:{emoji:'🍽️', en:'Family dining', hu:'Családi étterem', zh:'亲子餐厅'},
+  monument:{emoji:'🗿', en:'Monuments', hu:'Emlékművek', zh:'古迹'},
+  ship:{emoji:'⛵', en:'Historic ships', hu:'Történelmi hajók', zh:'历史船只'},
+  ruins:{emoji:'🏺', en:'Ruins', hu:'Romok', zh:'遗址'},
+  other:{emoji:'📍', en:'Other', hu:'Egyéb', zh:'其他'}
+};
+
+// Richer emoji mapping using venue name keywords
+function emojiFor(name, cat){
+  const n = (name||'').toLowerCase();
+  // Zoo subtype refinements
+  if(cat==='zoo'){
+    if(/safari|wild|beekse/.test(n)) return '🦁';
+    if(/dolf|sea|seal|marine/.test(n)) return '🐬';
+    if(/bird|vogel|avifauna/.test(n)) return '🦜';
+    if(/ape|monkey|apen/.test(n)) return '🐒';
+    if(/butterfly|vlinder/.test(n)) return '🦋';
+    if(/reptile|snake|slang/.test(n)) return '🐍';
+    return '🦒';
+  }
+  // Museum subtype
+  if(cat==='museum'){
+    if(/science|nemo|natur/.test(n)) return '🔬';
+    if(/art|van gogh|rijks|kunstmuseum|stedelijk|gemeente/.test(n)) return '🖼️';
+    if(/maritime|ship|scheepvaart|maritiem/.test(n)) return '⚓';
+    if(/railway|spoorweg|train|tram/.test(n)) return '🚂';
+    if(/aviation|air|luchtvaart/.test(n)) return '✈️';
+    if(/corpus|body|anatomie/.test(n)) return '🫀';
+    if(/music|muziek|instrument/.test(n)) return '🎼';
+    if(/toy|speelgoed/.test(n)) return '🧸';
+    if(/history|histori|oorlog|war|museum van de geest/.test(n)) return '📜';
+    return '🏛️';
+  }
+  // Theme park subtype
+  if(cat==='theme_park'){
+    if(/water|waterpark|splash|aqua/.test(n)) return '💦';
+    if(/snow|ski|slope/.test(n)) return '❄️';
+    if(/mini|madurodam|miniatuur/.test(n)) return '🏘️';
+    if(/fairy|sprookje|efteling/.test(n)) return '🏰';
+    return '🎢';
+  }
+  // Nature subtype
+  if(cat==='nature'){
+    if(/forest|bos|wald/.test(n)) return '🌲';
+    if(/heath|heide/.test(n)) return '🌾';
+    if(/dune|duin/.test(n)) return '🏝️';
+    if(/lake|meer|lak/.test(n)) return '🏞️';
+    if(/tulip|tulp|keukenhof/.test(n)) return '🌷';
+    return '🌳';
+  }
+  // Playground subtype
+  if(cat==='playground'){
+    if(/water|splash/.test(n)) return '💦';
+    if(/adventure|avontur/.test(n)) return '🧗';
+    return '🛝';
+  }
+  // Indoor play
+  if(cat==='indoor_play'){
+    if(/monkey/.test(n)) return '🐒';
+    if(/ballorig|ball/.test(n)) return '🎈';
+    if(/jimmy|jimmi/.test(n)) return '🤹';
+    return '🏠';
+  }
+  // Restaurant subtype
+  if(cat==='restaurant'){
+    if(/pannenkoek|pancake/.test(n)) return '🥞';
+    if(/chinese|chinees|china|asia|asian|sushi|wok/.test(n)) return '🥢';
+    if(/pizza|pizzer/.test(n)) return '🍕';
+    if(/ice cream|ijssalon|gelato/.test(n)) return '🍦';
+    if(/buffet/.test(n)) return '🍱';
+    if(/burger|mcdonalds/.test(n)) return '🍔';
+    return '🍽️';
+  }
+  // Theme parks extras
+  if(cat==='theme_park' && /petting|boerderij/.test(n)) return '🐄';
+  // Castle/fort
+  if(cat==='castle'){
+    if(/fort|bourtange/.test(n)) return '⚔️';
+    return '🏰';
+  }
+  // Windmill
+  if(cat==='windmill') return '🌬️';
+  // Sports
+  if(cat==='sports'){
+    if(/klim|climb/.test(n)) return '🧗';
+    if(/bow|boog/.test(n)) return '🏹';
+    return '🏆';
+  }
+  // Farm animals
+  if(cat==='farm'){
+    if(/geiten|goat/.test(n)) return '🐐';
+    if(/paarden|horse/.test(n)) return '🐴';
+    return '🐑';
+  }
+  return CATS[cat]?.emoji || '📍';
+}
+
+function classify(t){
+  if(t.tourism==='theme_park') return 'theme_park';
+  if(t.tourism==='zoo') return 'zoo';
+  if(t.tourism==='children_farm') return 'farm';
+  if(t.tourism==='aquarium') return 'aquarium';
+  if(t.tourism==='museum') return 'museum';
+  if(t.tourism==='attraction' || t.tourism==='visitor_centre') return 'attraction';
+  if(t.leisure==='nature_reserve' || t.leisure==='park') return 'nature';
+  if(t.leisure==='playground') return 'playground';
+  if(t.leisure==='indoor_playground') return 'indoor_play';
+  if(t.leisure==='trampoline_park') return 'trampoline';
+  if(t.leisure==='swimming_pool') return 'swim';
+  if(t.leisure==='climbing_park') return 'climbing';
+  if(t.leisure==='go_kart') return 'karting';
+  if(t.leisure==='miniature_golf') return 'minigolf';
+  if(t.leisure==='ice_rink') return 'ice_rink';
+  if(t.leisure==='sports_centre') return 'sports';
+  if(t.leisure==='escape_room') return 'escape';
+  if(t.amenity==='theatre') return 'theatre';
+  if(t.amenity==='cinema') return 'cinema';
+  if(t.amenity && t.amenity.indexOf('restaurant')>=0) return 'restaurant';
+  if(t.historic==='castle') return 'castle';
+  if(t.historic==='fort') return 'castle';
+  if(t.historic==='windmill' || t.man_made==='windmill') return 'windmill';
+  if(t.historic==='monument' || t.historic==='archaeological_site') return 'monument';
+  if(t.historic==='ship') return 'ship';
+  if(t.historic==='ruins') return 'ruins';
+  if(t.natural==='beach') return 'beach';
+  return 'other';
+}
+
+// ===== Transform data =====
+const VENUES = STATIC_HU_VENUES.map(v=>{
+  const t = v.tags || {};
+  const cat = classify(t);
+  return {
+    id: v.id, lat: v.lat, lon: v.lon,
+    name: t.name || 'Unnamed',
+    zh: t.nameZh || '',
+    cat: cat,
+    emoji: emojiFor(t.name, cat),
+    city: t['addr:city'] || '',
+    street: t['addr:street'] || '',
+    house: t['addr:housenumber'] || '',
+    postcode: t['addr:postcode'] || '',
+    website: t.website || '',
+    hours: t.opening_hours || '',
+    rating: parseFloat(t.rating || '0') || null,
+    reviews: parseInt(t.reviews || '0') || 0,
+  };
+});
+
+// ===== State =====
+const FAV_KEY = 'ke_favs_hu';
+const LANG_KEY = 'ke_lang_hu';
+const LANGS = ['en','hu','zh'];  // cycle: en → hu → zh → en
+const state = {
+  activeCats: new Set(),  // empty = all
+  search: '',
+  sortBy: 'rating',
+  filtered: [],
+  selectedId: null,
+  markers: new Map(),
+  favs: new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')),
+  favsOnly: false,
+  lang: localStorage.getItem(LANG_KEY) || (navigator.language.startsWith('hu') ? 'hu' : navigator.language.startsWith('zh') ? 'zh' : 'en'),
+};
+
+// ===== Language labels (shown in button — always the CURRENT language) =====
+const LANG_LABELS = {en:'EN', nl:'NL', de:'DE', fr:'FR', it:'IT', es:'ES', pt:'PT', el:'ΕΛ', zh:'中', hu:'HU'};
+
+// ===== i18n =====
+const I18N = {
+  en: {
+    in_view: 'in view', favs: '♡ Favs', filters: '🏷 Category', sort: '↕ Sort',
+    category: 'Category', clear: 'Clear', show_results: 'Show results',
+    near_me: 'Near me', map: '🗺 Map', list: '☰ List',
+    directions: '🗺 Directions', website: '🌐 Website',
+    rating: 'Rating', address: 'Address', city: 'City', hours: 'Hours', reviews: 'reviews',
+    empty: 'No venues in this area. Try moving the map or clearing filters.',
+    search_ph: 'Search places or cities…',
+    lang_next: 'HU',
+  },
+  hu: {
+    in_view: 'látható', favs: '♡ Kedvencek', filters: '🏷 Kategória', sort: '↕ Rendezés',
+    category: 'Kategória', clear: 'Törlés', show_results: 'Eredmények mutatása',
+    near_me: 'Közelemben', map: '🗺 Térkép', list: '☰ Lista',
+    directions: '🗺 Útvonal', website: '🌐 Weboldal',
+    rating: 'Értékelés', address: 'Cím', city: 'Város', hours: 'Nyitvatartás', reviews: 'értékelés',
+    empty: 'Nincs hely ezen a területen. Mozgassa a térképet vagy törölje a szűrőket.',
+    search_ph: 'Helyek vagy városok keresése…',
+    lang_next: '中',
+  },
+  zh: {
+    in_view: '可见', favs: '♡ 收藏', filters: '🏷 品类', sort: '↕ 排序',
+    category: '品类', clear: '清空', show_results: '显示结果',
+    near_me: '我附近', map: '🗺 地图', list: '☰ 列表',
+    directions: '🗺 导航', website: '🌐 官网',
+    rating: '评分', address: '地址', city: '城市', hours: '开放时间', reviews: '评价',
+    empty: '当前视口内没有场所。拖动地图或清空筛选。',
+    search_ph: '搜索场所或城市…',
+    lang_next: 'EN',
+  }
+};
+function t(k){return I18N[state.lang][k] || k;}
+
+function toggleLang(){
+  const idx = LANGS.indexOf(state.lang);
+  state.lang = LANGS[(idx+1) % LANGS.length];
+  localStorage.setItem(LANG_KEY, state.lang);
+  applyLang();
+  renderList();
+  buildCatGrid();
+}
+function applyLang(){
+  // Header button shows NEXT language
+  document.getElementById('lang-btn').textContent = LANG_LABELS[state.lang] || state.lang.toUpperCase();
+  // Update chips
+  document.getElementById('favs-chip').innerHTML = t('favs');
+  document.querySelector('.actions .chip:nth-child(2)').innerHTML = t('filters');
+  document.querySelector('.actions .chip:nth-child(3)').innerHTML = t('sort');
+  // Filter drawer title + section
+  document.querySelector('.filter-hdr h3').textContent = t('category');
+  document.querySelector('.filter-section h4').textContent = t('category');
+  document.querySelector('.btn-clear').textContent = t('clear');
+  document.querySelector('.btn-apply').textContent = t('show_results');
+  // Near me button
+  document.querySelector('.fab.near').innerHTML = `<span>📍</span><span>${t('near_me')}</span>`;
+  // Map/List toggle
+  document.getElementById('tog-map').textContent = t('map');
+  document.getElementById('tog-list').textContent = t('list');
+  // Search placeholder
+  document.getElementById('search').placeholder = t('search_ph');
+  // Count label
+  document.getElementById('count-label').textContent = t('in_view');
+}
+function saveFavs(){localStorage.setItem(FAV_KEY, JSON.stringify([...state.favs]));}
+function toggleFav(){
+  if(state.selectedId == null) return;
+  if(state.favs.has(state.selectedId)) state.favs.delete(state.selectedId);
+  else state.favs.add(state.selectedId);
+  saveFavs();
+  updateFavBtn();
+  renderList();
+}
+function updateFavBtn(){
+  const btn = document.getElementById('ov-fav');
+  if(!btn) return;
+  const on = state.favs.has(state.selectedId);
+  btn.classList.toggle('on', on);
+  btn.textContent = on ? '♥' : '♡';
+}
+function toggleFavsOnly(){
+  state.favsOnly = !state.favsOnly;
+  document.getElementById('favs-chip').classList.toggle('on', state.favsOnly);
+  document.getElementById('favs-chip').style.background = state.favsOnly ? '#fff5f0' : '';
+  document.getElementById('favs-chip').style.color = state.favsOnly ? 'var(--brand)' : '';
+  document.getElementById('favs-chip').style.borderColor = state.favsOnly ? 'var(--brand)' : '';
+  renderList();
+}
+function cardFavClick(ev, id){
+  ev.stopPropagation();
+  if(state.favs.has(id)) state.favs.delete(id); else state.favs.add(id);
+  saveFavs();
+  if(state.selectedId===id) updateFavBtn();
+  renderList();
+}
+
+// ===== Map =====
+const map = L.map('map', {zoomControl:false, attributionControl:false}).setView([47.2,19.0],7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+L.control.attribution({prefix:false}).addTo(map);
+
+const clusterGroup = L.markerClusterGroup({
+  maxClusterRadius: 50,
+  showCoverageOnHover: false,
+});
+map.addLayer(clusterGroup);
+
+function makeIcon(v, selected=false){
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim();
+  return L.divIcon({
+    className: selected ? 'selected' : '',
+    html: `<div class="venue-marker" style="border-color:${color}">${v.emoji}</div>`,
+    iconSize:[36,36], iconAnchor:[18,18]
+  });
+}
+
+VENUES.forEach(v=>{
+  const m = L.marker([v.lat, v.lon], {icon: makeIcon(v)});
+  m.on('click', ()=>openDetail(v));
+  clusterGroup.addLayer(m);
+  state.markers.set(v.id, m);
+});
+
+// ===== Filter + render =====
+function computeFiltered(){
+  const q = state.search.trim().toLowerCase();
+  const bounds = map.getBounds();
+  let list = VENUES.filter(v=>{
+    if(state.favsOnly && !state.favs.has(v.id)) return false;
+    if(state.activeCats.size && !state.activeCats.has(v.cat)) return false;
+    if(q && !(v.name.toLowerCase().includes(q) || v.zh.includes(q) || v.city.toLowerCase().includes(q))) return false;
+    if(!state.favsOnly && !bounds.contains([v.lat, v.lon])) return false;
+    return true;
+  });
+  if(state.sortBy==='rating'){
+    list.sort((a,b)=>(b.rating||0)-(a.rating||0));
+  } else if(state.sortBy==='name'){
+    list.sort((a,b)=>a.name.localeCompare(b.name));
+  }
+  state.filtered = list;
+  return list;
+}
+
+function renderList(){
+  const list = computeFiltered();
+  const el = document.getElementById('list');
+  document.getElementById('count').textContent = list.length;
+  if(!list.length){
+    el.innerHTML = `<div class="empty">No venues in this area. Try moving the map or clearing filters.</div>`;
+    return;
+  }
+  el.innerHTML = list.slice(0,200).map(v=>{
+    const isFav = state.favs.has(v.id);
+    // NL venues: original name is already Dutch → use for en & nl; zh uses nameZh
+    const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+    const secondary = state.lang==='zh' ? v.name : (v.zh || '');
+    const catLabel = CATS[v.cat]?.[state.lang] || v.cat;
+    return `
+    <div class="venue-card" data-id="${v.id}" onclick="openDetail(VENUES.find(x=>x.id===${v.id}))">
+      <div class="venue-thumb cat-${v.cat}">${v.emoji}<button class="card-fav ${isFav?'on':''}" onclick="cardFavClick(event,${v.id})" title="Favorite">${isFav?'♥':'♡'}</button></div>
+      <div class="venue-info">
+        <div class="venue-name">${primary}</div>
+        ${secondary?`<div class="venue-zh">${secondary}</div>`:''}
+        <div class="venue-meta">
+          ${v.rating?`<span class="rating">★ ${v.rating.toFixed(1)}</span><span class="dot">·</span>`:''}
+          <span>${catLabel}</span>
+          ${v.city?`<span class="dot">·</span><span>${v.city}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== Detail overlay =====
+function openDetail(v){
+  if(!v) return;
+  state.selectedId = v.id;
+  const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+  const secondary = state.lang==='zh' && v.zh ? v.name : v.zh;
+  document.getElementById('ov-name').textContent = primary;
+  document.getElementById('ov-zh').textContent = secondary;
+  const rows = [];
+  if(v.rating) rows.push([t('rating'), `★ ${v.rating.toFixed(1)} · ${v.reviews.toLocaleString()} ${t('reviews')}`]);
+  if(v.street) rows.push([t('address'), `${v.street} ${v.house}, ${v.postcode} ${v.city}`.trim()]);
+  else if(v.city) rows.push([t('city'), v.city]);
+  rows.push([t('category'), `${v.emoji} ${CATS[v.cat]?.[state.lang] || v.cat}`]);
+  if(v.hours) rows.push([t('hours'), v.hours]);
+  document.getElementById('ov-body').innerHTML = rows.map(([k,val])=>
+    `<div class="detail-row"><div class="lbl">${k}</div><div>${val}</div></div>`
+  ).join('');
+  document.getElementById('ov-directions').href = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}&destination_place_id=${encodeURIComponent(v.name)}`;
+  document.getElementById('ov-directions').textContent = t('directions');
+  document.getElementById('ov-website').textContent = t('website');
+  const wsBtn = document.getElementById('ov-website');
+  if(v.website){
+    wsBtn.href = v.website; wsBtn.style.display='flex';
+  } else {
+    wsBtn.style.display='none';
+  }
+  updateFavBtn();
+  document.getElementById('overlay').classList.add('open');
+  // pan to marker
+  map.flyTo([v.lat, v.lon], Math.max(map.getZoom(), 13), {duration:.6});
+}
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('open');
+  state.selectedId = null;
+}
+
+// ===== Filter drawer =====
+function buildCatGrid(){
+  const counts = {};
+  VENUES.forEach(v=>counts[v.cat]=(counts[v.cat]||0)+1);
+  const el = document.getElementById('cat-grid');
+  el.innerHTML = Object.entries(CATS)
+    .filter(([k])=>counts[k])
+    .sort(([a],[b])=>(counts[b]||0)-(counts[a]||0))
+    .map(([k,c])=>`<button class="cat-btn ${state.activeCats.has(k)?'active':''}" data-cat="${k}" onclick="toggleCat('${k}')">
+      <span class="emoji">${c.emoji}</span>${c[state.lang]}<span class="count">${counts[k]}</span>
+    </button>`).join('');
+}
+function toggleCat(k){
+  if(state.activeCats.has(k)) state.activeCats.delete(k); else state.activeCats.add(k);
+  buildCatGrid();
+  renderList();
+}
+function clearFilter(){
+  state.activeCats.clear();
+  buildCatGrid();
+  renderList();
+}
+function openFilter(){document.getElementById('filter').classList.add('open');}
+function closeFilter(){document.getElementById('filter').classList.remove('open');}
+
+// ===== Drawer interactions =====
+function toggleDrawer(){
+  const d = document.getElementById('drawer');
+  const s = d.dataset.state;
+  d.dataset.state = s==='peek'?'half':(s==='half'?'full':'peek');
+}
+
+// ===== Near me (geolocation) =====
+function locateMe(){
+  if(!navigator.geolocation) return alert('Geolocation not supported');
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      const {latitude, longitude} = pos.coords;
+      map.flyTo([latitude, longitude], 12, {duration:.8});
+      L.circleMarker([latitude, longitude], {radius:10, color:'#c96442', fillColor:'#c96442', fillOpacity:.3, weight:3}).addTo(map);
+    },
+    (err)=>alert('Could not get location: '+err.message)
+  );
+}
+
+// ===== Zoom =====
+function zoomIn(){map.zoomIn();}
+function zoomOut(){map.zoomOut();}
+
+// ===== Search =====
+document.getElementById('search').addEventListener('input', e=>{
+  state.search = e.target.value;
+  renderList();
+});
+
+// ===== Country picker (placeholder — links to /) =====
+function openCountryPicker(){
+  window.location.href = '/';
+}
+
+// ===== Map/List view toggle (mobile) =====
+function setView(v){
+  document.body.dataset.view = v;
+  document.getElementById('tog-map').classList.toggle('active', v==='map');
+  document.getElementById('tog-list').classList.toggle('active', v==='list');
+  if(v==='map'){
+    setTimeout(()=>map.invalidateSize(), 50);
+  }
+}
+document.body.dataset.view = 'map';
+
+// ===== Sort toggle =====
+function toggleSort(){
+  state.sortBy = state.sortBy==='rating'?'name':'rating';
+  renderList();
+}
+
+// ===== Sync list when map moves =====
+let moveTimer;
+map.on('moveend', ()=>{
+  clearTimeout(moveTimer);
+  moveTimer = setTimeout(renderList, 150);
+});
+
+// ===== Initial render =====
+applyLang();
+buildCatGrid();
+renderList();
+
+// ===== Click outside to close overlays =====
+map.on('click', ()=>{
+  closeOverlay();
+});
+
+// ===== AI Chat Assistant =====
+const CITY_COORDS = {
+  'budapest':[47.5,19.04],
+  'debrecen':[47.53,21.63],
+  'pécs':[46.07,18.23],
+  'miskolc':[48.1,20.79],
+  'győr':[47.69,17.63],
+  'nyíregyháza':[47.95,21.72],
+  'kecskemét':[46.91,19.69],
+  'székesfehérvár':[47.19,18.41],
+  'sopron':[47.68,16.58],
+  'eger':[47.9,20.37],
+  'balatonfüred':[46.96,17.89],
+  '布达佩斯':[47.5,19.04],
+  '德布勒森':[47.53,21.63],
+  '佩奇':[46.07,18.23],
+  '米什科尔茨':[48.1,20.79],
+  '鲍洛通湖':[46.96,17.89]
+};
+const INTEREST_MAP = {
+  '动物':['zoo','farm'],'动物园':['zoo'],'农场':['farm'],
+  '博物馆':['museum'],'科学':['museum'],'艺术':['museum'],
+  '游乐园':['theme_park'],'主题公园':['theme_park'],'游乐场':['theme_park','indoor_play'],
+  '室内':['indoor_play','museum','aquarium'],'下雨':['indoor_play','museum','aquarium'],
+  '海滩':['beach'],'海边':['beach'],'游泳':['beach','swim'],
+  '城堡':['castle'],'历史':['castle','monument'],
+  '自然':['nature'],'公园':['nature'],'森林':['nature'],
+  '水族馆':['aquarium'],'海豚':['aquarium'],
+  '滑冰':['ice_rink'],'运动':['sports'],
+  '室内游乐':['indoor_play'],'蹦床':['trampoline'],
+  'animal':['zoo','farm'],'zoo':['zoo'],'farm':['farm'],
+  'museum':['museum'],'science':['museum'],
+  'theme park':['theme_park'],'amusement':['theme_park'],
+  'indoor':['indoor_play','museum','aquarium'],'rain':['indoor_play','museum','aquarium'],
+  'beach':['beach'],'castle':['castle'],
+  'nature':['nature'],'forest':['nature'],
+  'aquarium':['aquarium'],'playground':['indoor_play','playground'],
+  'trampoline':['trampoline'],'monkey town':['indoor_play'],'ballorig':['indoor_play'],
+};
+const AGE_HINTS = {
+  '婴儿':1,'宝宝':2,'1岁':1,'2岁':2,'3岁':3,'幼儿':3,'小朋友':5,
+  '4岁':4,'5岁':5,'6岁':6,'7岁':7,'8岁':8,'9岁':9,'10岁':10,
+  '学龄':7,'小学':8,'toddler':2,'baby':1,'teenager':13,
+};
+
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function parseUserMessage(msg){
+  const lower=msg.toLowerCase();
+  const result={city:null,coords:null,categories:new Set(),age:null,maxDist:null,raw:msg};
+  for(const [name,coords] of Object.entries(CITY_COORDS)){
+    if(lower.includes(name.toLowerCase())){result.city=name;result.coords=coords;break;}
+  }
+  for(const [kw,cats] of Object.entries(INTEREST_MAP)){
+    if(lower.includes(kw.toLowerCase())) cats.forEach(c=>result.categories.add(c));
+  }
+  for(const [kw,age] of Object.entries(AGE_HINTS)){
+    if(lower.includes(kw)){result.age=age;break;}
+  }
+  const dm=lower.match(/(\d+)\s*(km|公里|min|分钟)/);
+  if(dm){const n=parseInt(dm[1]);result.maxDist=(dm[2]==='分钟'||dm[2]==='min')?n*1.2:n;}
+  return result;
+}
+
+function chatRecommend(parsed){
+  let list=[...VENUES];
+  if(parsed.categories.size>0) list=list.filter(v=>parsed.categories.has(v.cat));
+  if(parsed.coords){
+    list.forEach(v=>{v._dist=haversine(parsed.coords[0],parsed.coords[1],v.lat,v.lon);});
+    if(parsed.maxDist) list=list.filter(v=>v._dist<=parsed.maxDist);
+    list.sort((a,b)=>a._dist-b._dist);
+  } else {
+    list.sort(()=>Math.random()-0.5);
+  }
+  if(parsed.age!==null){
+    if(parsed.age<=3){
+      const p=['farm','indoor_play','playground','zoo'];
+      list.sort((a,b)=>{const aP=p.indexOf(a.cat),bP=p.indexOf(b.cat);if(aP>=0&&bP<0)return -1;if(aP<0&&bP>=0)return 1;return(a._dist||0)-(b._dist||0);});
+    } else if(parsed.age>=8){
+      const p=['theme_park','sports','museum','castle'];
+      list.sort((a,b)=>{const aP=p.indexOf(a.cat),bP=p.indexOf(b.cat);if(aP>=0&&bP<0)return -1;if(aP<0&&bP>=0)return 1;return(a._dist||0)-(b._dist||0);});
+    }
+  }
+  return list.slice(0,6);
+}
+
+function buildChatResponse(parsed,venues){
+  const isZh=/[\u4e00-\u9fff]/.test(parsed.raw);
+  if(!venues.length) return isZh?'抱歉，没有找到完全匹配的场地。试试换个关键词或放宽距离范围？':"Sorry, no exact matches. Try different keywords or wider range?";
+  let parts=[];
+  if(isZh){
+    let o='为你推荐以下场地';
+    if(parsed.city) o=`在 ${parsed.city} 附近为你推荐`;
+    if(parsed.age) o+=`（适合${parsed.age}岁孩子）`;
+    parts.push(o+'：');
+  } else {
+    let o='Here are my recommendations';
+    if(parsed.city) o=`Near ${parsed.city}, here are my picks`;
+    if(parsed.age) o+=` (for age ${parsed.age})`;
+    parts.push(o+':');
+  }
+  venues.forEach(v=>{
+    const dist=v._dist?` (${v._dist.toFixed(1)}km)`:'';
+    const catLbl=CATS[v.cat]?.[state.lang]||v.cat;
+    parts.push(`\n${v.emoji} <strong>${v.name}</strong>${dist}\n<span style="color:var(--text-mute);font-size:11px">${catLbl} · ${v.city}</span>`);
+  });
+  if(isZh) parts.push('\n点击场地名称可在地图上查看位置。');
+  else parts.push('\nClick a venue name to see it on the map.');
+  let chips='';
+  if(venues.length>0){
+    chips='<div style="margin-top:8px">'+venues.map(v=>
+      `<span class="chat-venue-chip" onclick="chatShowVenue(${v.lat},${v.lon},${v.id})">${v.emoji} ${v.name}</span>`
+    ).join('')+'</div>';
+  }
+  return parts.join('')+chips;
+}
+
+let chatOpen=false;
+function toggleChat(open){
+  chatOpen=open;
+  document.getElementById('chatPanel').classList.toggle('open',open);
+  document.getElementById('chatFab').classList.toggle('hidden',open);
+  if(open&&document.getElementById('chatMessages').children.length===0) initChat();
+  if(open) document.getElementById('chatInput').focus();
+}
+function initChat(){
+  const g=state.lang==='zh'
+    ?'👋 你好！我是亲子出行助手。\n\n告诉我你的情况：\n• 你在哪个城市？\n• 孩子多大？\n• 想要室内还是室外？\n\n我会推荐最合适的去处！'
+    :state.lang==='nl'
+    ?'👋 Hallo! Ik ben je gezinsuitje-assistent.\n\nVertel me:\n• In welke stad?\n• Hoe oud zijn je kinderen?\n• Binnen of buiten?\n\nIk raad de beste plekken aan!'
+    :"👋 Hi! I'm your family outing assistant.\n\nTell me:\n• Which city?\n• How old are your kids?\n• Indoor or outdoor?\n\nI'll recommend the best places!";
+  addBotMsg(g);showQuickActions();
+}
+function showQuickActions(){
+  const el=document.getElementById('chatQuickActions');
+  const a=state.lang==='zh'
+    ?[['🏠 Amsterdam室内','我在Amsterdam，下雨天想找室内游乐场'],['🦁 带3岁宝宝看动物','我孩子3岁，想去看动物'],['🏖️ 海滩推荐','周末想带孩子去海滩'],['🏛️ 博物馆','想带8岁孩子去博物馆']]
+    :[['🏠 Indoor play','Indoor activities for rainy day'],['🦁 Zoo for toddler','Zoo or farm for 3 year old'],['🏖️ Beach trip','Beach trip with kids'],['🏛️ Museums','Museum for 8 year old']];
+  el.innerHTML=a.map(([l,m])=>`<button class="chat-quick-btn" onclick="sendQuick('${m.replace(/'/g,"\\'")}')">${l}</button>`).join('');
+}
+function sendQuick(m){document.getElementById('chatInput').value=m;handleChatSend();}
+function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function addBotMsg(t){const el=document.getElementById('chatMessages');const d=document.createElement('div');d.className='chat-msg bot';d.innerHTML=escHtml(t).replace(/\n/g,'<br>');el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function addUserMsg(t){const el=document.getElementById('chatMessages');const d=document.createElement('div');d.className='chat-msg user';d.textContent=t;el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function showTyping(){const el=document.getElementById('chatMessages');const d=document.createElement('div');d.className='chat-typing';d.id='chatTyping';d.innerHTML='<span></span><span></span><span></span>';el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function removeTyping(){const t=document.getElementById('chatTyping');if(t)t.remove();}
+
+function handleChatSend(){
+  const input=document.getElementById('chatInput');
+  const msg=input.value.trim();if(!msg)return;
+  addUserMsg(msg);input.value='';
+  document.getElementById('chatQuickActions').innerHTML='';
+  showTyping();
+  setTimeout(()=>{
+    removeTyping();
+    const parsed=parseUserMessage(msg);
+    const venues=chatRecommend(parsed);
+    const response=buildChatResponse(parsed,venues);
+    const d=document.createElement('div');d.className='chat-msg bot';d.innerHTML=response;
+    document.getElementById('chatMessages').appendChild(d);
+    document.getElementById('chatMessages').scrollTop=document.getElementById('chatMessages').scrollHeight;
+  },600+Math.random()*400);
+}
+
+function chatShowVenue(lat,lon,id){
+  map.flyTo([lat,lon],14,{duration:1});
+  const v=VENUES.find(x=>x.id===id);
+  if(v) openDetail(v);
+  if(window.innerWidth<=768) toggleChat(false);
+}
+
+document.getElementById('chatInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();handleChatSend();}
+});
+
+</script>
+
+<!-- AI Chat Widget -->
+<button class="chat-fab" id="chatFab" onclick="toggleChat(true)" title="AI Assistant" aria-label="Open AI chat assistant">🧸</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header">
+    <div class="chat-header-icon">🧸</div>
+    <div class="chat-header-text">AI Assistant<br><span class="chat-header-sub" id="chatSubtitle">亲子出行助手</span></div>
+    <button class="chat-close" onclick="toggleChat(false)">×</button>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-quick-actions" id="chatQuickActions"></div>
+  <div class="chat-input-area">
+    <input class="chat-input" id="chatInput" placeholder="描述你的需求… e.g. Amsterdam, 3岁, 室内" autocomplete="off">
+    <button class="chat-send" id="chatSend" onclick="handleChatSend()">➤</button>
+  </div>
+</div>
+
+</body>
+</html>

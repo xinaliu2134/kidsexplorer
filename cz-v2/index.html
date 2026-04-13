@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Czech Republic Kids Explorer · KidsExplorer.eu</title>
+<meta name="description" content="Family-friendly venues across Czech Republic on one interactive map. Multilingual. Free.">
+<link rel="canonical" href="https://kidsexplorer.eu/cz/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kidsexplorer.eu/cz/">
+<meta property="og:title" content="Czech Republic Kids Explorer · KidsExplorer.eu">
+<meta property="og:description" content="129+ family-friendly venues across Greece on one interactive map. Bilingual map with verified addresses, ratings, and opening hours.">
+<meta property="og:image" content="https://kidsexplorer.eu/og/cz.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="KidsExplorer.eu">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Czech Republic Kids Explorer · KidsExplorer.eu">
+<meta name="twitter:description" content="129+ family-friendly venues across Greece on one interactive map. Bilingual map with verified addresses, ratings, and opening hours.">
+<meta name="twitter:image" content="https://kidsexplorer.eu/og/cz.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Original Holland Kids palette (restored from v1) */
+  --bg:#F2F4F8;
+  --surface:#FFFFFF;
+  --border:#CBD5E1;
+  --border-strong:#94A3B8;
+  --text:#1A2B4A;
+  --text-soft:#5A6A84;
+  --text-mute:#9AA5B8;
+  --brand:#E05A1E;
+  --brand-dark:#B84515;
+  --brand-light:#FFF0E9;
+  --teal:#0EA5A0;
+  --navy:#1A2B4A;
+  --shadow:0 1px 3px rgba(26,43,74,.12), 0 0 0 1px rgba(26,43,74,.04);
+  --shadow-lg:0 8px 24px rgba(26,43,74,.20), 0 0 0 1px rgba(26,43,74,.08);
+  --radius:14px;
+  --header-h:56px;
+  --safe-bottom:env(safe-area-inset-bottom,0);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+input{font-family:inherit;border:none;outline:none;background:none;color:inherit}
+
+/* ===== Top Header ===== */
+.hdr{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);z-index:900;display:flex;align-items:center;gap:10px;padding:0 14px}
+.hdr-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;letter-spacing:-.3px;color:var(--brand);white-space:nowrap}
+.hdr-brand .logo{font-size:20px}
+.hdr-country{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--bg);border:1px solid var(--border);border-radius:999px;font-size:13px;font-weight:600;cursor:pointer}
+.hdr-country:hover{border-color:var(--brand)}
+.hdr-country .flag{font-size:16px}
+.hdr-search{flex:1;display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--bg);border:1px solid var(--border);border-radius:999px;cursor:text;min-width:0}
+.hdr-search input{flex:1;font-size:14px;min-width:0}
+.hdr-search .icon{color:var(--text-mute);flex-shrink:0}
+.hdr-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--bg);border:1px solid var(--border);font-size:16px;flex-shrink:0}
+.hdr-btn:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ===== Map ===== */
+#map{position:fixed;top:var(--header-h);left:0;right:0;bottom:0;z-index:1}
+.leaflet-popup-content-wrapper{border-radius:14px}
+.leaflet-popup-content{margin:14px 16px;font-family:'Inter',sans-serif;font-size:13px}
+
+/* ===== Map/List Toggle (mobile) ===== */
+.view-toggle{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--header-h) + 12px);z-index:600;display:flex;background:#fff;border:1px solid var(--border);border-radius:999px;box-shadow:var(--shadow);padding:3px}
+.view-toggle button{padding:8px 18px;font-size:13px;font-weight:600;border-radius:999px;color:var(--text-soft)}
+.view-toggle button.active{background:var(--text);color:#fff}
+.view-toggle button:not(.active):hover{color:var(--text)}
+body[data-view="list"] #map{display:none}
+body[data-view="list"] .drawer{transform:translateY(0)!important;top:calc(var(--header-h) + 58px);border-radius:20px 20px 0 0;max-height:calc(100vh - var(--header-h) - 58px);height:calc(100vh - var(--header-h) - 58px)}
+body[data-view="list"] .drawer-handle{display:none}
+body[data-view="list"] .fab-stack{display:none}
+@media (min-width:1024px){
+  .view-toggle{display:none} /* desktop shows both */
+}
+
+/* ===== Floating Action Buttons ===== */
+.fab-stack{position:fixed;right:14px;top:calc(var(--header-h) + 14px);z-index:500;display:flex;flex-direction:column;gap:10px}
+.fab{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s}
+.fab:hover{border-color:var(--brand);color:var(--brand);transform:scale(1.05)}
+.fab.near{background:var(--brand);color:#fff;border-color:var(--brand);width:auto;padding:0 18px;border-radius:22px;font-size:13px;font-weight:600;gap:6px}
+.fab.near:hover{background:var(--brand-dark);color:#fff}
+
+/* ===== Bottom Drawer (List) ===== */
+.drawer{position:fixed;left:0;right:0;bottom:0;z-index:700;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:80vh;display:flex;flex-direction:column}
+.drawer[data-state="peek"]{transform:translateY(calc(100% - 72px))}
+.drawer[data-state="half"]{transform:translateY(calc(100% - 48vh))}
+.drawer[data-state="full"]{transform:translateY(8vh)}
+.drawer-handle{flex-shrink:0;padding:8px 0 4px;text-align:center;cursor:grab;touch-action:none}
+.drawer-handle::before{content:'';display:inline-block;width:40px;height:4px;background:var(--border-strong);border-radius:2px}
+.drawer-hdr{flex-shrink:0;padding:6px 18px 12px;display:flex;align-items:center;justify-content:space-between}
+.drawer-hdr .count{font-weight:700;font-size:14px}
+.drawer-hdr .count small{font-weight:500;color:var(--text-mute);font-size:12px;margin-left:4px}
+.drawer-hdr .actions{display:flex;gap:6px}
+.drawer-hdr .chip{padding:6px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--border);font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.drawer-hdr .chip:hover{border-color:var(--brand);color:var(--brand)}
+.drawer-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 18px calc(20px + var(--safe-bottom))}
+.venue-card{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.venue-card:last-child{border-bottom:none}
+.venue-card:hover{background:#fafaf7}
+.venue-card:hover .venue-name{color:var(--brand)}
+.venue-thumb{width:56px;height:56px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff;position:relative;overflow:hidden}
+.venue-thumb::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.2),transparent)}
+.venue-info{flex:1;min-width:0}
+.venue-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-zh{font-size:12px;color:var(--text-mute);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venue-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft)}
+.venue-meta .rating{color:var(--brand);font-weight:600}
+.venue-meta .dot{color:var(--text-mute)}
+.empty{padding:40px 20px;text-align:center;color:var(--text-mute);font-size:14px}
+
+/* ===== Detail Overlay (bottom sheet, half-screen) ===== */
+.overlay{position:fixed;left:0;right:0;bottom:0;z-index:900;background:#fff;border-top:1px solid var(--border);border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);max-height:50vh;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.overlay.open{transform:translateY(0)}
+.overlay-hdr{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;padding:18px 18px 12px;gap:10px}
+.overlay-title{flex:1;min-width:0}
+.overlay-title h3{font-size:18px;font-weight:700;line-height:1.2;margin-bottom:4px}
+.overlay-title .zh{font-size:13px;color:var(--text-mute)}
+.overlay-close{width:32px;height:32px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--text-soft)}
+.overlay-body{flex:1;overflow-y:auto;padding:0 18px 20px}
+.detail-row{display:flex;gap:10px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);color:var(--text-soft)}
+.detail-row .lbl{min-width:70px;font-weight:600;color:var(--text)}
+.overlay-actions{flex-shrink:0;padding:12px 18px calc(12px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:8px}
+.overlay-actions .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+.overlay-actions .btn-primary{background:var(--brand);color:#fff}
+.overlay-actions .btn-primary:hover{background:var(--brand-dark)}
+.overlay-actions .btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.overlay-actions .btn-secondary:hover{border-color:var(--brand);color:var(--brand)}
+.overlay-fav{width:44px;height:44px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;transition:all .15s}
+.overlay-fav:hover{border-color:var(--brand)}
+.overlay-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.card-fav{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.9);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text-mute);z-index:2;transition:all .15s}
+.card-fav:hover{color:var(--brand);border-color:var(--brand)}
+.card-fav.on{color:var(--brand);background:#fff5f0;border-color:var(--brand)}
+.venue-thumb{position:relative}
+
+/* ===== Filter Drawer (slides from right) ===== */
+.filter-drawer{position:fixed;top:var(--header-h);right:0;bottom:0;width:min(360px,92vw);background:#fff;border-left:1px solid var(--border);box-shadow:-10px 0 40px rgba(0,0,0,.12);z-index:950;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;pointer-events:none}
+.filter-drawer.open{pointer-events:auto}
+.filter-drawer.open{transform:translateX(0)}
+.filter-hdr{flex-shrink:0;padding:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.filter-hdr h3{font-size:18px;font-weight:700}
+.filter-body{flex:1;overflow-y:auto;padding:20px}
+.filter-section{margin-bottom:24px}
+.filter-section h4{font-size:12px;font-weight:600;color:var(--text-mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+.cat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.cat-btn{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:500;color:var(--text)}
+.cat-btn.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.cat-btn:not(.active):hover{border-color:var(--brand);color:var(--brand)}
+.cat-btn .emoji{font-size:16px}
+.cat-btn .count{margin-left:auto;font-size:11px;opacity:.75}
+.filter-footer{flex-shrink:0;padding:16px 20px calc(16px + var(--safe-bottom));border-top:1px solid var(--border);display:flex;gap:10px}
+.filter-footer .btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:600}
+.filter-footer .btn-clear{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.filter-footer .btn-apply{background:var(--brand);color:#fff}
+
+/* Gradient covers for thumbnails */
+.cat-theme_park{background:linear-gradient(135deg,#ff9a56,#ff6b9d)}
+.cat-zoo{background:linear-gradient(135deg,#22c55e,#059669)}
+.cat-aquarium{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-museum{background:linear-gradient(135deg,#8b5cf6,#4f46e5)}
+.cat-nature{background:linear-gradient(135deg,#84cc16,#15803d)}
+.cat-beach{background:linear-gradient(135deg,#38bdf8,#0ea5e9)}
+.cat-playground{background:linear-gradient(135deg,#fbbf24,#f97316)}
+.cat-indoor_play{background:linear-gradient(135deg,#a855f7,#7e22ce)}
+.cat-trampoline{background:linear-gradient(135deg,#ec4899,#be185d)}
+.cat-swim{background:linear-gradient(135deg,#06b6d4,#0369a1)}
+.cat-climbing{background:linear-gradient(135deg,#f59e0b,#b45309)}
+.cat-karting{background:linear-gradient(135deg,#ef4444,#991b1b)}
+.cat-farm{background:linear-gradient(135deg,#a3e635,#65a30d)}
+.cat-attraction{background:linear-gradient(135deg,#fb923c,#c2410c)}
+.cat-theatre{background:linear-gradient(135deg,#d946ef,#86198f)}
+.cat-cinema{background:linear-gradient(135deg,#64748b,#334155)}
+.cat-ice_rink{background:linear-gradient(135deg,#60a5fa,#1d4ed8)}
+.cat-minigolf{background:linear-gradient(135deg,#10b981,#047857)}
+.cat-other{background:linear-gradient(135deg,#94a3b8,#475569)}
+.cat-castle{background:linear-gradient(135deg,#a78bfa,#6d28d9)}
+.cat-windmill{background:linear-gradient(135deg,#bae6fd,#0284c7)}
+.cat-escape{background:linear-gradient(135deg,#fdba74,#c2410c)}
+.cat-sports{background:linear-gradient(135deg,#fde047,#ca8a04)}
+.cat-restaurant{background:linear-gradient(135deg,#f87171,#b91c1c)}
+.cat-monument{background:linear-gradient(135deg,#d6d3d1,#57534e)}
+.cat-ship{background:linear-gradient(135deg,#67e8f9,#0e7490)}
+.cat-ruins{background:linear-gradient(135deg,#fde68a,#92400e)}
+
+/* Marker icons */
+.venue-marker{width:36px;height:36px;border-radius:50%;background:#fff;border:3px solid;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.leaflet-marker-icon.selected .venue-marker{transform:scale(1.2);border-width:4px}
+
+/* Cluster */
+.marker-cluster-small{background:rgba(201,100,66,.25)}
+.marker-cluster-small div{background:rgba(201,100,66,.8)}
+.marker-cluster-medium{background:rgba(201,100,66,.35)}
+.marker-cluster-medium div{background:rgba(201,100,66,.9)}
+.marker-cluster-large{background:rgba(201,100,66,.45)}
+.marker-cluster-large div{background:var(--brand)}
+.marker-cluster div{color:#fff;font-weight:700}
+
+@media (max-width:640px){
+  .hdr-brand span:not(.logo){display:none}
+  .drawer-hdr{padding:6px 14px 10px}
+  .drawer-body{padding:0 14px calc(20px + var(--safe-bottom))}
+  .cat-grid{grid-template-columns:1fr}
+}
+@media (min-width:1024px){
+  /* Desktop: drawer becomes sidebar */
+  .drawer{top:var(--header-h);right:auto;left:0;width:420px;max-width:420px;max-height:none;height:calc(100vh - var(--header-h));border-radius:0;border-right:1px solid var(--border);border-top:none;transform:translateX(0) !important;box-shadow:4px 0 24px rgba(0,0,0,.06)}
+  .drawer-handle{display:none}
+  #map{left:420px}
+  .overlay{left:auto;right:20px;bottom:20px;width:400px;max-width:calc(100vw - 440px);max-height:70vh;border-radius:20px;border:1px solid var(--border)}
+  .fab-stack{top:calc(var(--header-h) + 14px);right:14px}
+}
+
+/* ── AI CHAT WIDGET ────────────────────────────── */
+.chat-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--brand),#F39C12);color:#fff;border:none;box-shadow:0 4px 16px rgba(224,90,30,.4);cursor:pointer;font-size:24px;display:flex;align-items:center;justify-content:center;z-index:800;transition:transform .2s,box-shadow .2s}
+.chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 24px rgba(224,90,30,.5)}
+.chat-fab.hidden{display:none}
+.chat-panel{position:fixed;bottom:24px;right:24px;width:380px;max-height:520px;background:var(--surface);border-radius:18px;box-shadow:0 12px 48px rgba(26,43,74,.25);z-index:801;display:none;flex-direction:column;overflow:hidden}
+.chat-panel.open{display:flex}
+.chat-header{background:var(--navy,#1A2B4A);padding:14px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.chat-header-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--brand),#F39C12);border-radius:50%;display:grid;place-items:center;font-size:16px}
+.chat-header-text{flex:1;color:#fff;font-size:14px;font-weight:700}
+.chat-header-sub{color:rgba(255,255,255,.5);font-size:11px;font-weight:400}
+.chat-close{background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;padding:4px;transition:color .15s}
+.chat-close:hover{color:#fff}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:200px;max-height:340px}
+.chat-msg{max-width:88%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.5;word-break:break-word}
+.chat-msg.bot{background:var(--bg);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px}
+.chat-msg.user{background:var(--brand);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.chat-msg.bot a,.chat-msg.bot strong{color:var(--brand);font-weight:600}
+.chat-quick-actions{padding:0 16px 12px;display:flex;flex-wrap:wrap;gap:6px}
+.chat-quick-btn{padding:6px 12px;border-radius:999px;background:var(--brand-light,#FFF0E9);color:var(--brand);border:1px solid var(--brand);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+.chat-quick-btn:hover{background:var(--brand);color:#fff}
+.chat-input-area{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
+.chat-input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:999px;font-size:13px;font-family:inherit;color:var(--text);background:var(--bg)}
+.chat-input:focus{border-color:var(--brand);outline:none}
+.chat-send{width:36px;height:36px;border-radius:50%;background:var(--brand);color:#fff;border:none;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chat-send:hover{background:var(--brand-dark)}
+.chat-typing{display:flex;gap:4px;align-self:flex-start;padding:10px 14px}
+.chat-typing span{width:8px;height:8px;border-radius:50%;background:var(--border-strong);animation:chatBounce .6s infinite alternate}
+.chat-typing span:nth-child(2){animation-delay:.2s}
+.chat-typing span:nth-child(3){animation-delay:.4s}
+@keyframes chatBounce{to{transform:translateY(-6px);opacity:.4}}
+.chat-venue-chip{display:inline-block;padding:4px 10px;margin:3px 2px;border-radius:12px;background:var(--brand-light,#FFF0E9);color:var(--brand);font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent}
+.chat-venue-chip:hover{border-color:var(--brand)}
+@media(max-width:640px){.chat-panel{width:calc(100vw-24px);right:12px;bottom:12px;max-height:70vh}.chat-fab{bottom:90px;right:16px;width:50px;height:50px;font-size:22px}}
+
+</style>
+<meta name="keywords" content="Czech Republic kids, family travel Czech, Prague with kids, 捷克亲子游, 布拉格遛娃">
+<meta name="author" content="Nana Liu">
+<meta name="robots" content="index, follow">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Czech Republic Kids Explorer",
+  "url": "https://kidsexplorer.eu/cz-v2/",
+  "description": "Family-friendly venues across Czech Republic",
+  "inLanguage": ["en", "zh"],
+  "isPartOf": {"@type": "WebSite", "name": "Kids Explorer", "url": "https://kidsexplorer.eu/"},
+  "about": {"@type": "Country", "name": "Czech Republic"}
+}
+</script>
+</head>
+<body>
+
+<!-- Top Header -->
+<header class="hdr">
+  <a href="/" class="hdr-brand"><span class="logo">🌍</span><span>KidsExplorer</span></a>
+  <button class="hdr-country" onclick="openCountryPicker()">
+    <span class="flag">🇨🇿</span><span>CZ</span><span style="opacity:.5">▾</span>
+  </button>
+  <div class="hdr-search">
+    <span class="icon">🔍</span>
+    <input id="search" placeholder="Search / 搜索…">
+  </div>
+  <button class="hdr-btn" id="lang-btn" onclick="toggleLang()" title="Language">中</button>
+  <button class="hdr-btn" onclick="openFilter()" title="Category">🏷️</button>
+</header>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- View Toggle (mobile only) -->
+<div class="view-toggle">
+  <button id="tog-map" class="active" onclick="setView('map')">🗺 Map</button>
+  <button id="tog-list" onclick="setView('list')">☰ List</button>
+</div>
+
+<!-- Floating Actions -->
+<div class="fab-stack">
+  <button class="fab near" onclick="locateMe()"><span>📍</span><span>Near me</span></button>
+  <button class="fab" onclick="zoomIn()">+</button>
+  <button class="fab" onclick="zoomOut()">−</button>
+</div>
+
+<!-- Bottom Drawer: Venue list -->
+<section class="drawer" id="drawer" data-state="peek">
+  <div class="drawer-handle" onclick="toggleDrawer()"></div>
+  <div class="drawer-hdr">
+    <div class="count"><span id="count">0</span> <small id="count-label">in view</small></div>
+    <div class="actions">
+      <button class="chip" id="favs-chip" onclick="toggleFavsOnly()">♡ Favs</button>
+      <button class="chip" onclick="openFilter()">🏷 Category</button>
+      <button class="chip" onclick="toggleSort()">↕ Sort</button>
+    </div>
+  </div>
+  <div class="drawer-body" id="list"></div>
+</section>
+
+<!-- Detail Overlay -->
+<aside class="overlay" id="overlay">
+  <div class="overlay-hdr">
+    <div class="overlay-title">
+      <h3 id="ov-name"></h3>
+      <div class="zh" id="ov-zh"></div>
+    </div>
+    <button class="overlay-close" onclick="closeOverlay()">×</button>
+  </div>
+  <div class="overlay-body" id="ov-body"></div>
+  <div class="overlay-actions">
+    <button class="overlay-fav" id="ov-fav" onclick="toggleFav()" title="Save to favorites">♡</button>
+    <a class="btn btn-secondary" id="ov-directions" target="_blank">🗺 Directions</a>
+    <a class="btn btn-primary" id="ov-website" target="_blank">🌐 Website</a>
+  </div>
+</aside>
+
+<!-- Filter Drawer -->
+<aside class="filter-drawer" id="filter">
+  <div class="filter-hdr">
+    <h3>Category</h3>
+    <button class="overlay-close" onclick="closeFilter()">×</button>
+  </div>
+  <div class="filter-body">
+    <div class="filter-section">
+      <h4>Category</h4>
+      <div class="cat-grid" id="cat-grid"></div>
+    </div>
+  </div>
+  <div class="filter-footer">
+    <button class="btn btn-clear" onclick="clearFilter()">Clear</button>
+    <button class="btn btn-apply" onclick="closeFilter()">Show results</button>
+  </div>
+</aside>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+const STATIC_CZ_VENUES = [
+{type:'node',id:2201,lat:50.0880,lon:14.4208,tags:{nameZh:'布拉格动物园',name:'Prague Zoo',tourism:'zoo',website:'https://www.zoopraha.cz','addr:city':'Prague',opening_hours:'Mo-Su 09:00-19:00',rating:'4.7',reviews:'48321'}},
+{type:'node',id:2202,lat:50.0755,lon:14.4378,tags:{nameZh:'布拉格老城广场',name:'Old Town Square Prague',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'78341'}},
+{type:'node',id:2203,lat:50.0926,lon:14.4002,tags:{nameZh:'布拉格城堡',name:'Prague Castle',tourism:'museum',website:'https://www.hrad.cz','addr:city':'Prague',opening_hours:'Mo-Su 09:00-17:00',rating:'4.6',reviews:'62341'}},
+{type:'node',id:2204,lat:50.0848,lon:14.4104,tags:{nameZh:'布拉格科技博物馆',name:'National Technical Museum Prague',tourism:'museum',website:'https://www.ntm.cz','addr:city':'Prague',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'12341'}},
+{type:'node',id:2205,lat:50.0797,lon:14.4299,tags:{nameZh:'布拉格蜡像馆',name:'Prague Wax Museum',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'3.9',reviews:'4321'}},
+{type:'node',id:2206,lat:50.0775,lon:14.4150,tags:{nameZh:'布拉格儿童室内游乐场',name:'Lunapark Indoor Play Prague',tourism:'indoor_play','addr:city':'Prague',opening_hours:'Mo-Su 10:00-20:00',rating:'4.1',reviews:'5421'}},
+{type:'node',id:2207,lat:50.0821,lon:14.4258,tags:{nameZh:'布拉格天文钟',name:'Prague Astronomical Clock',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 07:00-23:00',rating:'4.3',reviews:'42341'}},
+{type:'node',id:2208,lat:50.0754,lon:14.4282,tags:{nameZh:'布拉格查理大桥',name:'Charles Bridge Prague',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'82341'}},
+{type:'node',id:2209,lat:50.0856,lon:14.4247,tags:{nameZh:'布拉格帝国博物馆',name:'National Museum Prague',tourism:'museum',website:'https://www.nm.cz','addr:city':'Prague',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'18341'}},
+{type:'node',id:2210,lat:50.0952,lon:14.4218,tags:{nameZh:'布拉格蹦床公园',name:'Jump Factory Prague',tourism:'indoor_play',website:'https://www.jumpfactory.cz','addr:city':'Prague',opening_hours:'Mo-Fr 14:00-22:00, Sa-Su 10:00-22:00',rating:'4.3',reviews:'8341'}},
+{type:'node',id:2211,lat:50.0734,lon:14.4282,tags:{nameZh:'布拉格科幻博物馆',name:'Dobrý Film Prague Cinema Museum',tourism:'museum','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.1',reviews:'3421'}},
+{type:'node',id:2212,lat:50.0879,lon:14.4136,tags:{nameZh:'布拉格水族馆',name:'Kreta Aquapark Prague',tourism:'theme_park','addr:city':'Prague',opening_hours:'Mo-Su 10:00-22:00 (seasonal)',rating:'4.0',reviews:'6341'}},
+{type:'node',id:2213,lat:50.0762,lon:14.4347,tags:{nameZh:'布拉格密室逃脱',name:'Exit Games Prague',tourism:'escape_room',website:'https://www.exitgames.cz','addr:city':'Prague',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'7341'}},
+{type:'node',id:2214,lat:50.0813,lon:14.4367,tags:{nameZh:'布拉格保龄球中心',name:'Bowling Pankrác Prague',tourism:'bowling','addr:city':'Prague',opening_hours:'Mo-Su 12:00-24:00',rating:'4.0',reviews:'3421'}},
+{type:'node',id:2215,lat:50.0832,lon:14.4089,tags:{nameZh:'布拉格儿童科学馆',name:'Techmania Science Center Plzeň branch',tourism:'science_center','addr:city':'Prague',opening_hours:'Tu-Su 10:00-18:00',rating:'4.3',reviews:'5421'}},
+{type:'node',id:2216,lat:50.0988,lon:14.4064,tags:{nameZh:'布拉格游泳中心',name:'Aquapalace Prague',tourism:'theme_park',website:'https://www.aquapalace.cz','addr:city':'Čestlice',opening_hours:'Mo-Su 10:00-22:00',rating:'4.4',reviews:'22341'}},
+{type:'node',id:2217,lat:50.0794,lon:14.4182,tags:{nameZh:'布拉格黄金通道',name:'Golden Lane Prague Castle',tourism:'museum','addr:city':'Prague',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'28341'}},
+{type:'node',id:2218,lat:50.0842,lon:14.4331,tags:{nameZh:'布拉格游乐场',name:'Riegrovy Sady Playground Prague',tourism:'playground','addr:city':'Prague',opening_hours:'Mo-Su 07:00-22:00',rating:'4.1',reviews:'3421'}},
+{type:'node',id:2219,lat:50.0858,lon:14.4391,tags:{nameZh:'布拉格斯特拉霍夫体育场',name:'Strahov Stadium Prague',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 09:00-18:00',rating:'4.0',reviews:'6341'}},
+{type:'node',id:2220,lat:50.0912,lon:14.4103,tags:{nameZh:'布拉格儿童游乐场',name:'Stromovka Park Playground Prague',tourism:'playground','addr:city':'Prague',opening_hours:'Mo-Su 07:00-22:00',rating:'4.3',reviews:'7341'}},
+{type:'node',id:2221,lat:50.0741,lon:14.4317,tags:{nameZh:'布拉格玩具博物馆',name:'Toy Museum Prague',tourism:'museum','addr:city':'Prague',opening_hours:'Mo-Su 09:30-17:30',rating:'4.1',reviews:'4321'}},
+{type:'node',id:2222,lat:50.0772,lon:14.4261,tags:{nameZh:'布拉格卡夫卡博物馆',name:'Franz Kafka Museum Prague',tourism:'museum',website:'https://www.kafkamuseum.cz','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.2',reviews:'12341'}},
+{type:'node',id:2223,lat:50.0788,lon:14.4212,tags:{nameZh:'布拉格中国餐厅',name:'China Town Prague',amenity:'chinese_restaurant','addr:city':'Prague',opening_hours:'Mo-Su 11:00-23:00',rating:'4.0',reviews:'2341'}},
+{type:'node',id:2224,lat:50.0801,lon:14.4192,tags:{nameZh:'布拉格自助餐',name:'Asian Buffet Prague',amenity:'buffet_restaurant','addr:city':'Prague',opening_hours:'Mo-Su 11:00-22:00',rating:'3.9',reviews:'3421'}},
+{type:'node',id:2225,lat:50.0831,lon:14.4162,tags:{nameZh:'布拉格儿童农场',name:'Dětský Dvůr Farm Prague',tourism:'children_farm','addr:city':'Prague',opening_hours:'We-Su 10:00-17:00',rating:'4.2',reviews:'2841'}},
+{type:'node',id:2226,lat:49.1950,lon:16.6068,tags:{nameZh:'布尔诺动物园',name:'Brno Zoo',tourism:'zoo',website:'https://www.zoobrno.cz','addr:city':'Brno',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'14321'}},
+{type:'node',id:2227,lat:49.1978,lon:16.6098,tags:{nameZh:'布尔诺游乐场',name:'Lužánky Park Playground Brno',tourism:'playground','addr:city':'Brno',opening_hours:'Mo-Su 07:00-22:00',rating:'4.1',reviews:'3421'}},
+{type:'node',id:2228,lat:49.1920,lon:16.6128,tags:{nameZh:'布尔诺科技博物馆',name:'Technical Museum Brno',tourism:'museum',website:'https://www.technicalmuseum.cz','addr:city':'Brno',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'7341'}},
+{type:'node',id:2229,lat:49.2011,lon:16.6041,tags:{nameZh:'布尔诺蹦床公园',name:'Superpark Brno',tourism:'indoor_play',website:'https://www.superpark.cz','addr:city':'Brno',opening_hours:'Mo-Su 10:00-21:00',rating:'4.2',reviews:'5321'}},
+{type:'node',id:2230,lat:49.1948,lon:16.5989,tags:{nameZh:'布尔诺城堡',name:'Spilberk Castle Brno',tourism:'museum',website:'https://www.spilberk.cz','addr:city':'Brno',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'14341'}},
+{type:'node',id:2231,lat:49.2019,lon:16.6012,tags:{nameZh:'布尔诺密室逃脱',name:'Locked Brno',tourism:'escape_room','addr:city':'Brno',opening_hours:'Mo-Su 10:00-22:00',rating:'4.4',reviews:'3421'}},
+{type:'node',id:2232,lat:49.1977,lon:16.6176,tags:{nameZh:'布尔诺游泳中心',name:'Aquapark Brno',tourism:'theme_park','addr:city':'Brno',opening_hours:'Mo-Su 10:00-21:00',rating:'4.3',reviews:'8321'}},
+{type:'node',id:2233,lat:49.1939,lon:16.6057,tags:{nameZh:'布尔诺旧市政厅',name:'Old Town Hall Brno',tourism:'museum','addr:city':'Brno',opening_hours:'Mo-Su 09:00-18:00',rating:'4.1',reviews:'6341'}},
+{type:'node',id:2234,lat:49.1984,lon:16.6089,tags:{nameZh:'布尔诺儿童博物馆',name:'Dino Park Brno',tourism:'museum','addr:city':'Brno',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'7341'}},
+{type:'node',id:2235,lat:49.1998,lon:16.6012,tags:{nameZh:'布尔诺保龄球',name:'Bowling Center Brno',tourism:'bowling','addr:city':'Brno',opening_hours:'Mo-Su 12:00-24:00',rating:'3.9',reviews:'2341'}},
+{type:'node',id:2236,lat:49.8347,lon:18.2820,tags:{nameZh:'奥斯特拉发动物园',name:'Ostrava Zoo',tourism:'zoo',website:'https://www.zoo-ostrava.cz','addr:city':'Ostrava',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'12341'}},
+{type:'node',id:2237,lat:49.8380,lon:18.2941,tags:{nameZh:'奥斯特拉发科技博物馆',name:'Lower Vítkovice Science Museum Ostrava',tourism:'science_center',website:'https://www.dolnioblas t.cz','addr:city':'Ostrava',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'14321'}},
+{type:'node',id:2238,lat:49.8297,lon:18.2881,tags:{nameZh:'奥斯特拉发儿童乐园',name:'Landek Park Ostrava',tourism:'theme_park','addr:city':'Ostrava',opening_hours:'Mo-Su 10:00-18:00',rating:'4.2',reviews:'8321'}},
+{type:'node',id:2239,lat:49.8312,lon:18.2953,tags:{nameZh:'奥斯特拉发游乐场',name:'Ostrava City Park Playground',tourism:'playground','addr:city':'Ostrava',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'2341'}},
+{type:'node',id:2240,lat:49.8273,lon:18.2812,tags:{nameZh:'奥斯特拉发蹦床公园',name:'Jump Arena Ostrava',tourism:'indoor_play','addr:city':'Ostrava',opening_hours:'Mo-Fr 14:00-22:00, Sa-Su 10:00-22:00',rating:'4.2',reviews:'5321'}},
+{type:'node',id:2241,lat:49.7481,lon:13.3775,tags:{nameZh:'比尔森科技博物馆',name:'Techmania Science Center Plzeň',tourism:'science_center',website:'https://www.techmania.cz','addr:city':'Plzeň',opening_hours:'Tu-Su 09:00-18:00',rating:'4.6',reviews:'18341'}},
+{type:'node',id:2242,lat:49.7465,lon:13.3778,tags:{nameZh:'比尔森市政厅',name:'Plzeň Old Town Hall',tourism:'museum','addr:city':'Plzeň',opening_hours:'Tu-Su 10:00-18:00',rating:'4.1',reviews:'4321'}},
+{type:'node',id:2243,lat:49.7511,lon:13.3812,tags:{nameZh:'比尔森动物园',name:'Plzeň Zoo',tourism:'zoo',website:'https://www.zoooo.cz','addr:city':'Plzeň',opening_hours:'Mo-Su 09:00-18:00',rating:'4.3',reviews:'8321'}},
+{type:'node',id:2244,lat:49.7482,lon:13.3821,tags:{nameZh:'比尔森水世界',name:'Aquapark Plzeň',tourism:'theme_park','addr:city':'Plzeň',opening_hours:'Mo-Su 10:00-22:00',rating:'4.2',reviews:'7321'}},
+{type:'node',id:2245,lat:49.7412,lon:13.3731,tags:{nameZh:'比尔森儿童乐园',name:'Kids Paradise Plzeň',tourism:'indoor_play','addr:city':'Plzeň',opening_hours:'Mo-Su 10:00-19:00',rating:'4.1',reviews:'3321'}},
+{type:'node',id:2246,lat:50.7677,lon:15.0572,tags:{nameZh:'利贝雷茨动物园',name:'Liberec Zoo',tourism:'zoo',website:'https://www.zooliberec.cz','addr:city':'Liberec',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'12341'}},
+{type:'node',id:2247,lat:50.7659,lon:15.0539,tags:{nameZh:'利贝雷茨蹦床公园',name:'Maxpark Liberec',tourism:'indoor_play','addr:city':'Liberec',opening_hours:'Mo-Su 10:00-21:00',rating:'4.3',reviews:'6321'}},
+{type:'node',id:2248,lat:50.7582,lon:15.0611,tags:{nameZh:'利贝雷茨科学博物馆',name:'Liberec Regional Museum',tourism:'museum','addr:city':'Liberec',opening_hours:'Tu-Su 09:00-17:00',rating:'4.1',reviews:'3421'}},
+{type:'node',id:2249,lat:50.7621,lon:15.0598,tags:{nameZh:'利贝雷茨游乐场',name:'Lidové Sady Playground Liberec',tourism:'playground','addr:city':'Liberec',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'1841'}},
+{type:'node',id:2250,lat:50.2242,lon:12.8718,tags:{nameZh:'卡罗维发利游乐公园',name:'Diana Park Karlovy Vary',tourism:'attraction',website:'https://www.dianapark.cz','addr:city':'Karlovy Vary',opening_hours:'Mo-Su 09:00-19:00',rating:'4.4',reviews:'12341'}},
+{type:'node',id:2251,lat:50.2299,lon:12.8724,tags:{nameZh:'卡罗维发利温泉',name:'Karlovy Vary Spa Colonnade',tourism:'attraction','addr:city':'Karlovy Vary',opening_hours:'Mo-Su 07:00-19:00',rating:'4.5',reviews:'22341'}},
+{type:'node',id:2252,lat:50.2252,lon:12.8763,tags:{nameZh:'卡罗维发利儿童游乐场',name:'Dvořák Park Playground Karlovy Vary',tourism:'playground','addr:city':'Karlovy Vary',opening_hours:'Mo-Su 08:00-21:00',rating:'4.1',reviews:'2341'}},
+{type:'node',id:2253,lat:48.8127,lon:14.3175,tags:{nameZh:'捷克克鲁姆洛夫城堡',name:'Český Krumlov Castle',tourism:'museum',website:'https://www.zamek-ceskykrumlov.eu','addr:city':'Český Krumlov',opening_hours:'Tu-Su 09:00-17:00',rating:'4.8',reviews:'42341'}},
+{type:'node',id:2254,lat:48.8117,lon:14.3152,tags:{nameZh:'捷克克鲁姆洛夫老城',name:'Český Krumlov Old Town',tourism:'attraction','addr:city':'Český Krumlov',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'32341'}},
+{type:'node',id:2255,lat:48.8181,lon:14.3189,tags:{nameZh:'克鲁姆洛夫城堡公园',name:'Český Krumlov Baroque Garden',tourism:'nature_park','addr:city':'Český Krumlov',opening_hours:'Mo-Su 08:00-20:00 (seasonal)',rating:'4.5',reviews:'12341'}},
+{type:'node',id:2256,lat:49.5938,lon:17.2508,tags:{nameZh:'奥洛穆茨圣三一柱',name:'Holy Trinity Column Olomouc',tourism:'attraction','addr:city':'Olomouc',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'12341'}},
+{type:'node',id:2257,lat:49.5926,lon:17.2511,tags:{nameZh:'奥洛穆茨动物园',name:'Olomouc Zoo',tourism:'zoo',website:'https://www.zoo-olomouc.cz','addr:city':'Olomouc',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'9341'}},
+{type:'node',id:2258,lat:49.5961,lon:17.2481,tags:{nameZh:'奥洛穆茨科学博物馆',name:'Olomouc Science Museum',tourism:'science_center','addr:city':'Olomouc',opening_hours:'Tu-Su 09:00-18:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2259,lat:49.5948,lon:17.2497,tags:{nameZh:'奥洛穆茨游乐场',name:'Bezruč Park Playground Olomouc',tourism:'playground','addr:city':'Olomouc',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'1841'}},
+{type:'node',id:2260,lat:50.0801,lon:14.4312,tags:{nameZh:'布拉格欧洲最大游乐场',name:'Dinopark Praha',tourism:'theme_park',website:'https://www.dinopark.cz','addr:city':'Prague',opening_hours:'Mo-Su 09:00-18:00',rating:'4.1',reviews:'9341'}},
+{type:'node',id:2261,lat:50.0762,lon:14.4219,tags:{nameZh:'布拉格博物馆夜',name:'Prague Black Light Theatre',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 10:00-20:00',rating:'4.2',reviews:'7341'}},
+{type:'node',id:2262,lat:50.0819,lon:14.4278,tags:{nameZh:'布拉格珠宝博物馆',name:'Swarovski Crystal Museum Prague',tourism:'museum','addr:city':'Prague',opening_hours:'Mo-Su 10:00-19:00',rating:'4.3',reviews:'8341'}},
+{type:'node',id:2263,lat:50.0866,lon:14.4193,tags:{nameZh:'布拉格室内游乐',name:'Funpark Praha Indoor Play',tourism:'indoor_play','addr:city':'Prague',opening_hours:'Mo-Su 10:00-20:00',rating:'4.0',reviews:'4321'}},
+{type:'node',id:2264,lat:50.0823,lon:14.4173,tags:{nameZh:'布拉格游泳池',name:'Šutka Swimming Pool Prague',tourism:'swimming_pool','addr:city':'Prague',opening_hours:'Mo-Fr 07:00-22:00, Sa-Su 09:00-20:00',rating:'4.1',reviews:'6321'}},
+{type:'node',id:2265,lat:49.1982,lon:16.6091,tags:{nameZh:'布尔诺天文馆',name:'Brno Planetarium',tourism:'science_center','addr:city':'Brno',opening_hours:'Tu-Su 09:00-18:00',rating:'4.4',reviews:'8321'}},
+{type:'node',id:2266,lat:49.1941,lon:16.6123,tags:{nameZh:'布尔诺自然历史博物馆',name:'Moravian Museum Brno',tourism:'museum',website:'https://www.mzm.cz','addr:city':'Brno',opening_hours:'Tu-Su 09:00-18:00',rating:'4.3',reviews:'7321'}},
+{type:'node',id:2267,lat:49.1969,lon:16.6054,tags:{nameZh:'布尔诺儿童游乐场',name:'Denis Gardens Playground Brno',tourism:'playground','addr:city':'Brno',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'2841'}},
+{type:'node',id:2268,lat:50.0791,lon:14.4381,tags:{nameZh:'布拉格机器人博物馆',name:'National Technical Museum Kids Lab Prague',tourism:'science_center','addr:city':'Prague',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'9341'}},
+{type:'node',id:2269,lat:50.0749,lon:14.4339,tags:{nameZh:'布拉格魔法木偶博物馆',name:'Puppet Museum Prague',tourism:'museum','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.0',reviews:'5321'}},
+{type:'node',id:2270,lat:49.8301,lon:18.2912,tags:{nameZh:'奥斯特拉发保龄球',name:'Bolt Bowling Ostrava',tourism:'bowling','addr:city':'Ostrava',opening_hours:'Mo-Su 12:00-24:00',rating:'4.0',reviews:'2341'}},
+{type:'node',id:2271,lat:49.8329,lon:18.2871,tags:{nameZh:'奥斯特拉发游泳中心',name:'Vodní svět Ostrava',tourism:'swimming_pool','addr:city':'Ostrava',opening_hours:'Mo-Fr 07:00-22:00, Sa-Su 09:00-20:00',rating:'4.1',reviews:'4321'}},
+{type:'node',id:2272,lat:50.0919,lon:14.4028,tags:{nameZh:'布拉格自然历史博物馆',name:'Prague Botanical Garden',tourism:'nature_park',website:'https://www.botanicka.cz','addr:city':'Prague',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'14321'}},
+{type:'node',id:2273,lat:50.0869,lon:14.4212,tags:{nameZh:'布拉格游乐场',name:'Havlíčkovy Sady Playground Prague',tourism:'playground','addr:city':'Prague',opening_hours:'Mo-Su 07:00-22:00',rating:'4.2',reviews:'4321'}},
+{type:'node',id:2274,lat:50.0912,lon:14.4289,tags:{nameZh:'布拉格儿童农场',name:'Farma Čimice Prague',tourism:'children_farm','addr:city':'Prague',opening_hours:'We-Su 10:00-17:00',rating:'4.2',reviews:'3421'}},
+{type:'node',id:2275,lat:49.7452,lon:13.3681,tags:{nameZh:'比尔森民俗博物馆',name:'Plzeň Folk Museum',tourism:'museum','addr:city':'Plzeň',opening_hours:'Tu-Su 10:00-18:00',rating:'4.1',reviews:'4321'}},
+{type:'node',id:2276,lat:49.7488,lon:13.3758,tags:{nameZh:'比尔森保龄球',name:'Buly Bowling Plzeň',tourism:'bowling','addr:city':'Plzeň',opening_hours:'Mo-Su 12:00-24:00',rating:'3.9',reviews:'2341'}},
+{type:'node',id:2277,lat:49.7521,lon:13.3801,tags:{nameZh:'比尔森儿童游乐场',name:'Plzeň City Park Playground',tourism:'playground','addr:city':'Plzeň',opening_hours:'Mo-Su 08:00-22:00',rating:'4.0',reviews:'1841'}},
+{type:'node',id:2278,lat:50.0785,lon:14.4179,tags:{nameZh:'布拉格水族馆',name:'Prague Aquarium',tourism:'aquarium','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.2',reviews:'6321'}},
+{type:'node',id:2279,lat:50.0831,lon:14.4101,tags:{nameZh:'布拉格儿童室内乐园',name:'Jungle Park Prague',tourism:'indoor_play','addr:city':'Prague',opening_hours:'Mo-Su 10:00-20:00',rating:'4.0',reviews:'5321'}},
+{type:'node',id:2280,lat:50.0801,lon:14.4241,tags:{nameZh:'布拉格帕特里卡宫',name:'Prague Petřín Hill Funicular',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 09:00-23:00',rating:'4.5',reviews:'22341'}},
+
+{type:'node',id:6001,lat:50.0878,lon:14.4212,tags:{nameZh:'布拉格攀岩中心',name:'Climbing Centre Prague',tourism:'indoor_play','addr:city':'Prague',opening_hours:'Mo-Su 09:00-22:00',rating:'4.5',reviews:'8900'}},
+{type:'node',id:6002,lat:50.0734,lon:14.4356,tags:{nameZh:'布拉格VR体验馆',name:'VR Zone Prague',tourism:'indoor_play','addr:city':'Prague',opening_hours:'Mo-Su 11:00-22:00',rating:'4.4',reviews:'9200'}},
+{type:'node',id:6003,lat:50.0923,lon:14.4078,tags:{nameZh:'布拉格冰场',name:'Ice Rink Prague',tourism:'indoor_play','addr:city':'Prague',opening_hours:'Mo-Su 09:00-21:00',rating:'4.3',reviews:'11000'}},
+{type:'node',id:6004,lat:50.0645,lon:14.4534,tags:{nameZh:'布拉格逃脱密室2',name:'Escape Room 2 Prague',tourism:'escape_room','addr:city':'Prague',opening_hours:'Mo-Su 10:00-22:00',rating:'4.6',reviews:'7800'}},
+{type:'node',id:6005,lat:50.0812,lon:14.4145,tags:{nameZh:'布拉格卡丁车',name:'Indoor Karting Prague',tourism:'indoor_play','addr:city':'Prague',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'7200'}},
+{type:'node',id:6006,lat:50.0967,lon:14.4289,tags:{nameZh:'布拉格体验博物馆',name:'Immersive Art Museum Prague',tourism:'museum','addr:city':'Prague',opening_hours:'Mo-Su 10:00-20:00',rating:'4.5',reviews:'14000'}},
+{type:'node',id:6007,lat:50.0723,lon:14.4412,tags:{nameZh:'布拉格恐龙博物馆',name:'Dinopark Prague',tourism:'museum','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'11000'}},
+{type:'node',id:6008,lat:50.0856,lon:14.3956,tags:{nameZh:'布拉格儿童创客空间',name:'Makerspace Kids Prague',tourism:'science_center','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'6700'}},
+{type:'node',id:6009,lat:50.0589,lon:14.4623,tags:{nameZh:'布拉格迷你城市',name:'Miniature Prague Museum',tourism:'museum','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'8900'}},
+{type:'node',id:6010,lat:50.0912,lon:14.4178,tags:{nameZh:'布拉格高绳索公园',name:'High Ropes Prague',tourism:'nature_park','addr:city':'Prague',opening_hours:'Mo-Su 09:00-19:00',rating:'4.4',reviews:'7200'}},
+{type:'node',id:6011,lat:50.0778,lon:14.4512,tags:{nameZh:'布拉格天文馆',name:'Prague Planetarium',tourism:'science_center',website:'https://www.planetarium.cz','addr:city':'Prague',opening_hours:'Tu-Su 09:00-18:00',rating:'4.5',reviews:'10000'}},
+{type:'node',id:6012,lat:50.0834,lon:14.4067,tags:{nameZh:'布拉格儿童戏剧',name:'Children\'s Theatre Prague',tourism:'attraction','addr:city':'Prague',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'6700'}},
+{type:'node',id:6013,lat:50.0623,lon:14.4289,tags:{nameZh:'布拉格激光枪战',name:'Laser Zone Prague',tourism:'indoor_play','addr:city':'Prague',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'7800'}},
+{type:'node',id:6014,lat:50.0745,lon:14.4634,tags:{nameZh:'布拉格儿童农场',name:'City Farm Prague',tourism:'children_farm','addr:city':'Prague',opening_hours:'Sa-Su 09:00-17:00',rating:'4.3',reviews:'4800'}},
+{type:'node',id:6015,lat:50.1012,lon:14.4067,tags:{nameZh:'布拉格蹦床公园2',name:'Jump House Prague 2',tourism:'indoor_play','addr:city':'Prague',opening_hours:'Mo-Su 10:00-22:00',rating:'4.4',reviews:'9800'}},
+{type:'node',id:6016,lat:50.0689,lon:14.4378,tags:{nameZh:'布拉格机器人实验室',name:'Robot Lab Prague Kids',tourism:'science_center','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'7200'}},
+{type:'node',id:6017,lat:50.0845,lon:14.4523,tags:{nameZh:'布拉格游船伏尔塔瓦',name:'Vltava River Cruise Prague',tourism:'nature_park','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'16000'}},
+{type:'node',id:6018,lat:50.0712,lon:14.4189,tags:{nameZh:'布拉格冒险水上乐园',name:'Aquapalace Prague Activities',tourism:'swimming_pool','addr:city':'Prague',opening_hours:'Mo-Su 09:00-22:00',rating:'4.5',reviews:'18000'}},
+{type:'node',id:6019,lat:50.0956,lon:14.3878,tags:{nameZh:'布拉格儿童骑马',name:'Pony Riding Prague',tourism:'children_farm','addr:city':'Prague',opening_hours:'Sa-Su 09:00-17:00',rating:'4.4',reviews:'4200'}},
+{type:'node',id:6020,lat:50.0767,lon:14.4712,tags:{nameZh:'布拉格迷你高尔夫',name:'Mini Golf Prague',tourism:'indoor_play','addr:city':'Prague',opening_hours:'Mo-Su 10:00-20:00',rating:'4.2',reviews:'5600'}},
+{type:'node',id:6021,lat:49.1923,lon:16.6112,tags:{nameZh:'布尔诺攀岩中心',name:'Climbing Centre Brno',tourism:'indoor_play','addr:city':'Brno',opening_hours:'Mo-Su 09:00-22:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:6022,lat:49.2056,lon:16.5978,tags:{nameZh:'布尔诺VR体验馆',name:'VR Zone Brno',tourism:'indoor_play','addr:city':'Brno',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'4800'}},
+{type:'node',id:6023,lat:49.1978,lon:16.6234,tags:{nameZh:'布尔诺冰场',name:'Ice Rink Brno',tourism:'indoor_play','addr:city':'Brno',opening_hours:'Mo-Su 09:00-21:00',rating:'4.3',reviews:'7200'}},
+{type:'node',id:6024,lat:49.2134,lon:16.6045,tags:{nameZh:'布尔诺逃脱密室2',name:'Escape Room 2 Brno',tourism:'escape_room','addr:city':'Brno',opening_hours:'Mo-Su 10:00-22:00',rating:'4.5',reviews:'4800'}},
+{type:'node',id:6025,lat:49.1867,lon:16.6178,tags:{nameZh:'布尔诺恐龙博物馆',name:'Dino Park Brno',tourism:'museum','addr:city':'Brno',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'6700'}},
+{type:'node',id:6026,lat:49.2012,lon:16.5834,tags:{nameZh:'布尔诺体验博物馆',name:'Digital Museum Brno',tourism:'museum','addr:city':'Brno',opening_hours:'Mo-Su 10:00-20:00',rating:'4.4',reviews:'7800'}},
+{type:'node',id:6027,lat:49.1934,lon:16.6356,tags:{nameZh:'布尔诺蹦床公园',name:'Trampoline Park Brno',tourism:'indoor_play','addr:city':'Brno',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'6200'}},
+{type:'node',id:6028,lat:49.2078,lon:16.6112,tags:{nameZh:'布尔诺卡丁车',name:'Karting Brno',tourism:'indoor_play','addr:city':'Brno',opening_hours:'Mo-Su 11:00-22:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:6029,lat:49.1845,lon:16.6245,tags:{nameZh:'布尔诺天文馆',name:'Brno Planetarium',tourism:'science_center','addr:city':'Brno',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'7200'}},
+{type:'node',id:6030,lat:49.2156,lon:16.5923,tags:{nameZh:'布尔诺儿童农场',name:'Farm Brno Kids',tourism:'children_farm','addr:city':'Brno',opening_hours:'Sa-Su 09:00-17:00',rating:'4.2',reviews:'3600'}},
+{type:'node',id:6031,lat:49.8345,lon:18.2912,tags:{nameZh:'奥斯特拉发攀岩中心',name:'Climbing Wall Ostrava',tourism:'indoor_play','addr:city':'Ostrava',opening_hours:'Mo-Su 09:00-22:00',rating:'4.3',reviews:'4800'}},
+{type:'node',id:6032,lat:49.8212,lon:18.3056,tags:{nameZh:'奥斯特拉发VR体验馆',name:'VR Zone Ostrava',tourism:'indoor_play','addr:city':'Ostrava',opening_hours:'Mo-Su 11:00-22:00',rating:'4.2',reviews:'4200'}},
+{type:'node',id:6033,lat:49.8467,lon:18.2789,tags:{nameZh:'奥斯特拉发蹦床公园',name:'Trampoline Park Ostrava',tourism:'indoor_play','addr:city':'Ostrava',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:6034,lat:49.8134,lon:18.3189,tags:{nameZh:'奥斯特拉发逃脱密室',name:'Escape Room Ostrava',tourism:'escape_room','addr:city':'Ostrava',opening_hours:'Mo-Su 10:00-22:00',rating:'4.3',reviews:'3900'}},
+{type:'node',id:6035,lat:49.8389,lon:18.2945,tags:{nameZh:'奥斯特拉发科学中心',name:'Science Centre Ostrava',tourism:'science_center','addr:city':'Ostrava',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'6200'}},
+{type:'node',id:6036,lat:49.7456,lon:13.3789,tags:{nameZh:'比尔森科技馆',name:'Techmania Science Centre Plzeň',tourism:'science_center',website:'https://www.techmania.cz','addr:city':'Plzeň',opening_hours:'Tu-Su 09:00-18:00',rating:'4.6',reviews:'12000'}},
+{type:'node',id:6037,lat:49.7523,lon:13.3912,tags:{nameZh:'比尔森攀岩中心',name:'Climbing Wall Plzeň',tourism:'indoor_play','addr:city':'Plzeň',opening_hours:'Mo-Su 09:00-22:00',rating:'4.3',reviews:'4800'}},
+{type:'node',id:6038,lat:49.7389,lon:13.3845,tags:{nameZh:'比尔森蹦床公园',name:'Trampoline Park Plzeň',tourism:'indoor_play','addr:city':'Plzeň',opening_hours:'Mo-Su 10:00-22:00',rating:'4.2',reviews:'5200'}},
+{type:'node',id:6039,lat:49.7612,lon:13.3678,tags:{nameZh:'比尔森逃脱密室',name:'Escape Room Plzeň',tourism:'escape_room','addr:city':'Plzeň',opening_hours:'Mo-Su 10:00-22:00',rating:'4.4',reviews:'4200'}},
+{type:'node',id:6040,lat:49.7478,lon:13.4012,tags:{nameZh:'比尔森啤酒博物馆',name:'Pilsner Urquell Brewery Museum',tourism:'museum',website:'https://www.prazdrojvisit.cz','addr:city':'Plzeň',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'22000'}},
+{type:'node',id:6041,lat:50.7701,lon:15.0534,tags:{nameZh:'利贝雷茨冒险公园',name:'Adventure Park Liberec',tourism:'nature_park','addr:city':'Liberec',opening_hours:'Mo-Su 09:00-19:00',rating:'4.3',reviews:'5600'}},
+{type:'node',id:6042,lat:50.7634,lon:15.0623,tags:{nameZh:'利贝雷茨蹦床公园',name:'Trampoline Park Liberec',tourism:'indoor_play','addr:city':'Liberec',opening_hours:'Mo-Su 10:00-22:00',rating:'4.2',reviews:'4800'}},
+{type:'node',id:6043,lat:50.7789,lon:15.0412,tags:{nameZh:'利贝雷茨游泳中心',name:'Aquapark Liberec',tourism:'swimming_pool','addr:city':'Liberec',opening_hours:'Mo-Su 07:00-22:00',rating:'4.3',reviews:'7800'}},
+{type:'node',id:6044,lat:50.2312,lon:12.8723,tags:{nameZh:'卡罗维发利温泉体验',name:'Karlovy Vary Spa Experience',tourism:'attraction','addr:city':'Karlovy Vary',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'14000'}},
+{type:'node',id:6045,lat:50.2245,lon:12.8812,tags:{nameZh:'卡罗维发利游乐场',name:'Playground Park Karlovy Vary',tourism:'playground','addr:city':'Karlovy Vary',opening_hours:'Mo-Su 08:00-20:00',rating:'4.2',reviews:'4200'}},
+{type:'node',id:6046,lat:48.8128,lon:14.3156,tags:{nameZh:'捷克克鲁姆洛夫游船',name:'Vltava River Cruise Český Krumlov',tourism:'nature_park','addr:city':'Český Krumlov',opening_hours:'Mo-Su 09:00-18:00',rating:'4.7',reviews:'16000'}},
+{type:'node',id:6047,lat:48.8234,lon:14.3045,tags:{nameZh:'捷克克鲁姆洛夫城堡',name:'Český Krumlov Castle',tourism:'museum',website:'https://www.castle.ckrumlov.cz','addr:city':'Český Krumlov',opening_hours:'Tu-Su 09:00-17:00',rating:'4.7',reviews:'24000'}},
+{type:'node',id:6048,lat:49.5889,lon:17.2534,tags:{nameZh:'奥洛穆茨冒险公园',name:'Adventure Park Olomouc',tourism:'nature_park','addr:city':'Olomouc',opening_hours:'Mo-Su 09:00-19:00',rating:'4.3',reviews:'5200'}},
+{type:'node',id:6049,lat:49.5978,lon:17.2412,tags:{nameZh:'奥洛穆茨蹦床公园',name:'Trampoline Park Olomouc',tourism:'indoor_play','addr:city':'Olomouc',opening_hours:'Mo-Su 10:00-22:00',rating:'4.2',reviews:'4800'}},
+{type:'node',id:6050,lat:49.6067,lon:17.2289,tags:{nameZh:'奥洛穆茨历史博物馆',name:'Olomouc History Museum',tourism:'museum','addr:city':'Olomouc',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'6700'}},
+{type:'node',id:6051,lat:50.0934,lon:14.4156,tags:{nameZh:'布拉格国家技术博物馆',name:'National Technical Museum Prague',tourism:'museum',website:'https://www.ntm.cz','addr:city':'Prague',opening_hours:'Tu-Su 10:00-18:00',rating:'4.6',reviews:'12000'}},
+{type:'node',id:6052,lat:50.0645,lon:14.4712,tags:{nameZh:'布拉格儿童骑马',name:'Equestrian Centre Prague Kids',tourism:'children_farm','addr:city':'Prague',opening_hours:'Sa-Su 09:00-17:00',rating:'4.4',reviews:'3800'}},
+{type:'node',id:6053,lat:50.0812,lon:14.4623,tags:{nameZh:'布拉格天文台',name:'Štefánik Observatory Prague',tourism:'science_center','addr:city':'Prague',opening_hours:'Tu-Su 14:00-20:00',rating:'4.5',reviews:'8900'}},
+{type:'node',id:6054,lat:50.0723,lon:14.3956,tags:{nameZh:'布拉格儿童公园',name:'Stromovka Park Playground Prague',tourism:'playground','addr:city':'Prague',opening_hours:'Mo-Su 07:00-21:00',rating:'4.5',reviews:'14000'}},
+{type:'node',id:6055,lat:50.0978,lon:14.4489,tags:{nameZh:'布拉格迷你高尔夫2',name:'Mini Golf 2 Prague',tourism:'indoor_play','addr:city':'Prague',opening_hours:'Mo-Su 10:00-20:00',rating:'4.1',reviews:'4800'}},
+{type:'node',id:6056,lat:49.1956,lon:16.6289,tags:{nameZh:'布尔诺高绳索公园',name:'High Ropes Brno',tourism:'nature_park','addr:city':'Brno',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'5600'}},
+{type:'node',id:6057,lat:49.2089,lon:16.5845,tags:{nameZh:'布尔诺儿童戏剧',name:'Children\'s Theatre Brno',tourism:'attraction','addr:city':'Brno',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'5200'}},
+{type:'node',id:6058,lat:50.0845,lon:14.4245,tags:{nameZh:'布拉格保龄球',name:'Bowling Prague',tourism:'bowling','addr:city':'Prague',opening_hours:'Mo-Su 12:00-24:00',rating:'4.1',reviews:'5600'}},
+{type:'node',id:6059,lat:49.1889,lon:16.6456,tags:{nameZh:'布尔诺保龄球',name:'Bowling Brno',tourism:'bowling','addr:city':'Brno',opening_hours:'Mo-Su 12:00-24:00',rating:'4.0',reviews:'4200'}},
+{type:'node',id:6060,lat:50.0756,lon:14.4834,tags:{nameZh:'布拉格城市游乐探索',name:'Prague City Explorer Kids',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'6700'}},
+{type:'node',id:6221,lat:50.0880,lon:14.4208,tags:{nameZh:'布拉格国家博物馆',name:'Národní muzeum Praha',tourism:'museum','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'8920'}},
+{type:'node',id:6222,lat:50.0872,lon:14.4135,tags:{nameZh:'布拉格市立博物馆',name:'Muzeum hlavního města Prahy',tourism:'museum','addr:city':'Prague',opening_hours:'Tu-Su 09:00-18:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:6223,lat:50.0917,lon:14.4001,tags:{nameZh:'布拉格城堡画廊',name:'Pražský hrad Galerie',tourism:'museum','addr:city':'Prague',opening_hours:'Mo-Su 09:00-17:00',rating:'4.6',reviews:'12300'}},
+{type:'node',id:6224,lat:50.0864,lon:14.4111,tags:{nameZh:'布拉格黑光剧场',name:'Image Theatre Prague',tourism:'theatre','addr:city':'Prague',opening_hours:'Mo-Su 20:00-22:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6225,lat:50.0869,lon:14.4196,tags:{nameZh:'维茨拉夫广场',name:'Václavské náměstí',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'18900'}},
+{type:'node',id:6226,lat:50.0877,lon:14.4222,tags:{nameZh:'布拉格音乐博物馆',name:'Muzeum české hudby',tourism:'museum','addr:city':'Prague',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6227,lat:50.0918,lon:14.3998,tags:{nameZh:'布拉格皇家花园',name:'Královská zahrada',tourism:'park','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:6228,lat:50.0891,lon:14.4123,tags:{nameZh:'布拉格镜子迷宫',name:'Bludiště Petřín',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 10:00-19:00',rating:'4.4',reviews:'4560'}},
+{type:'node',id:6229,lat:50.0843,lon:14.4218,tags:{nameZh:'布拉格科技国立博物馆',name:'Národní technické muzeum',tourism:'museum','addr:city':'Prague',opening_hours:'Tu-Su 10:00-18:00',rating:'4.6',reviews:'4780'}},
+{type:'node',id:6230,lat:50.0801,lon:14.4317,tags:{nameZh:'布拉格农业博物馆',name:'Muzeum zemědělství',tourism:'museum','addr:city':'Prague',opening_hours:'Tu-Su 10:00-17:00',rating:'4.1',reviews:'560'}},
+{type:'node',id:6231,lat:49.1951,lon:16.6083,tags:{nameZh:'布尔诺技术博物馆',name:'Technické muzeum Brno',tourism:'museum','addr:city':'Brno',opening_hours:'Tu-Su 09:00-17:00',rating:'4.5',reviews:'3120'}},
+{type:'node',id:6232,lat:49.1960,lon:16.6096,tags:{nameZh:'布尔诺莫拉维亚博物馆',name:'Moravské zemské muzeum',tourism:'museum','addr:city':'Brno',opening_hours:'Tu-Su 09:00-18:00',rating:'4.4',reviews:'2560'}},
+{type:'node',id:6233,lat:49.1972,lon:16.5928,tags:{nameZh:'布尔诺太空馆',name:'Hvězdárna a planetárium Brno',tourism:'museum','addr:city':'Brno',opening_hours:'Tu-Su 09:00-17:00',rating:'4.6',reviews:'3450'}},
+{type:'node',id:6234,lat:49.1886,lon:16.6124,tags:{nameZh:'布尔诺水族馆',name:'Aquapark Brno',tourism:'aquarium','addr:city':'Brno',opening_hours:'Mo-Su 09:00-21:00',rating:'4.4',reviews:'2890'}},
+{type:'node',id:6235,lat:49.1926,lon:16.6079,tags:{nameZh:'布尔诺民族博物馆',name:'Muzeum města Brna',tourism:'museum','addr:city':'Brno',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6236,lat:49.8398,lon:18.2919,tags:{nameZh:'奥斯特拉发科学展览馆',name:'Dolní oblast Vítkovice',tourism:'museum','addr:city':'Ostrava',opening_hours:'Tu-Su 10:00-18:00',rating:'4.6',reviews:'5670'}},
+{type:'node',id:6237,lat:49.8413,lon:18.2899,tags:{nameZh:'奥斯特拉发博物馆',name:'Ostravské muzeum',tourism:'museum','addr:city':'Ostrava',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:6238,lat:49.8358,lon:18.2912,tags:{nameZh:'奥斯特拉发黑色公路',name:'Landek Park',tourism:'museum','addr:city':'Ostrava',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6239,lat:49.7481,lon:13.3754,tags:{nameZh:'皮尔森科学馆',name:'Techmania Plzeň',tourism:'museum','addr:city':'Plzeň',opening_hours:'Tu-Su 09:00-18:00',rating:'4.6',reviews:'4560'}},
+{type:'node',id:6240,lat:49.7475,lon:13.3773,tags:{nameZh:'皮尔森西波西米亚博物馆',name:'Západočeské muzeum',tourism:'museum','addr:city':'Plzeň',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1340'}},
+{type:'node',id:6241,lat:49.7401,lon:13.3733,tags:{nameZh:'皮尔森动物园',name:'Zoologická a botanická zahrada Plzeň',tourism:'zoo','addr:city':'Plzeň',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:6242,lat:50.7682,lon:15.0534,tags:{nameZh:'利贝雷茨博物馆',name:'Severočeské muzeum Liberec',tourism:'museum','addr:city':'Liberec',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6243,lat:50.7672,lon:15.0570,tags:{nameZh:'利贝雷茨动物园',name:'Zoologická zahrada Liberec',tourism:'zoo','addr:city':'Liberec',opening_hours:'Mo-Su 09:00-17:00',rating:'4.6',reviews:'6780'}},
+{type:'node',id:6244,lat:50.7671,lon:15.0577,tags:{nameZh:'利贝雷茨植物园',name:'Botanická zahrada Liberec',tourism:'park','addr:city':'Liberec',opening_hours:'Mo-Su 09:00-18:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:6245,lat:49.5938,lon:17.2509,tags:{nameZh:'奥洛穆茨科学博物馆',name:'Muzeum vědy Olomouc',tourism:'museum','addr:city':'Olomouc',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'980'}},
+{type:'node',id:6246,lat:49.5944,lon:17.2541,tags:{nameZh:'奥洛穆茨动物园',name:'Zoo Olomouc',tourism:'zoo','addr:city':'Olomouc',opening_hours:'Mo-Su 09:00-17:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6247,lat:49.5902,lon:17.2539,tags:{nameZh:'奥洛穆茨历史博物馆',name:'Vlastivědné muzeum Olomouc',tourism:'museum','addr:city':'Olomouc',opening_hours:'Tu-Su 09:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6248,lat:48.9746,lon:14.4744,tags:{nameZh:'捷克布杰约维采博物馆',name:'Jihočeské muzeum',tourism:'museum','addr:city':'České Budějovice',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6249,lat:48.9750,lon:14.4694,tags:{nameZh:'捷克布杰约维采科学馆',name:'Jihočeská věda a technika',tourism:'museum','addr:city':'České Budějovice',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6250,lat:50.2090,lon:15.8329,tags:{nameZh:'赫拉德茨克拉洛韦动物园',name:'Zoo Dvůr Králové',tourism:'zoo','addr:city':'Dvůr Králové',opening_hours:'Mo-Su 09:00-18:00',rating:'4.7',reviews:'12300'}},
+{type:'node',id:6251,lat:50.0913,lon:14.4107,tags:{nameZh:'布拉格天文钟',name:'Orloj Praha',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 09:00-21:00',rating:'4.6',reviews:'28900'}},
+{type:'node',id:6252,lat:50.0878,lon:14.4127,tags:{nameZh:'布拉格火药塔',name:'Prašná brána',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'5670'}},
+{type:'node',id:6253,lat:50.0925,lon:14.4089,tags:{nameZh:'布拉格斯特拉霍夫修道院',name:'Strahovský klášter',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 09:00-12:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:6254,lat:50.0865,lon:14.4014,tags:{nameZh:'布拉格卡夫卡博物馆',name:'Muzeum Franze Kafky',tourism:'museum','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.2',reviews:'3450'}},
+{type:'node',id:6255,lat:50.0869,lon:14.4038,tags:{nameZh:'布拉格小城区',name:'Malá Strana',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'15600'}},
+{type:'node',id:6256,lat:49.1953,lon:16.6087,tags:{nameZh:'布尔诺圣彼得大教堂',name:'Katedrála sv. Petra a Pavla',tourism:'attraction','addr:city':'Brno',opening_hours:'Mo-Su 08:15-18:30',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6257,lat:49.1951,lon:16.5948,tags:{nameZh:'施皮尔堡城堡',name:'Špilberk hrad',tourism:'castle','addr:city':'Brno',opening_hours:'Tu-Su 09:00-17:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6258,lat:49.7486,lon:13.3819,tags:{nameZh:'皮尔森地下通道',name:'Pivovar Prazdroj',tourism:'attraction','addr:city':'Plzeň',opening_hours:'Mo-Su 10:00-18:00',rating:'4.6',reviews:'6780'}},
+{type:'node',id:6259,lat:49.7490,lon:13.3812,tags:{nameZh:'皮尔森木偶博物馆',name:'Muzeum loutek Plzeň',tourism:'museum','addr:city':'Plzeň',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'1890'}},
+{type:'node',id:6260,lat:50.0924,lon:14.4017,tags:{nameZh:'布拉格彼得瑞山公园',name:'Petřínské sady',tourism:'park','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.7',reviews:'12300'}},
+{type:'node',id:6261,lat:50.0832,lon:14.4219,tags:{nameZh:'布拉格摇摆桥',name:'Jiráskův most area',tourism:'park','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:6262,lat:50.0952,lon:14.4234,tags:{nameZh:'布拉格军事历史博物馆',name:'Vojenský historický ústav',tourism:'museum','addr:city':'Prague',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'2130'}},
+{type:'node',id:6263,lat:50.0794,lon:14.4139,tags:{nameZh:'布拉格共产主义博物馆',name:'Muzeum komunismu',tourism:'museum','addr:city':'Prague',opening_hours:'Mo-Su 09:00-20:00',rating:'4.2',reviews:'4560'}},
+{type:'node',id:6264,lat:50.0805,lon:14.4399,tags:{nameZh:'布拉格维谢赫拉德城堡',name:'Vyšehrad',tourism:'castle','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'8920'}},
+{type:'node',id:6265,lat:50.1025,lon:14.3920,tags:{nameZh:'布拉格斯特伦诺维斯公园',name:'Stromovka park',tourism:'park','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:6266,lat:50.1007,lon:14.3987,tags:{nameZh:'布拉格展览宫',name:'Výstaviště Praha',tourism:'museum','addr:city':'Prague',opening_hours:'varies',rating:'4.2',reviews:'3450'}},
+{type:'node',id:6267,lat:50.1016,lon:14.3962,tags:{nameZh:'布拉格现代艺术馆',name:'Veletržní palác',tourism:'museum','addr:city':'Prague',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6268,lat:49.8402,lon:18.2801,tags:{nameZh:'奥斯特拉发历史博物馆',name:'Slezskoostravský hrad',tourism:'castle','addr:city':'Ostrava',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:6269,lat:49.8279,lon:18.2625,tags:{nameZh:'奥斯特拉发科学动物园',name:'Zoo Ostrava',tourism:'zoo','addr:city':'Ostrava',opening_hours:'Mo-Su 09:00-17:00',rating:'4.5',reviews:'8920'}},
+{type:'node',id:6270,lat:50.7680,lon:15.0541,tags:{nameZh:'利贝雷茨科学中心',name:'iQLANDIA Liberec',tourism:'museum','addr:city':'Liberec',opening_hours:'Tu-Su 09:00-18:00',rating:'4.7',reviews:'5670'}},
+{type:'node',id:6271,lat:48.8127,lon:14.3148,tags:{nameZh:'捷克克鲁姆洛夫城堡',name:'Státní hrad Český Krumlov',tourism:'castle','addr:city':'Český Krumlov',opening_hours:'Tu-Su 09:00-17:00',rating:'4.8',reviews:'15600'}},
+{type:'node',id:6272,lat:48.8117,lon:14.3126,tags:{nameZh:'捷克克鲁姆洛夫巴洛克剧场',name:'Barokní divadlo Krumlov',tourism:'theatre','addr:city':'Český Krumlov',opening_hours:'Tu-Su varies',rating:'4.7',reviews:'3450'}},
+{type:'node',id:6273,lat:50.6833,lon:14.0416,tags:{nameZh:'捷克斯维士市堡',name:'Zámek Teplice',tourism:'castle','addr:city':'Teplice',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:6274,lat:50.2271,lon:12.8711,tags:{nameZh:'卡罗维发利温泉科隆纳',name:'Mlýnská kolonáda',tourism:'attraction','addr:city':'Karlovy Vary',opening_hours:'Mo-Su 06:00-19:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:6275,lat:50.2316,lon:12.8729,tags:{nameZh:'卡罗维发利博物馆',name:'Karlovarské muzeum',tourism:'museum','addr:city':'Karlovy Vary',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:6276,lat:50.0876,lon:14.4228,tags:{nameZh:'布拉格国家剧院',name:'Národní divadlo',tourism:'theatre','addr:city':'Prague',opening_hours:'varies',rating:'4.8',reviews:'7890'}},
+{type:'node',id:6277,lat:50.0831,lon:14.4264,tags:{nameZh:'布拉格新城区广场',name:'Náměstí Míru',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'4560'}},
+{type:'node',id:6278,lat:49.1958,lon:16.6077,tags:{nameZh:'布尔诺玩具博物馆',name:'Muzeum hraček Brno',tourism:'museum','addr:city':'Brno',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:6279,lat:49.1940,lon:16.6038,tags:{nameZh:'布尔诺城市动物公园',name:'Výstaviště BVV Brno',tourism:'attraction','addr:city':'Brno',opening_hours:'varies',rating:'4.3',reviews:'3120'}},
+{type:'node',id:6280,lat:50.0890,lon:14.4216,tags:{nameZh:'布拉格老城广场木偶剧',name:'Marionettes Old Town Prague',tourism:'theatre','addr:city':'Prague',opening_hours:'Mo-Su 17:00-21:00',rating:'4.5',reviews:'6780'}},
+{type:'node',id:6381,lat:50.0898,lon:14.4002,tags:{nameZh:'布拉格捷克音乐博物馆',name:'Muzeum Antonína Dvořáka',tourism:'museum','addr:city':'Prague',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6382,lat:50.0886,lon:14.4132,tags:{nameZh:'布拉格贝托卢奇博物馆',name:'Muzeum Bedřicha Smetany',tourism:'museum','addr:city':'Prague',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:6383,lat:50.0856,lon:14.4136,tags:{nameZh:'布拉格立方主义博物馆',name:'Dům U Černé Matky Boží',tourism:'museum','addr:city':'Prague',opening_hours:'Tu-Su 10:00-18:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:6384,lat:50.0912,lon:14.4021,tags:{nameZh:'布拉格皇家路',name:'Zlatá ulička Praha',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 09:00-17:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:6385,lat:50.0880,lon:14.4169,tags:{nameZh:'布拉格特殊艺术馆',name:'Galerie Rudolfinum',tourism:'museum','addr:city':'Prague',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6386,lat:50.0870,lon:14.4153,tags:{nameZh:'布拉格儿童剧场',name:'Divadlo Minor',tourism:'theatre','addr:city':'Prague',opening_hours:'varies',rating:'4.5',reviews:'2340'}},
+{type:'node',id:6387,lat:50.0901,lon:14.4183,tags:{nameZh:'布拉格航海博物馆',name:'Náprstkovo muzeum',tourism:'museum','addr:city':'Prague',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'1230'}},
+{type:'node',id:6388,lat:50.0863,lon:14.4163,tags:{nameZh:'布拉格木偶大剧院',name:'Říše loutek Praha',tourism:'theatre','addr:city':'Prague',opening_hours:'varies',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6389,lat:50.0950,lon:14.4265,tags:{nameZh:'布拉格犹太区',name:'Josefov Praha',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 10:00-17:00',rating:'4.6',reviews:'8920'}},
+{type:'node',id:6390,lat:50.0864,lon:14.3954,tags:{nameZh:'布拉格斯泰塔公园',name:'Ladronka Park',tourism:'park','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:6391,lat:49.1964,lon:16.6041,tags:{nameZh:'布尔诺维莱娜水上公园',name:'Fluminarium Brno',tourism:'theme_park','addr:city':'Brno',opening_hours:'Mo-Su 08:00-21:00',rating:'4.4',reviews:'3560'}},
+{type:'node',id:6392,lat:49.1971,lon:16.6097,tags:{nameZh:'布尔诺儿童剧场',name:'Divadlo Radost Brno',tourism:'theatre','addr:city':'Brno',opening_hours:'varies',rating:'4.4',reviews:'1560'}},
+{type:'node',id:6393,lat:49.1941,lon:16.6122,tags:{nameZh:'布尔诺国际童书馆',name:'Moravská zemská knihovna',tourism:'museum','addr:city':'Brno',opening_hours:'Mo-Fr 09:00-18:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6394,lat:49.2011,lon:16.6094,tags:{nameZh:'布尔诺植物园',name:'Botanická zahrada MU Brno',tourism:'park','addr:city':'Brno',opening_hours:'Mo-Su 08:00-17:00',rating:'4.4',reviews:'2130'}},
+{type:'node',id:6395,lat:49.8378,lon:18.2957,tags:{nameZh:'奥斯特拉发工业博物馆',name:'Muzeum průmyslu Ostrava',tourism:'museum','addr:city':'Ostrava',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:6396,lat:49.8440,lon:18.2883,tags:{nameZh:'奥斯特拉发科学宫',name:'Centrum vědy a techniky',tourism:'museum','addr:city':'Ostrava',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6397,lat:49.7462,lon:13.3756,tags:{nameZh:'皮尔森人偶博物馆',name:'Divadlo J.K. Tyla',tourism:'theatre','addr:city':'Plzeň',opening_hours:'varies',rating:'4.4',reviews:'1230'}},
+{type:'node',id:6398,lat:49.7490,lon:13.3768,tags:{nameZh:'皮尔森历史地下室',name:'Pivovarské muzeum Plzeň',tourism:'museum','addr:city':'Plzeň',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6399,lat:50.7659,lon:15.0542,tags:{nameZh:'利贝雷茨观光缆车',name:'Ještěd Liberec',tourism:'attraction','addr:city':'Liberec',opening_hours:'Mo-Su 09:00-21:00',rating:'4.7',reviews:'7890'}},
+{type:'node',id:6400,lat:50.7693,lon:15.0583,tags:{nameZh:'利贝雷茨纺织博物馆',name:'Muzeum textilu Liberec',tourism:'museum','addr:city':'Liberec',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'640'}},
+{type:'node',id:6401,lat:49.5915,lon:17.2591,tags:{nameZh:'奥洛穆茨天文钟',name:'Olomoucký orloj',tourism:'attraction','addr:city':'Olomouc',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:6402,lat:49.5935,lon:17.2569,tags:{nameZh:'奥洛穆茨圣三柱',name:'Sloup Nejsvětější Trojice',tourism:'attraction','addr:city':'Olomouc',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'3450'}},
+{type:'node',id:6403,lat:50.2120,lon:15.8332,tags:{nameZh:'德沃尔克拉洛韦贵妇城堡',name:'Muzeum Dvůr Králové',tourism:'museum','addr:city':'Dvůr Králové',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'780'}},
+{type:'node',id:6404,lat:48.9736,lon:14.4752,tags:{nameZh:'捷克布杰约维采中世纪塔',name:'Černá věž',tourism:'attraction','addr:city':'České Budějovice',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:6405,lat:48.9749,lon:14.4732,tags:{nameZh:'捷克布杰约维采水族馆',name:'Akvárium České Budějovice',tourism:'aquarium','addr:city':'České Budějovice',opening_hours:'Mo-Su 10:00-18:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6406,lat:50.2316,lon:12.8703,tags:{nameZh:'卡罗维发利动物园',name:'ZOO Dvorek',tourism:'zoo','addr:city':'Karlovy Vary',opening_hours:'Mo-Su 09:00-18:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6407,lat:50.2289,lon:12.8721,tags:{nameZh:'卡罗维发利温泉市场',name:'Tržní kolonáda',tourism:'attraction','addr:city':'Karlovy Vary',opening_hours:'Mo-Su 06:00-19:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:6408,lat:50.6822,lon:14.0426,tags:{nameZh:'特普利采动物园',name:'ZOO Teplice',tourism:'zoo','addr:city':'Teplice',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:6409,lat:50.6854,lon:14.0443,tags:{nameZh:'特普利采科学馆',name:'Regionální muzeum Teplice',tourism:'museum','addr:city':'Teplice',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6410,lat:50.7701,lon:15.0519,tags:{nameZh:'利贝雷茨儿童冒险',name:'iBaby Liberec',tourism:'theme_park','addr:city':'Liberec',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6411,lat:49.5909,lon:17.2523,tags:{nameZh:'奥洛穆茨植物园',name:'Botanická zahrada Olomouc',tourism:'park','addr:city':'Olomouc',opening_hours:'Mo-Su 08:00-18:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:6412,lat:49.1983,lon:16.6052,tags:{nameZh:'布尔诺冒险公园',name:'Adventurepark Brno',tourism:'theme_park','addr:city':'Brno',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'2890'}},
+{type:'node',id:6413,lat:50.0875,lon:14.3973,tags:{nameZh:'布拉格文化中心',name:'Kulturní centrum Prahy',tourism:'theatre','addr:city':'Prague',opening_hours:'varies',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6414,lat:50.0843,lon:14.4089,tags:{nameZh:'布拉格体验剧场',name:'Divadlo Na zábradlí',tourism:'theatre','addr:city':'Prague',opening_hours:'varies',rating:'4.4',reviews:'1340'}},
+{type:'node',id:6415,lat:50.0919,lon:14.4252,tags:{nameZh:'布拉格犹太博物馆',name:'Židovské muzeum v Praze',tourism:'museum','addr:city':'Prague',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'6780'}},
+{type:'node',id:6416,lat:50.0861,lon:14.4259,tags:{nameZh:'布拉格新犹太城区',name:'Nové Město Praha',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:6417,lat:49.8393,lon:18.2926,tags:{nameZh:'奥斯特拉发儿童博物馆',name:'Dětské muzeum Ostrava',tourism:'museum','addr:city':'Ostrava',opening_hours:'Tu-Su 09:00-17:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6418,lat:49.7453,lon:13.3779,tags:{nameZh:'皮尔森大学博物馆',name:'Univerzitní muzeum Plzeň',tourism:'museum','addr:city':'Plzeň',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'560'}},
+{type:'node',id:6419,lat:50.2093,lon:15.8340,tags:{nameZh:'杜尔克拉洛韦非洲探险',name:'Safari Dvůr Králové',tourism:'zoo','addr:city':'Dvůr Králové',opening_hours:'Mo-Su 09:00-18:00',rating:'4.7',reviews:'8920'}},
+{type:'node',id:6420,lat:50.0844,lon:14.4212,tags:{nameZh:'布拉格体操博物馆',name:'Muzeum tělesné výchovy',tourism:'museum','addr:city':'Prague',opening_hours:'Tu-Su 10:00-17:00',rating:'4.1',reviews:'340'}},
+{type:'node',id:6421,lat:50.0922,lon:14.3965,tags:{nameZh:'布拉格历史温室',name:'Stromovka Greenhouse',tourism:'park','addr:city':'Prague',opening_hours:'Mo-Su 09:00-17:00',rating:'4.3',reviews:'1780'}},
+{type:'node',id:6422,lat:50.0940,lon:14.3956,tags:{nameZh:'布拉格皇家鹿园',name:'Obora Hvězda',tourism:'park','addr:city':'Prague',opening_hours:'Tu-Su 10:00-17:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:6423,lat:49.1937,lon:16.6058,tags:{nameZh:'布尔诺儿童动物园',name:'Minizoo Brno',tourism:'zoo','addr:city':'Brno',opening_hours:'Tu-Su 10:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:6424,lat:50.0899,lon:14.4235,tags:{nameZh:'布拉格城市探索馆',name:'Prague City Museum annex',tourism:'museum','addr:city':'Prague',opening_hours:'Tu-Su 09:00-18:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6425,lat:50.0837,lon:14.4178,tags:{nameZh:'布拉格弗兰茨卡夫卡广场',name:'Náměstí Franze Kafky',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'5670'}},
+{type:'node',id:6426,lat:49.8396,lon:18.2875,tags:{nameZh:'奥斯特拉发水上世界',name:'Aquapark Ostrava',tourism:'theme_park','addr:city':'Ostrava',opening_hours:'Mo-Su 09:00-21:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:6427,lat:49.1954,lon:16.6063,tags:{nameZh:'布尔诺自然历史博物馆',name:'Muzeum Brněnska',tourism:'museum','addr:city':'Brno',opening_hours:'Tu-Su 09:00-17:00',rating:'4.3',reviews:'1120'}},
+{type:'node',id:6428,lat:50.0882,lon:14.4034,tags:{nameZh:'布拉格科学节公园',name:'Letenský park',tourism:'park','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:6429,lat:50.0805,lon:14.4248,tags:{nameZh:'布拉格新城公园',name:'Nuselský park',tourism:'park','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:6430,lat:48.8108,lon:14.3155,tags:{nameZh:'捷克克鲁姆洛夫玫瑰园',name:'Zahrada krumlovského zámku',tourism:'park','addr:city':'Český Krumlov',opening_hours:'Mo-Su 09:00-18:00',rating:'4.6',reviews:'4560'}},
+{type:'node',id:6431,lat:48.8119,lon:14.3143,tags:{nameZh:'捷克克鲁姆洛夫博物馆',name:'Muzeum Český Krumlov',tourism:'museum','addr:city':'Český Krumlov',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:6432,lat:49.2036,lon:16.6053,tags:{nameZh:'布尔诺天文馆',name:'Hvězdárna Brno',tourism:'museum','addr:city':'Brno',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'2890'}},
+{type:'node',id:6433,lat:50.0921,lon:14.3933,tags:{nameZh:'布拉格特罗亚宫',name:'Trojský zámek',tourism:'castle','addr:city':'Prague',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6434,lat:50.0926,lon:14.3944,tags:{nameZh:'布拉格最大动物园北区',name:'Safari Troja',tourism:'zoo','addr:city':'Prague',opening_hours:'Mo-Su 09:00-19:00',rating:'4.6',reviews:'8920'}},
+{type:'node',id:6435,lat:49.5949,lon:17.2558,tags:{nameZh:'奥洛穆茨儿童探索馆',name:'Centrum experimentů Olomouc',tourism:'museum','addr:city':'Olomouc',opening_hours:'Tu-Su 10:00-17:00',rating:'4.4',reviews:'1780'}},
+{type:'node',id:6436,lat:49.7502,lon:13.3756,tags:{nameZh:'皮尔森大广场文化',name:'náměstí Republiky Plzeň',tourism:'attraction','addr:city':'Plzeň',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'3450'}},
+{type:'node',id:6437,lat:50.6812,lon:14.0408,tags:{nameZh:'特普利采水疗中心',name:'Lázně Teplice',tourism:'theme_park','addr:city':'Teplice',opening_hours:'Mo-Su 08:00-20:00',rating:'4.3',reviews:'2560'}},
+{type:'node',id:6438,lat:50.0910,lon:14.4033,tags:{nameZh:'布拉格科学探索公园',name:'Letná park',tourism:'park','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'9870'}},
+{type:'node',id:6439,lat:49.8420,lon:18.2850,tags:{nameZh:'奥斯特拉发大都市公园',name:'Park Milady Horákové',tourism:'park','addr:city':'Ostrava',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:6440,lat:50.2304,lon:12.8734,tags:{nameZh:'卡罗维发利温泉公园',name:'Lázeňský park KV',tourism:'park','addr:city':'Karlovy Vary',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'5670'}},
+
+{type:'node',id:7301,lat:50.0871,lon:14.4188,tags:{nameZh:'布拉格斯梅塔纳博物馆',name:'Muzeum Bedřicha Smetany 2',tourism:'museum','addr:city':'Prague',opening_hours:'Tu-Su 10:00-17:00',rating:'4.3',reviews:'680'}},
+{type:'node',id:7302,lat:50.0909,lon:14.4189,tags:{nameZh:'布拉格鲁道夫宫',name:'Rudolfinum Praha',tourism:'theatre','addr:city':'Prague',opening_hours:'varies',rating:'4.7',reviews:'5670'}},
+{type:'node',id:7303,lat:49.1949,lon:16.6042,tags:{nameZh:'布尔诺洞穴探索',name:'Moravský kras',tourism:'park','addr:city':'Brno',opening_hours:'Mo-Su 09:00-17:00',rating:'4.7',reviews:'7890'}},
+{type:'node',id:7304,lat:49.8411,lon:18.2933,tags:{nameZh:'奥斯特拉发儿童铁路',name:'Dětská dráha Ostrava',tourism:'attraction','addr:city':'Ostrava',opening_hours:'Mo-Su 10:00-17:00',rating:'4.3',reviews:'890'}},
+{type:'node',id:7305,lat:49.7486,lon:13.3742,tags:{nameZh:'皮尔森花园博物馆',name:'Botanická zahrada Plzeň',tourism:'park','addr:city':'Plzeň',opening_hours:'Mo-Su 09:00-18:00',rating:'4.4',reviews:'1780'}},
+{type:'node',id:7306,lat:50.7695,lon:15.0551,tags:{nameZh:'利贝雷茨儿童世界',name:'Liberec Kids World',tourism:'theme_park','addr:city':'Liberec',opening_hours:'Mo-Su 09:00-19:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7307,lat:49.5918,lon:17.2567,tags:{nameZh:'奥洛穆茨音乐节广场',name:'Dolní náměstí Olomouc',tourism:'attraction','addr:city':'Olomouc',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:7308,lat:48.9742,lon:14.4762,tags:{nameZh:'捷克布杰约维采旧时钟塔',name:'Radniční věž ČB',tourism:'attraction','addr:city':'České Budějovice',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'1230'}},
+{type:'node',id:7309,lat:50.2295,lon:12.8718,tags:{nameZh:'卡罗维发利博物馆新馆',name:'Jan Becher Museum',tourism:'museum','addr:city':'Karlovy Vary',opening_hours:'Mo-Su 09:00-17:00',rating:'4.4',reviews:'2560'}},
+{type:'node',id:7310,lat:50.0893,lon:14.4161,tags:{nameZh:'布拉格双塔桥',name:'Karlův most Praha',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.8',reviews:'28900'}},
+{type:'node',id:7311,lat:50.0924,lon:14.4023,tags:{nameZh:'布拉格洛雷托教堂',name:'Loreta Praha',tourism:'attraction','addr:city':'Prague',opening_hours:'Tu-Su 09:00-17:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:7312,lat:49.1946,lon:16.5993,tags:{nameZh:'布尔诺公共游泳场',name:'Riviéra koupaliště Brno',tourism:'theme_park','addr:city':'Brno',opening_hours:'Mo-Su 09:00-20:00',rating:'4.4',reviews:'3120'}},
+{type:'node',id:7313,lat:49.8446,lon:18.2814,tags:{nameZh:'奥斯特拉发雕塑公园',name:'Sculpture park Ostrava',tourism:'park','addr:city':'Ostrava',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'1780'}},
+{type:'node',id:7314,lat:49.7494,lon:13.3799,tags:{nameZh:'皮尔森市立博物馆',name:'Muzeum Plzeň',tourism:'museum','addr:city':'Plzeň',opening_hours:'Tu-Su 09:00-17:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:7315,lat:50.7673,lon:15.0562,tags:{nameZh:'利贝雷茨体育公园',name:'FBC Liberec Park',tourism:'park','addr:city':'Liberec',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:7316,lat:49.5929,lon:17.2545,tags:{nameZh:'奥洛穆茨艺术博物馆',name:'Muzeum umění Olomouc',tourism:'museum','addr:city':'Olomouc',opening_hours:'Tu-Su 10:00-18:00',rating:'4.4',reviews:'1780'}},
+{type:'node',id:7317,lat:50.0859,lon:14.4119,tags:{nameZh:'布拉格旧城广场',name:'Staroměstské náměstí',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.8',reviews:'28900'}},
+{type:'node',id:7318,lat:50.0873,lon:14.4204,tags:{nameZh:'布拉格哈维利什克市场',name:'Havelský trh Praha',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 08:00-18:00',rating:'4.3',reviews:'3450'}},
+{type:'node',id:7319,lat:49.1968,lon:16.6100,tags:{nameZh:'布尔诺主广场',name:'náměstí Svobody Brno',tourism:'attraction','addr:city':'Brno',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'7890'}},
+{type:'node',id:7320,lat:49.8423,lon:18.2876,tags:{nameZh:'奥斯特拉发水族馆馆',name:'Aquapark Ostrava 2',tourism:'aquarium','addr:city':'Ostrava',opening_hours:'Mo-Su 10:00-18:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:7321,lat:50.0938,lon:14.4001,tags:{nameZh:'布拉格泳池公园',name:'Letňanské letiště Praha',tourism:'park','addr:city':'Prague',opening_hours:'Mo-Su 09:00-21:00',rating:'4.2',reviews:'1230'}},
+{type:'node',id:7322,lat:49.1956,lon:16.6106,tags:{nameZh:'布尔诺科学城',name:'Science City Brno',tourism:'museum','addr:city':'Brno',opening_hours:'Tu-Su 10:00-18:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:7323,lat:49.8385,lon:18.2945,tags:{nameZh:'奥斯特拉发科学院',name:'Vědeckotechnický park Ostrava',tourism:'museum','addr:city':'Ostrava',opening_hours:'Mo-Fr 08:00-17:00',rating:'4.2',reviews:'560'}},
+{type:'node',id:7324,lat:50.2309,lon:12.8700,tags:{nameZh:'卡罗维发利缆车',name:'Rozhledna Goethova',tourism:'attraction','addr:city':'Karlovy Vary',opening_hours:'Mo-Su 09:00-18:00',rating:'4.5',reviews:'3450'}},
+{type:'node',id:7325,lat:50.0879,lon:14.4018,tags:{nameZh:'布拉格斯拉维科利帕克',name:'Šlechtova restaurace Praha',tourism:'park','addr:city':'Prague',opening_hours:'Mo-Su 10:00-20:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:7326,lat:49.1937,lon:16.6089,tags:{nameZh:'布尔诺历史公园',name:'Lužánky park Brno',tourism:'park','addr:city':'Brno',opening_hours:'Mo-Su 00:00-24:00',rating:'4.5',reviews:'5670'}},
+{type:'node',id:7327,lat:49.8360,lon:18.2866,tags:{nameZh:'奥斯特拉发体验馆',name:'Stodolní noční kultura',tourism:'attraction','addr:city':'Ostrava',opening_hours:'varies',rating:'4.2',reviews:'1890'}},
+{type:'node',id:7328,lat:50.7667,lon:15.0533,tags:{nameZh:'利贝雷茨市中心广场',name:'náměstí Dr. E. Beneše Liberec',tourism:'attraction','addr:city':'Liberec',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'2340'}},
+{type:'node',id:7329,lat:49.5941,lon:17.2481,tags:{nameZh:'奥洛穆茨泳池公园',name:'Aquapark Olomouc',tourism:'theme_park','addr:city':'Olomouc',opening_hours:'Mo-Su 08:00-21:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:7330,lat:50.0914,lon:14.4086,tags:{nameZh:'布拉格克莱门特博物馆',name:'Klementinum Praha',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.5',reviews:'6780'}},
+{type:'node',id:7331,lat:50.0866,lon:14.4044,tags:{nameZh:'布拉格查理大桥头堡',name:'Malostranská mostecká věž',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 10:00-18:00',rating:'4.4',reviews:'4560'}},
+{type:'node',id:7332,lat:49.1980,lon:16.5978,tags:{nameZh:'布尔诺中央公园',name:'Tyršův sad Brno',tourism:'park','addr:city':'Brno',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'3450'}},
+{type:'node',id:7333,lat:49.8370,lon:18.2902,tags:{nameZh:'奥斯特拉发商业区',name:'Forum Nová Karolina',tourism:'attraction','addr:city':'Ostrava',opening_hours:'Mo-Su 09:00-21:00',rating:'4.2',reviews:'3450'}},
+{type:'node',id:7334,lat:50.7684,lon:15.0572,tags:{nameZh:'利贝雷茨天鹅湖',name:'Heřmanice rybník',tourism:'park','addr:city':'Liberec',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'1560'}},
+{type:'node',id:7335,lat:49.5926,lon:17.2606,tags:{nameZh:'奥洛穆茨体育馆',name:'Sportovní hala Olomouc',tourism:'theme_park','addr:city':'Olomouc',opening_hours:'Mo-Su 07:00-22:00',rating:'4.2',reviews:'780'}},
+{type:'node',id:7336,lat:48.9759,lon:14.4719,tags:{nameZh:'捷克布杰约维采公园',name:'Stromovka ČB',tourism:'park','addr:city':'České Budějovice',opening_hours:'Mo-Su 00:00-24:00',rating:'4.4',reviews:'2340'}},
+{type:'node',id:7337,lat:50.2279,lon:12.8689,tags:{nameZh:'卡罗维发利温泉酒店公园',name:'Lázeňský park Dvořák',tourism:'park','addr:city':'Karlovy Vary',opening_hours:'Mo-Su 06:00-22:00',rating:'4.5',reviews:'4560'}},
+{type:'node',id:7338,lat:50.0882,lon:14.4055,tags:{nameZh:'布拉格马拉斯特拉纳广场',name:'Malostranské náměstí',tourism:'attraction','addr:city':'Prague',opening_hours:'Mo-Su 00:00-24:00',rating:'4.6',reviews:'7890'}},
+{type:'node',id:7339,lat:49.2016,lon:16.5888,tags:{nameZh:'布尔诺野外体验',name:'Žlutý kopec Brno',tourism:'park','addr:city':'Brno',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'1890'}},
+{type:'node',id:7340,lat:49.8450,lon:18.2902,tags:{nameZh:'奥斯特拉发体育公园',name:'Čez Aréna park',tourism:'park','addr:city':'Ostrava',opening_hours:'Mo-Su 00:00-24:00',rating:'4.3',reviews:'2340'}},
+];
+
+// ===== Category config =====
+const CATS = {
+  theme_park:{emoji:'🎢', en:'Theme parks', cs:'Zábavní parky', zh:'主题乐园'},
+  zoo:{emoji:'🦒', en:'Zoos', cs:'Zoologické zahrady', zh:'动物园'},
+  aquarium:{emoji:'🐠', en:'Aquariums', cs:'Akvária', zh:'水族馆'},
+  museum:{emoji:'🏛️', en:'Museums', cs:'Muzea', zh:'博物馆'},
+  nature:{emoji:'🌳', en:'Nature', cs:'Příroda', zh:'自然'},
+  beach:{emoji:'🏖️', en:'Beaches', cs:'Pláže', zh:'海滩'},
+  playground:{emoji:'🎪', en:'Playgrounds', cs:'Hřiště', zh:'游乐场'},
+  indoor_play:{emoji:'🏠', en:'Indoor play', cs:'Vnitřní hřiště', zh:'室内游乐'},
+  trampoline:{emoji:'🤸', en:'Trampoline', cs:'Trampolíny', zh:'蹦床'},
+  swim:{emoji:'🏊', en:'Swimming', cs:'Plavání', zh:'游泳'},
+  climbing:{emoji:'🧗', en:'Climbing', cs:'Lezení', zh:'攀爬'},
+  karting:{emoji:'🏎️', en:'Karting', cs:'Karting', zh:'卡丁车'},
+  farm:{emoji:'🐑', en:'Farms', cs:'Farmy', zh:'农场'},
+  attraction:{emoji:'⭐', en:'Attractions', cs:'Atrakce', zh:'景点'},
+  theatre:{emoji:'🎭', en:'Theatre', cs:'Divadlo', zh:'剧院'},
+  cinema:{emoji:'🎬', en:'Cinema', cs:'Kino', zh:'电影院'},
+  ice_rink:{emoji:'⛸️', en:'Ice rink', cs:'Kluziště', zh:'滑冰'},
+  minigolf:{emoji:'⛳', en:'Minigolf', cs:'Minigolf', zh:'迷你高尔夫'},
+  castle:{emoji:'🏰', en:'Castles', cs:'Hrady', zh:'城堡'},
+  windmill:{emoji:'🌬️', en:'Windmills', cs:'Větrné mlýny', zh:'风车'},
+  escape:{emoji:'🔓', en:'Escape rooms', cs:'Únikové místnosti', zh:'密室逃脱'},
+  sports:{emoji:'🏆', en:'Sports centre', cs:'Sportovní centrum', zh:'运动中心'},
+  restaurant:{emoji:'🍽️', en:'Family dining', cs:'Rodinné restaurace', zh:'亲子餐厅'},
+  monument:{emoji:'🗿', en:'Monuments', cs:'Památníky', zh:'古迹'},
+  ship:{emoji:'⛵', en:'Historic ships', cs:'Historické lodě', zh:'历史船只'},
+  ruins:{emoji:'🏺', en:'Ruins', cs:'Zříceniny', zh:'遗址'},
+  other:{emoji:'📍', en:'Other', cs:'Ostatní', zh:'其他'}
+};
+
+// Richer emoji mapping using venue name keywords
+function emojiFor(name, cat){
+  const n = (name||'').toLowerCase();
+  // Zoo subtype refinements
+  if(cat==='zoo'){
+    if(/safari|wild|beekse/.test(n)) return '🦁';
+    if(/dolf|sea|seal|marine/.test(n)) return '🐬';
+    if(/bird|vogel|avifauna/.test(n)) return '🦜';
+    if(/ape|monkey|apen/.test(n)) return '🐒';
+    if(/butterfly|vlinder/.test(n)) return '🦋';
+    if(/reptile|snake|slang/.test(n)) return '🐍';
+    return '🦒';
+  }
+  // Museum subtype
+  if(cat==='museum'){
+    if(/science|nemo|natur/.test(n)) return '🔬';
+    if(/art|van gogh|rijks|kunstmuseum|stedelijk|gemeente/.test(n)) return '🖼️';
+    if(/maritime|ship|scheepvaart|maritiem/.test(n)) return '⚓';
+    if(/railway|spoorweg|train|tram/.test(n)) return '🚂';
+    if(/aviation|air|luchtvaart/.test(n)) return '✈️';
+    if(/corpus|body|anatomie/.test(n)) return '🫀';
+    if(/music|muziek|instrument/.test(n)) return '🎼';
+    if(/toy|speelgoed/.test(n)) return '🧸';
+    if(/history|histori|oorlog|war|museum van de geest/.test(n)) return '📜';
+    return '🏛️';
+  }
+  // Theme park subtype
+  if(cat==='theme_park'){
+    if(/water|waterpark|splash|aqua/.test(n)) return '💦';
+    if(/snow|ski|slope/.test(n)) return '❄️';
+    if(/mini|madurodam|miniatuur/.test(n)) return '🏘️';
+    if(/fairy|sprookje|efteling/.test(n)) return '🏰';
+    return '🎢';
+  }
+  // Nature subtype
+  if(cat==='nature'){
+    if(/forest|bos|wald/.test(n)) return '🌲';
+    if(/heath|heide/.test(n)) return '🌾';
+    if(/dune|duin/.test(n)) return '🏝️';
+    if(/lake|meer|lak/.test(n)) return '🏞️';
+    if(/tulip|tulp|keukenhof/.test(n)) return '🌷';
+    return '🌳';
+  }
+  // Playground subtype
+  if(cat==='playground'){
+    if(/water|splash/.test(n)) return '💦';
+    if(/adventure|avontur/.test(n)) return '🧗';
+    return '🛝';
+  }
+  // Indoor play
+  if(cat==='indoor_play'){
+    if(/monkey/.test(n)) return '🐒';
+    if(/ballorig|ball/.test(n)) return '🎈';
+    if(/jimmy|jimmi/.test(n)) return '🤹';
+    return '🏠';
+  }
+  // Restaurant subtype
+  if(cat==='restaurant'){
+    if(/pannenkoek|pancake/.test(n)) return '🥞';
+    if(/chinese|chinees|china|asia|asian|sushi|wok/.test(n)) return '🥢';
+    if(/pizza|pizzer/.test(n)) return '🍕';
+    if(/ice cream|ijssalon|gelato/.test(n)) return '🍦';
+    if(/buffet/.test(n)) return '🍱';
+    if(/burger|mcdonalds/.test(n)) return '🍔';
+    return '🍽️';
+  }
+  // Theme parks extras
+  if(cat==='theme_park' && /petting|boerderij/.test(n)) return '🐄';
+  // Castle/fort
+  if(cat==='castle'){
+    if(/fort|bourtange/.test(n)) return '⚔️';
+    return '🏰';
+  }
+  // Windmill
+  if(cat==='windmill') return '🌬️';
+  // Sports
+  if(cat==='sports'){
+    if(/klim|climb/.test(n)) return '🧗';
+    if(/bow|boog/.test(n)) return '🏹';
+    return '🏆';
+  }
+  // Farm animals
+  if(cat==='farm'){
+    if(/geiten|goat/.test(n)) return '🐐';
+    if(/paarden|horse/.test(n)) return '🐴';
+    return '🐑';
+  }
+  return CATS[cat]?.emoji || '📍';
+}
+
+function classify(t){
+  if(t.tourism==='theme_park') return 'theme_park';
+  if(t.tourism==='zoo') return 'zoo';
+  if(t.tourism==='children_farm') return 'farm';
+  if(t.tourism==='aquarium') return 'aquarium';
+  if(t.tourism==='museum') return 'museum';
+  if(t.tourism==='attraction' || t.tourism==='visitor_centre') return 'attraction';
+  if(t.leisure==='nature_reserve' || t.leisure==='park') return 'nature';
+  if(t.leisure==='playground') return 'playground';
+  if(t.leisure==='indoor_playground') return 'indoor_play';
+  if(t.leisure==='trampoline_park') return 'trampoline';
+  if(t.leisure==='swimming_pool') return 'swim';
+  if(t.leisure==='climbing_park') return 'climbing';
+  if(t.leisure==='go_kart') return 'karting';
+  if(t.leisure==='miniature_golf') return 'minigolf';
+  if(t.leisure==='ice_rink') return 'ice_rink';
+  if(t.leisure==='sports_centre') return 'sports';
+  if(t.leisure==='escape_room') return 'escape';
+  if(t.amenity==='theatre') return 'theatre';
+  if(t.amenity==='cinema') return 'cinema';
+  if(t.amenity && t.amenity.indexOf('restaurant')>=0) return 'restaurant';
+  if(t.historic==='castle') return 'castle';
+  if(t.historic==='fort') return 'castle';
+  if(t.historic==='windmill' || t.man_made==='windmill') return 'windmill';
+  if(t.historic==='monument' || t.historic==='archaeological_site') return 'monument';
+  if(t.historic==='ship') return 'ship';
+  if(t.historic==='ruins') return 'ruins';
+  if(t.natural==='beach') return 'beach';
+  return 'other';
+}
+
+// ===== Transform data =====
+const VENUES = STATIC_CZ_VENUES.map(v=>{
+  const t = v.tags || {};
+  const cat = classify(t);
+  return {
+    id: v.id, lat: v.lat, lon: v.lon,
+    name: t.name || 'Unnamed',
+    zh: t.nameZh || '',
+    cat: cat,
+    emoji: emojiFor(t.name, cat),
+    city: t['addr:city'] || '',
+    street: t['addr:street'] || '',
+    house: t['addr:housenumber'] || '',
+    postcode: t['addr:postcode'] || '',
+    website: t.website || '',
+    hours: t.opening_hours || '',
+    rating: parseFloat(t.rating || '0') || null,
+    reviews: parseInt(t.reviews || '0') || 0,
+  };
+});
+
+// ===== State =====
+const FAV_KEY = 'ke_favs_cz';
+const LANG_KEY = 'ke_lang_cz';
+const LANGS = ['en','cs','zh'];  // cycle: en → cs → zh → en
+const state = {
+  activeCats: new Set(),  // empty = all
+  search: '',
+  sortBy: 'rating',
+  filtered: [],
+  selectedId: null,
+  markers: new Map(),
+  favs: new Set(JSON.parse(localStorage.getItem(FAV_KEY) || '[]')),
+  favsOnly: false,
+  lang: localStorage.getItem(LANG_KEY) || (navigator.language.startsWith('cs') ? 'cs' : navigator.language.startsWith('zh') ? 'zh' : 'en'),
+};
+
+// ===== Language labels (shown in button — always the CURRENT language) =====
+const LANG_LABELS = {en:'EN', nl:'NL', de:'DE', fr:'FR', it:'IT', es:'ES', pt:'PT', el:'ΕΛ', zh:'中', cs:'CS'};
+
+// ===== i18n =====
+const I18N = {
+  en: {
+    in_view: 'in view', favs: '♡ Favs', filters: '🏷 Category', sort: '↕ Sort',
+    category: 'Category', clear: 'Clear', show_results: 'Show results',
+    near_me: 'Near me', map: '🗺 Map', list: '☰ List',
+    directions: '🗺 Directions', website: '🌐 Website',
+    rating: 'Rating', address: 'Address', city: 'City', hours: 'Hours', reviews: 'reviews',
+    empty: 'No venues in this area. Try moving the map or clearing filters.',
+    search_ph: 'Search places or cities…',
+    lang_next: 'CS',
+  },
+  cs: {
+    in_view: 'v zobrazení', favs: '♡ Oblíbené', filters: '🏷 Kategorie', sort: '↕ Seřadit',
+    category: 'Kategorie', clear: 'Vymazat', show_results: 'Zobrazit výsledky',
+    near_me: 'V mém okolí', map: '🗺 Mapa', list: '☰ Seznam',
+    directions: '🗺 Trasa', website: '🌐 Web',
+    rating: 'Hodnocení', address: 'Adresa', city: 'Město', hours: 'Otevírací doba', reviews: 'recenzí',
+    empty: 'V této oblasti nejsou žádná místa. Přesuňte mapu nebo vyčistěte filtry.',
+    search_ph: 'Hledat místa nebo města…',
+    lang_next: '中',
+  },
+  zh: {
+    in_view: '可见', favs: '♡ 收藏', filters: '🏷 品类', sort: '↕ 排序',
+    category: '品类', clear: '清空', show_results: '显示结果',
+    near_me: '我附近', map: '🗺 地图', list: '☰ 列表',
+    directions: '🗺 导航', website: '🌐 官网',
+    rating: '评分', address: '地址', city: '城市', hours: '开放时间', reviews: '评价',
+    empty: '当前视口内没有场所。拖动地图或清空筛选。',
+    search_ph: '搜索场所或城市…',
+    lang_next: 'EN',
+  }
+};
+function t(k){return I18N[state.lang][k] || k;}
+
+function toggleLang(){
+  const idx = LANGS.indexOf(state.lang);
+  state.lang = LANGS[(idx+1) % LANGS.length];
+  localStorage.setItem(LANG_KEY, state.lang);
+  applyLang();
+  renderList();
+  buildCatGrid();
+}
+function applyLang(){
+  // Header button shows NEXT language
+  document.getElementById('lang-btn').textContent = LANG_LABELS[state.lang] || state.lang.toUpperCase();
+  // Update chips
+  document.getElementById('favs-chip').innerHTML = t('favs');
+  document.querySelector('.actions .chip:nth-child(2)').innerHTML = t('filters');
+  document.querySelector('.actions .chip:nth-child(3)').innerHTML = t('sort');
+  // Filter drawer title + section
+  document.querySelector('.filter-hdr h3').textContent = t('category');
+  document.querySelector('.filter-section h4').textContent = t('category');
+  document.querySelector('.btn-clear').textContent = t('clear');
+  document.querySelector('.btn-apply').textContent = t('show_results');
+  // Near me button
+  document.querySelector('.fab.near').innerHTML = `<span>📍</span><span>${t('near_me')}</span>`;
+  // Map/List toggle
+  document.getElementById('tog-map').textContent = t('map');
+  document.getElementById('tog-list').textContent = t('list');
+  // Search placeholder
+  document.getElementById('search').placeholder = t('search_ph');
+  // Count label
+  document.getElementById('count-label').textContent = t('in_view');
+}
+function saveFavs(){localStorage.setItem(FAV_KEY, JSON.stringify([...state.favs]));}
+function toggleFav(){
+  if(state.selectedId == null) return;
+  if(state.favs.has(state.selectedId)) state.favs.delete(state.selectedId);
+  else state.favs.add(state.selectedId);
+  saveFavs();
+  updateFavBtn();
+  renderList();
+}
+function updateFavBtn(){
+  const btn = document.getElementById('ov-fav');
+  if(!btn) return;
+  const on = state.favs.has(state.selectedId);
+  btn.classList.toggle('on', on);
+  btn.textContent = on ? '♥' : '♡';
+}
+function toggleFavsOnly(){
+  state.favsOnly = !state.favsOnly;
+  document.getElementById('favs-chip').classList.toggle('on', state.favsOnly);
+  document.getElementById('favs-chip').style.background = state.favsOnly ? '#fff5f0' : '';
+  document.getElementById('favs-chip').style.color = state.favsOnly ? 'var(--brand)' : '';
+  document.getElementById('favs-chip').style.borderColor = state.favsOnly ? 'var(--brand)' : '';
+  renderList();
+}
+function cardFavClick(ev, id){
+  ev.stopPropagation();
+  if(state.favs.has(id)) state.favs.delete(id); else state.favs.add(id);
+  saveFavs();
+  if(state.selectedId===id) updateFavBtn();
+  renderList();
+}
+
+// ===== Map =====
+const map = L.map('map', {zoomControl:false, attributionControl:false}).setView([49.8,15.5],7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+L.control.attribution({prefix:false}).addTo(map);
+
+const clusterGroup = L.markerClusterGroup({
+  maxClusterRadius: 50,
+  showCoverageOnHover: false,
+});
+map.addLayer(clusterGroup);
+
+function makeIcon(v, selected=false){
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim();
+  return L.divIcon({
+    className: selected ? 'selected' : '',
+    html: `<div class="venue-marker" style="border-color:${color}">${v.emoji}</div>`,
+    iconSize:[36,36], iconAnchor:[18,18]
+  });
+}
+
+VENUES.forEach(v=>{
+  const m = L.marker([v.lat, v.lon], {icon: makeIcon(v)});
+  m.on('click', ()=>openDetail(v));
+  clusterGroup.addLayer(m);
+  state.markers.set(v.id, m);
+});
+
+// ===== Filter + render =====
+function computeFiltered(){
+  const q = state.search.trim().toLowerCase();
+  const bounds = map.getBounds();
+  let list = VENUES.filter(v=>{
+    if(state.favsOnly && !state.favs.has(v.id)) return false;
+    if(state.activeCats.size && !state.activeCats.has(v.cat)) return false;
+    if(q && !(v.name.toLowerCase().includes(q) || v.zh.includes(q) || v.city.toLowerCase().includes(q))) return false;
+    if(!state.favsOnly && !bounds.contains([v.lat, v.lon])) return false;
+    return true;
+  });
+  if(state.sortBy==='rating'){
+    list.sort((a,b)=>(b.rating||0)-(a.rating||0));
+  } else if(state.sortBy==='name'){
+    list.sort((a,b)=>a.name.localeCompare(b.name));
+  }
+  state.filtered = list;
+  return list;
+}
+
+function renderList(){
+  const list = computeFiltered();
+  const el = document.getElementById('list');
+  document.getElementById('count').textContent = list.length;
+  if(!list.length){
+    el.innerHTML = `<div class="empty">No venues in this area. Try moving the map or clearing filters.</div>`;
+    return;
+  }
+  el.innerHTML = list.slice(0,200).map(v=>{
+    const isFav = state.favs.has(v.id);
+    // NL venues: original name is already Dutch → use for en & nl; zh uses nameZh
+    const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+    const secondary = state.lang==='zh' ? v.name : (v.zh || '');
+    const catLabel = CATS[v.cat]?.[state.lang] || v.cat;
+    return `
+    <div class="venue-card" data-id="${v.id}" onclick="openDetail(VENUES.find(x=>x.id===${v.id}))">
+      <div class="venue-thumb cat-${v.cat}">${v.emoji}<button class="card-fav ${isFav?'on':''}" onclick="cardFavClick(event,${v.id})" title="Favorite">${isFav?'♥':'♡'}</button></div>
+      <div class="venue-info">
+        <div class="venue-name">${primary}</div>
+        ${secondary?`<div class="venue-zh">${secondary}</div>`:''}
+        <div class="venue-meta">
+          ${v.rating?`<span class="rating">★ ${v.rating.toFixed(1)}</span><span class="dot">·</span>`:''}
+          <span>${catLabel}</span>
+          ${v.city?`<span class="dot">·</span><span>${v.city}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== Detail overlay =====
+function openDetail(v){
+  if(!v) return;
+  state.selectedId = v.id;
+  const primary = state.lang==='zh' && v.zh ? v.zh : v.name;
+  const secondary = state.lang==='zh' && v.zh ? v.name : v.zh;
+  document.getElementById('ov-name').textContent = primary;
+  document.getElementById('ov-zh').textContent = secondary;
+  const rows = [];
+  if(v.rating) rows.push([t('rating'), `★ ${v.rating.toFixed(1)} · ${v.reviews.toLocaleString()} ${t('reviews')}`]);
+  if(v.street) rows.push([t('address'), `${v.street} ${v.house}, ${v.postcode} ${v.city}`.trim()]);
+  else if(v.city) rows.push([t('city'), v.city]);
+  rows.push([t('category'), `${v.emoji} ${CATS[v.cat]?.[state.lang] || v.cat}`]);
+  if(v.hours) rows.push([t('hours'), v.hours]);
+  document.getElementById('ov-body').innerHTML = rows.map(([k,val])=>
+    `<div class="detail-row"><div class="lbl">${k}</div><div>${val}</div></div>`
+  ).join('');
+  document.getElementById('ov-directions').href = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}&destination_place_id=${encodeURIComponent(v.name)}`;
+  document.getElementById('ov-directions').textContent = t('directions');
+  document.getElementById('ov-website').textContent = t('website');
+  const wsBtn = document.getElementById('ov-website');
+  if(v.website){
+    wsBtn.href = v.website; wsBtn.style.display='flex';
+  } else {
+    wsBtn.style.display='none';
+  }
+  updateFavBtn();
+  document.getElementById('overlay').classList.add('open');
+  // pan to marker
+  map.flyTo([v.lat, v.lon], Math.max(map.getZoom(), 13), {duration:.6});
+}
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('open');
+  state.selectedId = null;
+}
+
+// ===== Filter drawer =====
+function buildCatGrid(){
+  const counts = {};
+  VENUES.forEach(v=>counts[v.cat]=(counts[v.cat]||0)+1);
+  const el = document.getElementById('cat-grid');
+  el.innerHTML = Object.entries(CATS)
+    .filter(([k])=>counts[k])
+    .sort(([a],[b])=>(counts[b]||0)-(counts[a]||0))
+    .map(([k,c])=>`<button class="cat-btn ${state.activeCats.has(k)?'active':''}" data-cat="${k}" onclick="toggleCat('${k}')">
+      <span class="emoji">${c.emoji}</span>${c[state.lang]}<span class="count">${counts[k]}</span>
+    </button>`).join('');
+}
+function toggleCat(k){
+  if(state.activeCats.has(k)) state.activeCats.delete(k); else state.activeCats.add(k);
+  buildCatGrid();
+  renderList();
+}
+function clearFilter(){
+  state.activeCats.clear();
+  buildCatGrid();
+  renderList();
+}
+function openFilter(){document.getElementById('filter').classList.add('open');}
+function closeFilter(){document.getElementById('filter').classList.remove('open');}
+
+// ===== Drawer interactions =====
+function toggleDrawer(){
+  const d = document.getElementById('drawer');
+  const s = d.dataset.state;
+  d.dataset.state = s==='peek'?'half':(s==='half'?'full':'peek');
+}
+
+// ===== Near me (geolocation) =====
+function locateMe(){
+  if(!navigator.geolocation) return alert('Geolocation not supported');
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      const {latitude, longitude} = pos.coords;
+      map.flyTo([latitude, longitude], 12, {duration:.8});
+      L.circleMarker([latitude, longitude], {radius:10, color:'#c96442', fillColor:'#c96442', fillOpacity:.3, weight:3}).addTo(map);
+    },
+    (err)=>alert('Could not get location: '+err.message)
+  );
+}
+
+// ===== Zoom =====
+function zoomIn(){map.zoomIn();}
+function zoomOut(){map.zoomOut();}
+
+// ===== Search =====
+document.getElementById('search').addEventListener('input', e=>{
+  state.search = e.target.value;
+  renderList();
+});
+
+// ===== Country picker (placeholder — links to /) =====
+function openCountryPicker(){
+  window.location.href = '/';
+}
+
+// ===== Map/List view toggle (mobile) =====
+function setView(v){
+  document.body.dataset.view = v;
+  document.getElementById('tog-map').classList.toggle('active', v==='map');
+  document.getElementById('tog-list').classList.toggle('active', v==='list');
+  if(v==='map'){
+    setTimeout(()=>map.invalidateSize(), 50);
+  }
+}
+document.body.dataset.view = 'map';
+
+// ===== Sort toggle =====
+function toggleSort(){
+  state.sortBy = state.sortBy==='rating'?'name':'rating';
+  renderList();
+}
+
+// ===== Sync list when map moves =====
+let moveTimer;
+map.on('moveend', ()=>{
+  clearTimeout(moveTimer);
+  moveTimer = setTimeout(renderList, 150);
+});
+
+// ===== Initial render =====
+applyLang();
+buildCatGrid();
+renderList();
+
+// ===== Click outside to close overlays =====
+map.on('click', ()=>{
+  closeOverlay();
+});
+
+// ===== AI Chat Assistant =====
+const CITY_COORDS = {
+  'prague':[50.08,14.44],
+  'brno':[49.2,16.61],
+  'ostrava':[49.84,18.29],
+  'plzen':[49.75,13.38],
+  'liberec':[50.77,15.06],
+  'olomouc':[49.59,17.25],
+  'hradec králové':[50.21,15.83],
+  'české budějovice':[48.97,14.47],
+  'pardubice':[50.04,15.78],
+  'zlín':[49.22,17.66],
+  'karlovy vary':[50.23,12.87],
+  '布拉格':[50.08,14.44],
+  '布尔诺':[49.2,16.61],
+  '俄斯特拉发':[49.84,18.29],
+  '卡罗维发利':[50.23,12.87]
+};
+const INTEREST_MAP = {
+  '动物':['zoo','farm'],'动物园':['zoo'],'农场':['farm'],
+  '博物馆':['museum'],'科学':['museum'],'艺术':['museum'],
+  '游乐园':['theme_park'],'主题公园':['theme_park'],'游乐场':['theme_park','indoor_play'],
+  '室内':['indoor_play','museum','aquarium'],'下雨':['indoor_play','museum','aquarium'],
+  '海滩':['beach'],'海边':['beach'],'游泳':['beach','swim'],
+  '城堡':['castle'],'历史':['castle','monument'],
+  '自然':['nature'],'公园':['nature'],'森林':['nature'],
+  '水族馆':['aquarium'],'海豚':['aquarium'],
+  '滑冰':['ice_rink'],'运动':['sports'],
+  '室内游乐':['indoor_play'],'蹦床':['trampoline'],
+  'animal':['zoo','farm'],'zoo':['zoo'],'farm':['farm'],
+  'museum':['museum'],'science':['museum'],
+  'theme park':['theme_park'],'amusement':['theme_park'],
+  'indoor':['indoor_play','museum','aquarium'],'rain':['indoor_play','museum','aquarium'],
+  'beach':['beach'],'castle':['castle'],
+  'nature':['nature'],'forest':['nature'],
+  'aquarium':['aquarium'],'playground':['indoor_play','playground'],
+  'trampoline':['trampoline'],'monkey town':['indoor_play'],'ballorig':['indoor_play'],
+};
+const AGE_HINTS = {
+  '婴儿':1,'宝宝':2,'1岁':1,'2岁':2,'3岁':3,'幼儿':3,'小朋友':5,
+  '4岁':4,'5岁':5,'6岁':6,'7岁':7,'8岁':8,'9岁':9,'10岁':10,
+  '学龄':7,'小学':8,'toddler':2,'baby':1,'teenager':13,
+};
+
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function parseUserMessage(msg){
+  const lower=msg.toLowerCase();
+  const result={city:null,coords:null,categories:new Set(),age:null,maxDist:null,raw:msg};
+  for(const [name,coords] of Object.entries(CITY_COORDS)){
+    if(lower.includes(name.toLowerCase())){result.city=name;result.coords=coords;break;}
+  }
+  for(const [kw,cats] of Object.entries(INTEREST_MAP)){
+    if(lower.includes(kw.toLowerCase())) cats.forEach(c=>result.categories.add(c));
+  }
+  for(const [kw,age] of Object.entries(AGE_HINTS)){
+    if(lower.includes(kw)){result.age=age;break;}
+  }
+  const dm=lower.match(/(\d+)\s*(km|公里|min|分钟)/);
+  if(dm){const n=parseInt(dm[1]);result.maxDist=(dm[2]==='分钟'||dm[2]==='min')?n*1.2:n;}
+  return result;
+}
+
+function chatRecommend(parsed){
+  let list=[...VENUES];
+  if(parsed.categories.size>0) list=list.filter(v=>parsed.categories.has(v.cat));
+  if(parsed.coords){
+    list.forEach(v=>{v._dist=haversine(parsed.coords[0],parsed.coords[1],v.lat,v.lon);});
+    if(parsed.maxDist) list=list.filter(v=>v._dist<=parsed.maxDist);
+    list.sort((a,b)=>a._dist-b._dist);
+  } else {
+    list.sort(()=>Math.random()-0.5);
+  }
+  if(parsed.age!==null){
+    if(parsed.age<=3){
+      const p=['farm','indoor_play','playground','zoo'];
+      list.sort((a,b)=>{const aP=p.indexOf(a.cat),bP=p.indexOf(b.cat);if(aP>=0&&bP<0)return -1;if(aP<0&&bP>=0)return 1;return(a._dist||0)-(b._dist||0);});
+    } else if(parsed.age>=8){
+      const p=['theme_park','sports','museum','castle'];
+      list.sort((a,b)=>{const aP=p.indexOf(a.cat),bP=p.indexOf(b.cat);if(aP>=0&&bP<0)return -1;if(aP<0&&bP>=0)return 1;return(a._dist||0)-(b._dist||0);});
+    }
+  }
+  return list.slice(0,6);
+}
+
+function buildChatResponse(parsed,venues){
+  const isZh=/[\u4e00-\u9fff]/.test(parsed.raw);
+  if(!venues.length) return isZh?'抱歉，没有找到完全匹配的场地。试试换个关键词或放宽距离范围？':"Sorry, no exact matches. Try different keywords or wider range?";
+  let parts=[];
+  if(isZh){
+    let o='为你推荐以下场地';
+    if(parsed.city) o=`在 ${parsed.city} 附近为你推荐`;
+    if(parsed.age) o+=`（适合${parsed.age}岁孩子）`;
+    parts.push(o+'：');
+  } else {
+    let o='Here are my recommendations';
+    if(parsed.city) o=`Near ${parsed.city}, here are my picks`;
+    if(parsed.age) o+=` (for age ${parsed.age})`;
+    parts.push(o+':');
+  }
+  venues.forEach(v=>{
+    const dist=v._dist?` (${v._dist.toFixed(1)}km)`:'';
+    const catLbl=CATS[v.cat]?.[state.lang]||v.cat;
+    parts.push(`\n${v.emoji} <strong>${v.name}</strong>${dist}\n<span style="color:var(--text-mute);font-size:11px">${catLbl} · ${v.city}</span>`);
+  });
+  if(isZh) parts.push('\n点击场地名称可在地图上查看位置。');
+  else parts.push('\nClick a venue name to see it on the map.');
+  let chips='';
+  if(venues.length>0){
+    chips='<div style="margin-top:8px">'+venues.map(v=>
+      `<span class="chat-venue-chip" onclick="chatShowVenue(${v.lat},${v.lon},${v.id})">${v.emoji} ${v.name}</span>`
+    ).join('')+'</div>';
+  }
+  return parts.join('')+chips;
+}
+
+let chatOpen=false;
+function toggleChat(open){
+  chatOpen=open;
+  document.getElementById('chatPanel').classList.toggle('open',open);
+  document.getElementById('chatFab').classList.toggle('hidden',open);
+  if(open&&document.getElementById('chatMessages').children.length===0) initChat();
+  if(open) document.getElementById('chatInput').focus();
+}
+function initChat(){
+  const g=state.lang==='zh'
+    ?'👋 你好！我是亲子出行助手。\n\n告诉我你的情况：\n• 你在哪个城市？\n• 孩子多大？\n• 想要室内还是室外？\n\n我会推荐最合适的去处！'
+    :state.lang==='nl'
+    ?'👋 Hallo! Ik ben je gezinsuitje-assistent.\n\nVertel me:\n• In welke stad?\n• Hoe oud zijn je kinderen?\n• Binnen of buiten?\n\nIk raad de beste plekken aan!'
+    :"👋 Hi! I'm your family outing assistant.\n\nTell me:\n• Which city?\n• How old are your kids?\n• Indoor or outdoor?\n\nI'll recommend the best places!";
+  addBotMsg(g);showQuickActions();
+}
+function showQuickActions(){
+  const el=document.getElementById('chatQuickActions');
+  const a=state.lang==='zh'
+    ?[['🏠 Amsterdam室内','我在Amsterdam，下雨天想找室内游乐场'],['🦁 带3岁宝宝看动物','我孩子3岁，想去看动物'],['🏖️ 海滩推荐','周末想带孩子去海滩'],['🏛️ 博物馆','想带8岁孩子去博物馆']]
+    :[['🏠 Indoor play','Indoor activities for rainy day'],['🦁 Zoo for toddler','Zoo or farm for 3 year old'],['🏖️ Beach trip','Beach trip with kids'],['🏛️ Museums','Museum for 8 year old']];
+  el.innerHTML=a.map(([l,m])=>`<button class="chat-quick-btn" onclick="sendQuick('${m.replace(/'/g,"\\'")}')">${l}</button>`).join('');
+}
+function sendQuick(m){document.getElementById('chatInput').value=m;handleChatSend();}
+function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function addBotMsg(t){const el=document.getElementById('chatMessages');const d=document.createElement('div');d.className='chat-msg bot';d.innerHTML=escHtml(t).replace(/\n/g,'<br>');el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function addUserMsg(t){const el=document.getElementById('chatMessages');const d=document.createElement('div');d.className='chat-msg user';d.textContent=t;el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function showTyping(){const el=document.getElementById('chatMessages');const d=document.createElement('div');d.className='chat-typing';d.id='chatTyping';d.innerHTML='<span></span><span></span><span></span>';el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function removeTyping(){const t=document.getElementById('chatTyping');if(t)t.remove();}
+
+function handleChatSend(){
+  const input=document.getElementById('chatInput');
+  const msg=input.value.trim();if(!msg)return;
+  addUserMsg(msg);input.value='';
+  document.getElementById('chatQuickActions').innerHTML='';
+  showTyping();
+  setTimeout(()=>{
+    removeTyping();
+    const parsed=parseUserMessage(msg);
+    const venues=chatRecommend(parsed);
+    const response=buildChatResponse(parsed,venues);
+    const d=document.createElement('div');d.className='chat-msg bot';d.innerHTML=response;
+    document.getElementById('chatMessages').appendChild(d);
+    document.getElementById('chatMessages').scrollTop=document.getElementById('chatMessages').scrollHeight;
+  },600+Math.random()*400);
+}
+
+function chatShowVenue(lat,lon,id){
+  map.flyTo([lat,lon],14,{duration:1});
+  const v=VENUES.find(x=>x.id===id);
+  if(v) openDetail(v);
+  if(window.innerWidth<=768) toggleChat(false);
+}
+
+document.getElementById('chatInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();handleChatSend();}
+});
+
+</script>
+
+<!-- AI Chat Widget -->
+<button class="chat-fab" id="chatFab" onclick="toggleChat(true)" title="AI Assistant" aria-label="Open AI chat assistant">🧸</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header">
+    <div class="chat-header-icon">🧸</div>
+    <div class="chat-header-text">AI Assistant<br><span class="chat-header-sub" id="chatSubtitle">亲子出行助手</span></div>
+    <button class="chat-close" onclick="toggleChat(false)">×</button>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-quick-actions" id="chatQuickActions"></div>
+  <div class="chat-input-area">
+    <input class="chat-input" id="chatInput" placeholder="描述你的需求… e.g. Amsterdam, 3岁, 室内" autocomplete="off">
+    <button class="chat-send" id="chatSend" onclick="handleChatSend()">➤</button>
+  </div>
+</div>
+
+</body>
+</html>
