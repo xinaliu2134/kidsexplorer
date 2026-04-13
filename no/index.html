@@ -1454,6 +1454,7 @@ if ('serviceWorker' in navigator) {
   </ul>
 </section>
 
+<script>
 function shareCurrentVenue(venueId) {
   const id = venueId || state.activeCardId;
   if (!id) return;
@@ -1489,5 +1490,6 @@ function showShareToast() {
   setTimeout(() => { toast.style.opacity = '0'; }, 2500);
 }
 
+</script>
 </body>
 </html>
