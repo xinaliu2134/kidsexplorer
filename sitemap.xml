@@ -69,7 +69,44 @@
     <priority>0.9</priority>
   </url>
 
-  <!-- Country Pages (v1 - legacy) -->
+  <!-- Country Pages (v1 - new countries, no v2) -->
+  <url>
+    <loc>https://kidsexplorer.eu/pl/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://kidsexplorer.eu/se/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://kidsexplorer.eu/dk/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://kidsexplorer.eu/no/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://kidsexplorer.eu/cz/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://kidsexplorer.eu/hu/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://kidsexplorer.eu/hr/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Country Pages (v1 - legacy, also have v2) -->
   <url>
     <loc>https://kidsexplorer.eu/nl/</loc>
     <changefreq>monthly</changefreq>
