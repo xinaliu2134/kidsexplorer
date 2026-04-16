@@ -3211,7 +3211,7 @@ function applyFilter() {
     list.sort((a, b) => a._userDist - b._userDist);
   }
   if (state.viewportSync && !state.showFavoritesOnly && typeof map !== 'undefined' && map.getBounds) {
-    try { const bounds = map.getBounds(); list = list.filter(v => bounds.contains([v.lat, v.lon])); } catch(e) {}
+    try { const sz = map.getSize(); if (sz.x > 10 && sz.y > 10) { const bounds = map.getBounds(); list = list.filter(v => bounds.contains([v.lat, v.lon])); } } catch(e) {}
   }
   state.filtered = list;
   renderList();
