@@ -3843,6 +3843,8 @@ function loadStaticVenues() {
   state.viewportSync = false;
   processOSMData(STATIC_DE_VENUES);
   state.viewportSync = _prevSync;
+  // Cancel stale viewport-sync timer (map has 0 size before first paint)
+  clearTimeout(_vpSyncTimer);
 }
 
 // -- AI CHAT ENGINE --
