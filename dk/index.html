@@ -186,6 +186,15 @@
       .mobile-action-bar { display: none !important; }
       .mobile-filter-dimmer { display: none !important; }
     }
+      .map-list-toggle{display:none}
+    @media(max-width:768px){
+      .map-list-toggle{display:flex;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:8500;background:var(--navy);border-radius:999px;padding:4px;box-shadow:0 4px 20px rgba(26,43,74,.35);gap:2px}
+      .map-list-btn{padding:8px 22px;border-radius:999px;border:none;font-size:13px;font-weight:600;cursor:pointer;color:rgba(255,255,255,.55);background:transparent;transition:all .2s;white-space:nowrap}
+      .map-list-btn.active{background:var(--primary);color:#fff}
+      body.mobile-list-mode .map-wrapper{visibility:hidden}
+      body.mobile-list-mode .sidebar{max-height:100dvh!important;height:100dvh!important;transform:translateY(0)!important;border-radius:0!important}
+      body.mobile-list-mode .chat-fab{display:none}
+    }
   </style>
 <script type="application/ld+json">
 {
