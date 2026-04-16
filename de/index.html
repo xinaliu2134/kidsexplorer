@@ -3839,7 +3839,10 @@ const STATIC_DE_VENUES = [
 
 function loadStaticVenues() {
   state.currentRegion = T[LANG.current].featuredRegion;
+  const _prevSync = state.viewportSync;
+  state.viewportSync = false;
   processOSMData(STATIC_DE_VENUES);
+  state.viewportSync = _prevSync;
 }
 
 // -- AI CHAT ENGINE --

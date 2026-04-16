@@ -3862,7 +3862,10 @@ window.searchRegion = async function(name) {
 
 function loadStaticVenues() {
   state.currentRegion = T[LANG.current].featuredRegion;
+  const _prevSync = state.viewportSync;
+  state.viewportSync = false;
   processOSMData(STATIC_FR_VENUES);
+  state.viewportSync = _prevSync;
 }
 
 // -- AI CHAT ENGINE --
