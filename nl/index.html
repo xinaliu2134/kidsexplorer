@@ -2460,7 +2460,7 @@ let state = {
   activeCardId: null,
   currentRegion: '',
   markers: new Map(),
-  favorites: JSON.parse(localStorage.getItem('kids-explorer-favorites') || '[]'),
+  favorites: JSON.parse(localStorage.getItem('nl-kids-explorer-favorites') || '[]'),
   showFavoritesOnly: false,
   userLocation: null,
   userLocationMarker: null,
@@ -4342,7 +4342,10 @@ const STATIC_NL_VENUES = [
 
 function loadStaticVenues() {
   state.currentRegion = tl('Featured Netherlands Venues', '荷兰精选场地', 'Uitgelichte locaties in Nederland');
+  const _prevSync = state.viewportSync;
+  state.viewportSync = false;
   processOSMData(STATIC_NL_VENUES);
+  state.viewportSync = _prevSync;
 }
 
 // ── AI CHAT ENGINE ────────────────────────────────
@@ -4706,7 +4709,7 @@ function toggleFavorite(venueId, btnEl) {
     void btnEl.offsetWidth;
     btnEl.classList.add('bounce');
   }
-  localStorage.setItem('kids-explorer-favorites', JSON.stringify(state.favorites));
+  localStorage.setItem('nl-kids-explorer-favorites', JSON.stringify(state.favorites));
   buildFilterBar();
   if (state.showFavoritesOnly) {
     state.displayed = 0;

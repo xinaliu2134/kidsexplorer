@@ -3177,7 +3177,10 @@ function showSkeletons() { const list = document.getElementById('venueList'); do
 const _origSearch = searchRegion;
 window.searchRegion = async function(name) { showSkeletons(); return _origSearch(name); };
 
-function loadStaticVenues() { state.currentRegion = T[LANG.current].featuredRegion; processOSMData(STATIC_UK_VENUES); }
+function loadStaticVenues() { state.currentRegion = T[LANG.current].featuredRegion; const _prevSync = state.viewportSync;
+  state.viewportSync = false;
+  processOSMData(STATIC_UK_VENUES);
+  state.viewportSync = _prevSync; }
 
 // -- AI CHAT --
 const CITY_COORDS = {
