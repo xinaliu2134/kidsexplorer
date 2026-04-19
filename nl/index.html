@@ -2476,6 +2476,32 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
 }).addTo(map);
 
+// Fit NL bounds, compensating for mobile bottom sheet covering lower viewport
+const NL_MAP_BOUNDS = [[50.75, 3.35], [53.55, 7.22]];
+function fitNL(animate = false) {
+  if (!map) return;
+  const isMobile = window.innerWidth <= 768;
+  // On mobile, sheet collapsed = ~12dvh, half = ~50dvh. Pad enough so NL fits
+  // in the space above the sheet even when user drags sheet to half-open.
+  const bottomPad = isMobile ? Math.round(window.innerHeight * 0.45) : 20;
+  try {
+    map.invalidateSize();
+    map.fitBounds(NL_MAP_BOUNDS, {
+      paddingTopLeft: [10, 10],
+      paddingBottomRight: [10, bottomPad],
+      animate: animate
+    });
+  } catch(e) {}
+}
+// Defer initial fit until layout settles (CSS + dvh + sheet init)
+requestAnimationFrame(() => requestAnimationFrame(() => fitNL(false)));
+
+let _nlResizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(_nlResizeTimer);
+  _nlResizeTimer = setTimeout(() => fitNL(false), 180);
+});
+
 const markersLayer = L.markerClusterGroup({
   maxClusterRadius: 45,
   spiderfyOnMaxZoom: true,
@@ -2859,7 +2885,7 @@ function resetHome() {
   if (typeof activeAgeFilter !== 'undefined') activeAgeFilter = 'all';
   markersLayer.clearLayers();
   state.markers.clear();
-  map.setView([52.35, 5.3], 8);
+  fitNL();
   showOverlay(false);
   if (typeof closeDetailPanel === 'function') closeDetailPanel();
   pushHashState({});
@@ -2880,7 +2906,7 @@ function fullReset() {
   state.markers.clear();
   searchInput.value = '';
   autocompleteEl.classList.remove('open');
-  map.setView([52.35, 5.3], 8);
+  fitNL();
   showOverlay(false);
   document.getElementById('resultCountText').textContent = T[LANG.current].resultLabel;
   document.getElementById('emptyState').style.display = 'flex';
@@ -3022,7 +3048,7 @@ async function searchNL(catId) {
 
   showOverlay(true);
   document.getElementById('resultCountText').innerHTML = T[LANG.current].searching;
-  map.setView([52.35, 5.3], 8);
+  fitNL();
   searchInput.value = '';
 
   try {
@@ -4346,6 +4372,10 @@ function loadStaticVenues() {
   state.viewportSync = false;
   processOSMData(STATIC_NL_VENUES);
   state.viewportSync = _prevSync;
+  // Re-trigger mobile sheet init so it snaps to COLLAPSED now that venues
+  // are loaded (initBottomSheet IIFE runs before this, sees empty allVenues,
+  // and wrongly snaps to SNAP_HALF blocking the map view).
+  try { window.dispatchEvent(new Event('resize')); } catch(e) {}
 }
 
 // ── AI CHAT ENGINE ────────────────────────────────
