@@ -187,8 +187,14 @@ const COUNTRIES = [
 function render() {
   const grid = document.getElementById('grid');
   const lang = document.body.dataset.lang;
+  // Mobile → V2, desktop → V1. User can override via ?desktop=1 or ?mobile=1.
+  const q = location.search;
+  const forceDesktop = q.indexOf('desktop=1') !== -1;
+  const forceMobile = q.indexOf('mobile=1') !== -1;
+  const isMobile = forceMobile || (!forceDesktop && window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+  const suffix = isMobile ? '-v2' : '';
   grid.innerHTML = COUNTRIES.map(c => `
-    <a href="/${c.slug}/" class="country">
+    <a href="/${c.slug}${suffix}/" class="country">
       <div class="flag">${c.flag}</div>
       <div class="country-name">${lang === 'zh' ? c.zh : c.en}</div>
       <div class="country-native">${c.native}</div>

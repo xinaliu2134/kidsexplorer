@@ -2,6 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>
+/* KEV_DEVICE_REDIRECT v2->v1 */
+(function(){
+  try {
+    var q = location.search;
+    if (q.indexOf('mobile=1') !== -1) { sessionStorage.setItem('kev-prefer','mobile'); return; }
+    if (q.indexOf('desktop=1') !== -1) { sessionStorage.setItem('kev-prefer','desktop'); }
+    if (sessionStorage.getItem('kev-prefer') === 'mobile') return;
+    if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) return;
+    var parts = location.pathname.split('/');
+    if (parts.length < 2 || !parts[1] || !/-v2$/.test(parts[1])) return;
+    parts[1] = parts[1].replace(/-v2$/, '');
+    location.replace(parts.join('/') + location.search + location.hash);
+  } catch(e) {}
+})();
+</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>Holland Kids Explorer · 荷兰亲子地图</title>
 <meta name="description" content="670+ family-friendly venues across the Netherlands on one interactive map. Bilingual. Free.">
