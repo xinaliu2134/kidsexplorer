@@ -1,269 +1,726 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kids Explorer · Family-friendly venues across Europe</title>
-<meta name="description" content="Bilingual map of 7,600+ family-friendly venues across 19 European countries. For parents planning weekend trips, school holidays, or family vacations.">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Kids Explorer · Family-friendly places across Europe, mapped.</title>
+<meta name="description" content="7,600+ family-friendly venues across 19 European countries on one interactive map. Bilingual, free, built by a Dutch-Chinese mom for families planning weekend trips and school holidays.">
 <link rel="canonical" href="https://kidsexplorer.eu/">
+<link rel="alternate" hreflang="en" href="https://kidsexplorer.eu/">
+<link rel="alternate" hreflang="zh" href="https://kidsexplorer.eu/">
+<link rel="alternate" hreflang="x-default" href="https://kidsexplorer.eu/">
+<link rel="sitemap" type="application/xml" href="/sitemap.xml">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://kidsexplorer.eu/">
-<meta property="og:title" content="Kids Explorer · Family-friendly venues across Europe">
+<meta property="og:title" content="Kids Explorer · Family-friendly places across Europe, mapped.">
 <meta property="og:description" content="7,600+ family-friendly venues across 19 European countries on one interactive map. Bilingual, free, built for families with kids.">
 <meta property="og:image" content="https://kidsexplorer.eu/og/default.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:site_name" content="KidsExplorer.eu">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Kids Explorer · Family-friendly venues across Europe">
-<meta name="twitter:description" content="7,600+ family-friendly venues across 19 European countries on one interactive map.">
-<meta name="twitter:image" content="https://kidsexplorer.eu/og/default.png">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:wght@500;600&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#f5f4ed;
-  --ivory:#faf9f5;
-  --border:#e8e6dc;
-  --text:#141413;
-  --olive:#5e5d59;
-  --stone:#87867f;
-  --terracotta:#c96442;
-  --coral:#d97757;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
-a{color:inherit;text-decoration:none}
-.container{max-width:1100px;margin:0 auto;padding:0 24px}
-
-.geo-banner{position:sticky;top:0;z-index:100;background:var(--terracotta);color:#fff;padding:14px 24px;text-align:center;font-size:14px;font-weight:500;display:none;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;animation:slideDown .4s ease}
-.geo-banner.show{display:flex}
-.geo-banner a{background:#fff;color:var(--terracotta);padding:7px 16px;border-radius:999px;font-weight:700;font-size:13px}
-.geo-banner a:hover{background:#fef6f2}
-.geo-banner button{background:none;border:1px solid rgba(255,255,255,.5);color:#fff;padding:7px 14px;border-radius:999px;font-weight:500;font-size:12px;cursor:pointer}
-.geo-banner button:hover{border-color:#fff}
-@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
-nav{padding:28px 0;border-bottom:1px solid var(--border)}
-nav .inner{max-width:1100px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between}
-.brand{font-family:'Source Serif 4',serif;font-size:24px;font-weight:600;letter-spacing:-.5px}
-.brand em{font-style:italic;color:var(--terracotta)}
-.lang-switch{display:flex;gap:4px;font-size:13px;font-weight:500}
-.lang-switch button{background:none;border:1px solid var(--border);padding:7px 14px;border-radius:999px;cursor:pointer;color:var(--olive);font-family:inherit}
-.lang-switch button.active{background:var(--text);color:var(--ivory);border-color:var(--text)}
-
-.hero{padding:90px 0 60px;text-align:center}
-.eyebrow{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);margin-bottom:18px}
-h1{font-family:'Source Serif 4',serif;font-size:64px;font-weight:500;line-height:1.08;letter-spacing:-.02em;margin-bottom:24px;max-width:820px;margin-left:auto;margin-right:auto}
-h1 em{font-style:italic;color:var(--terracotta)}
-.sub{font-size:19px;line-height:1.55;color:var(--olive);max-width:640px;margin:0 auto 40px}
-.stat-strip{display:flex;justify-content:center;gap:48px;margin-bottom:32px;flex-wrap:wrap;font-size:14px;color:var(--olive)}
-.stat-strip strong{display:block;font-family:'Source Serif 4',serif;font-size:32px;font-weight:500;color:var(--text);letter-spacing:-.01em}
-
-main{padding:40px 0 100px}
-h2{font-family:'Source Serif 4',serif;font-size:32px;font-weight:500;margin-bottom:8px;text-align:center;letter-spacing:-.01em}
-.section-sub{text-align:center;color:var(--olive);font-size:15px;margin-bottom:48px}
-
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-bottom:40px}
-.country{background:var(--ivory);border:1px solid var(--border);border-radius:16px;padding:26px 24px;display:block;transition:all .2s;box-shadow:rgba(0,0,0,.03) 0 2px 12px}
-.country:hover{transform:translateY(-3px);box-shadow:rgba(0,0,0,.08) 0 8px 28px;border-color:var(--terracotta)}
-.flag{font-size:44px;line-height:1;margin-bottom:12px}
-.country-name{font-family:'Source Serif 4',serif;font-size:22px;font-weight:500;margin-bottom:4px;letter-spacing:-.01em}
-.country-native{color:var(--stone);font-size:13px;margin-bottom:14px}
-.country-stat{font-size:13px;color:var(--olive);display:flex;justify-content:space-between;padding-top:14px;border-top:1px solid var(--border)}
-.country-stat .arrow{color:var(--terracotta);font-weight:600}
-
-footer{border-top:1px solid var(--border);padding:36px 0;text-align:center;font-size:13px;color:var(--stone)}
-footer a{color:var(--terracotta);font-weight:500}
-
-@media (max-width:720px){
-  h1{font-size:42px}
-  .sub{font-size:17px}
-  .hero{padding:60px 0 40px}
-  .stat-strip{gap:28px}
-  .stat-strip strong{font-size:26px}
-}
-
-[data-lang="zh"] .en{display:none}
-[data-lang="en"] .zh{display:none}
-</style>
-<meta name="keywords" content="kids explorer, family travel Europe, kid-friendly venues, theme parks Europe, zoo Europe, museum kids, playground Europe, Chinese restaurant Europe, bilingual map">
-<meta name="author" content="Nana Liu">
-<meta name="robots" content="index, follow">
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Kids Explorer · Family-friendly places across Europe, mapped.">
+<meta name="twitter:description" content="7,600+ family-friendly venues across 19 European countries on one interactive map.">
+<meta name="twitter:image" content="https://kidsexplorer.eu/og/default.png">
+<meta name="keywords" content="kids explorer, family travel Europe, kid-friendly venues, theme parks Europe, zoo Europe, museum kids, playground Europe, Chinese-friendly Europe, bilingual map">
+<meta name="author" content="Nana Liu">
+<meta name="robots" content="index, follow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "Kids Explorer",
-  "url": "https://kidsexplorer.eu/",
-  "description": "Family-friendly venues across Europe — bilingual interactive map",
-  "inLanguage": ["en", "zh"],
-  "author": {
-    "@type": "Person",
-    "name": "Nana Liu"
-  }
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://kidsexplorer.eu/#website",
+      "name": "Kids Explorer",
+      "url": "https://kidsexplorer.eu/",
+      "description": "Family-friendly venues across Europe — bilingual interactive map",
+      "inLanguage": ["en", "zh"],
+      "author": { "@type": "Person", "name": "Nana Liu", "url": "https://nanaliu.nl" },
+      "publisher": { "@type": "Person", "name": "Nana Liu" }
+    },
+    {
+      "@type": "ItemList",
+      "@id": "https://kidsexplorer.eu/#countries",
+      "name": "Countries covered by Kids Explorer",
+      "description": "19 European countries with family-friendly venues mapped",
+      "numberOfItems": 19,
+      "itemListElement": [
+        {"@type":"ListItem","position":1, "url":"https://kidsexplorer.eu/nl/","name":"Netherlands · 荷兰"},
+        {"@type":"ListItem","position":2, "url":"https://kidsexplorer.eu/de/","name":"Germany · 德国"},
+        {"@type":"ListItem","position":3, "url":"https://kidsexplorer.eu/fr/","name":"France · 法国"},
+        {"@type":"ListItem","position":4, "url":"https://kidsexplorer.eu/be/","name":"Belgium · 比利时"},
+        {"@type":"ListItem","position":5, "url":"https://kidsexplorer.eu/it/","name":"Italy · 意大利"},
+        {"@type":"ListItem","position":6, "url":"https://kidsexplorer.eu/es/","name":"Spain · 西班牙"},
+        {"@type":"ListItem","position":7, "url":"https://kidsexplorer.eu/at/","name":"Austria · 奥地利"},
+        {"@type":"ListItem","position":8, "url":"https://kidsexplorer.eu/ch/","name":"Switzerland · 瑞士"},
+        {"@type":"ListItem","position":9, "url":"https://kidsexplorer.eu/uk/","name":"United Kingdom · 英国"},
+        {"@type":"ListItem","position":10,"url":"https://kidsexplorer.eu/ie/","name":"Ireland · 爱尔兰"},
+        {"@type":"ListItem","position":11,"url":"https://kidsexplorer.eu/pt/","name":"Portugal · 葡萄牙"},
+        {"@type":"ListItem","position":12,"url":"https://kidsexplorer.eu/se/","name":"Sweden · 瑞典"},
+        {"@type":"ListItem","position":13,"url":"https://kidsexplorer.eu/dk/","name":"Denmark · 丹麦"},
+        {"@type":"ListItem","position":14,"url":"https://kidsexplorer.eu/no/","name":"Norway · 挪威"},
+        {"@type":"ListItem","position":15,"url":"https://kidsexplorer.eu/pl/","name":"Poland · 波兰"},
+        {"@type":"ListItem","position":16,"url":"https://kidsexplorer.eu/cz/","name":"Czech Republic · 捷克"},
+        {"@type":"ListItem","position":17,"url":"https://kidsexplorer.eu/hu/","name":"Hungary · 匈牙利"},
+        {"@type":"ListItem","position":18,"url":"https://kidsexplorer.eu/hr/","name":"Croatia · 克罗地亚"},
+        {"@type":"ListItem","position":19,"url":"https://kidsexplorer.eu/gr/","name":"Greece · 希腊"}
+      ]
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://kidsexplorer.eu/#org",
+      "name": "Kids Explorer",
+      "url": "https://kidsexplorer.eu/",
+      "email": "hello@kidsexplorer.eu",
+      "founder": { "@type": "Person", "name": "Nana Liu", "url": "https://nanaliu.nl" },
+      "areaServed": "Europe"
+    }
+  ]
 }
 </script>
+<style>
+  :root{
+    --bg:#FFFFFF;
+    --cream:#F5F4ED;
+    --ink:#0A0A0A;
+    --muted:#6F6F6F;
+    --stone:#9A9892;
+    --terracotta:#C96442;
+    --border:#E8E6DC;
+    --display:"Instrument Serif", "Noto Serif SC", serif;
+    --body:"Inter", "Noto Sans SC", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  img{display:block;max-width:100%}
+
+  @keyframes fadeRise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  .fr{opacity:0;animation:fadeRise .8s ease-out forwards}
+  .fr-1{opacity:0;animation:fadeRise .8s ease-out .2s forwards}
+  .fr-2{opacity:0;animation:fadeRise .8s ease-out .4s forwards}
+  .fr-3{opacity:0;animation:fadeRise .8s ease-out .6s forwards}
+
+  /* shell */
+  .page{position:relative;min-height:100vh;width:100%;overflow:hidden}
+
+  /* video layer */
+  .video-layer{position:absolute;top:300px;inset:auto 0 0 0;z-index:0;pointer-events:none}
+  .video-layer video{width:100%;height:auto;display:block;opacity:0}
+  .video-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,var(--bg) 0%,rgba(255,255,255,0) 28%,rgba(255,255,255,0) 70%,var(--bg) 100%);z-index:1;pointer-events:none}
+
+  /* nav */
+  .nav-wrap{position:relative;z-index:10}
+  .nav{max-width:80rem;margin:0 auto;padding:1.5rem 2rem;display:flex;align-items:center;justify-content:space-between;gap:2rem}
+  .logo{font-family:var(--display);font-size:1.875rem;line-height:1;letter-spacing:-0.02em;color:var(--ink)}
+  .logo .star{color:var(--terracotta);font-style:italic}
+  .menu{display:flex;align-items:center;gap:2.25rem;list-style:none}
+  .menu a{font-size:.875rem;color:var(--muted);transition:color .2s ease;cursor:pointer}
+  .menu a.active,.menu a:hover{color:var(--ink)}
+  .cta{display:inline-flex;align-items:center;gap:.5rem;background:var(--ink);color:#fff;border:none;border-radius:9999px;padding:.625rem 1.25rem;font-size:.875rem;font-family:var(--body);cursor:pointer;transition:transform .25s ease}
+  .cta:hover{transform:scale(1.03)}
+
+  /* hero */
+  .hero{position:relative;z-index:10;padding:calc(5rem - 30px) 1.5rem 9rem;display:flex;flex-direction:column;align-items:center;text-align:center}
+  .hero .kicker{font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:1.25rem}
+  .hero .kicker .dot{color:var(--terracotta)}
+  .headline{font-family:var(--display);font-weight:400;color:var(--ink);max-width:80rem;font-size:3rem;line-height:.95;letter-spacing:-2.46px}
+  .headline em{font-style:italic;color:var(--muted)}
+  .headline .zh{display:block;font-family:"Noto Serif SC",serif;font-style:normal;font-size:.32em;letter-spacing:.04em;color:var(--muted);margin-top:1rem;font-weight:400}
+  @media(min-width:640px){.headline{font-size:4.5rem}}
+  @media(min-width:768px){.headline{font-size:6.25rem}}
+  .desc{color:var(--muted);font-size:1rem;line-height:1.65;max-width:42rem;margin-top:2rem}
+  @media(min-width:640px){.desc{font-size:1.125rem}}
+  .hero-ctas{display:flex;gap:.75rem;margin-top:2.5rem;flex-wrap:wrap;justify-content:center}
+  .hero-cta{display:inline-flex;align-items:center;justify-content:center;background:var(--ink);color:#fff;border:none;border-radius:9999px;padding:1.15rem 3rem;font-size:1rem;font-family:var(--body);cursor:pointer;transition:transform .25s ease;text-decoration:none}
+  .hero-cta:hover{transform:scale(1.03)}
+  .hero-cta.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+  .hero-meta{display:flex;gap:2.5rem;margin-top:3.5rem;color:var(--muted);font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;flex-wrap:wrap;justify-content:center}
+  .hero-meta b{font-family:var(--display);font-style:italic;font-weight:400;color:var(--ink);font-size:1.1rem;text-transform:none;letter-spacing:0;margin-right:.5rem}
+
+  /* section primitives */
+  section.block{position:relative;z-index:10;max-width:80rem;margin:0 auto;padding:6rem 2rem}
+  .eyebrow{font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--terracotta);margin-bottom:1rem}
+  .section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:2rem;margin-bottom:2.5rem;border-bottom:1px solid var(--border);padding-bottom:1.5rem}
+  .section-head h2{font-family:var(--display);font-weight:400;font-size:2.75rem;line-height:1.05;letter-spacing:-0.02em}
+  .section-head h2 em{color:var(--muted)}
+  .section-head .zh{font-family:"Noto Serif SC",serif;font-size:1rem;color:var(--muted);margin-top:.4rem}
+  .section-head .more{color:var(--muted);font-size:.875rem;white-space:nowrap;display:inline-flex;align-items:center;gap:.4rem;cursor:pointer}
+  .section-head .more:hover{color:var(--ink)}
+
+  /* country grid */
+  .countries{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem}
+  .country{position:relative;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:var(--cream);cursor:pointer;transition:transform .4s ease;display:block}
+  .country:hover{transform:translateY(-4px)}
+  .country .ph{position:absolute;inset:0;background-size:cover;background-position:center}
+  .country .scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(10,10,10,.7) 0%,rgba(10,10,10,.05) 55%,transparent 100%)}
+  .country .txt{position:absolute;left:1.25rem;right:1.25rem;bottom:1.25rem;color:#fff}
+  .country .txt .en{font-family:var(--display);font-size:1.6rem;line-height:1;letter-spacing:-0.01em}
+  .country .txt .zh{font-family:"Noto Serif SC",serif;font-size:.85rem;color:rgba(255,255,255,.78);margin-top:.35rem}
+  .country .txt .n{font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.7);margin-top:.75rem}
+  @media(max-width:900px){.countries{grid-template-columns:repeat(2,1fr)}}
+
+  /* chips */
+  .chip{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);border-radius:9999px;padding:.35rem .75rem;background:var(--bg);text-decoration:none;transition:all .2s ease;display:inline-block}
+  a.chip:hover{color:var(--ink);border-color:var(--ink);background:var(--cream)}
+
+  /* geo banner */
+  .geo-banner{display:none;align-items:center;gap:.6rem;background:var(--cream);border:1px solid var(--border);border-radius:9999px;padding:.5rem 1rem .5rem .85rem;font-size:.82rem;color:var(--muted);margin-bottom:1.5rem}
+  .geo-banner.show{display:inline-flex}
+  .geo-dot{width:.5rem;height:.5rem;border-radius:50%;background:var(--terracotta);box-shadow:0 0 0 4px rgba(201,100,66,.18);animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{50%{box-shadow:0 0 0 7px rgba(201,100,66,.06)}}
+  .geo-txt{color:var(--ink)}
+  .geo-txt b{font-weight:500;color:var(--terracotta)}
+  .geo-zh{color:var(--muted);margin-left:.35rem}
+  .geo-change{background:none;border:none;color:var(--muted);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;padding:.15rem .4rem;border-left:1px solid var(--border);margin-left:.15rem}
+  .geo-change:hover{color:var(--ink)}
+
+  /* geo change dialog */
+  .geo-modal{position:fixed;inset:0;background:rgba(20,20,19,.4);z-index:60;display:none;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)}
+  .geo-modal.open{display:flex}
+  .geo-modal-inner{background:#fff;border-radius:14px;padding:1.4rem 1.5rem;max-width:460px;width:100%;max-height:80vh;overflow:auto;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.2);position:relative}
+  .geo-modal h4{font-family:var(--display);font-size:1.5rem;font-weight:400;margin-bottom:.2rem}
+  .geo-modal .gm-sub{font-size:.75rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem}
+  .geo-list{display:flex;flex-wrap:wrap;gap:.4rem}
+  .geo-list button{border:1px solid var(--border);background:var(--cream);color:var(--ink);border-radius:9999px;padding:.45rem .9rem;font-size:.82rem;font-family:var(--body);cursor:pointer}
+  .geo-list button:hover,.geo-list button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .gm-close{position:absolute;top:.8rem;right:1rem;background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.2rem}
+
+  /* categories grid */
+  .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .cat{background:var(--bg);padding:1.5rem 1.25rem;display:flex;flex-direction:column;gap:.35rem;transition:background .2s ease;text-decoration:none}
+  .cat:hover{background:var(--cream)}
+  .cat-n{font-family:var(--display);font-style:italic;color:var(--terracotta);font-size:.85rem}
+  .cat-en{font-family:var(--display);font-size:1.35rem;line-height:1.15;letter-spacing:-0.01em;margin-top:.25rem}
+  .cat-zh{font-family:"Noto Serif SC",serif;color:var(--muted);font-size:.85rem}
+  .cat-c{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);margin-top:.5rem}
+  @media(max-width:900px){.cat-grid{grid-template-columns:repeat(2,1fr)}}
+
+  /* partners (B2B data licensing) */
+  .partners{background:var(--bg);border-top:1px solid var(--border);border-bottom:1px solid var(--border);position:relative;z-index:10}
+  .partners-inner{max-width:80rem;margin:0 auto;padding:5rem 2rem;display:grid;grid-template-columns:1.1fr 1fr;gap:4rem;align-items:center}
+  .partners-copy .eyebrow{color:var(--terracotta)}
+  .partners-copy h2{font-family:var(--display);font-weight:400;font-size:2.5rem;line-height:1.1;letter-spacing:-0.02em;margin-top:.4rem}
+  .partners-copy h2 em{color:var(--muted)}
+  .partners-copy .zh-h{font-family:"Noto Serif SC",serif;color:var(--muted);font-size:1rem;margin-top:.55rem}
+  .partners-copy p{color:var(--muted);font-size:1rem;line-height:1.65;margin-top:1.25rem;max-width:46ch}
+  .partners-copy p.zh-p{font-family:"Noto Sans SC",sans-serif;font-size:.92rem;margin-top:.6rem}
+  .partners-copy .p-ctas{display:flex;gap:.75rem;margin-top:1.75rem;flex-wrap:wrap}
+  .partners-copy .p-ctas a.cta.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+  .partners-panel{background:var(--cream);border:1px solid var(--border);border-radius:14px;padding:1.75rem}
+  .partners-panel h4{font-family:var(--display);font-size:1.3rem;font-weight:400;font-style:italic;color:var(--ink);margin-bottom:1rem}
+  .partners-list{list-style:none;display:flex;flex-direction:column;gap:1rem}
+  .partners-list li{display:grid;grid-template-columns:auto 1fr;gap:.9rem;align-items:start}
+  .partners-list .bullet{font-family:var(--display);font-style:italic;color:var(--terracotta);font-size:1.1rem;line-height:1;margin-top:.15rem}
+  .partners-list .label{font-family:var(--display);font-size:1.05rem;line-height:1.2;color:var(--ink)}
+  .partners-list .sub{font-size:.85rem;color:var(--muted);margin-top:.25rem;line-height:1.5}
+  .partners-list .sub.zh{font-family:"Noto Sans SC",sans-serif;margin-top:.15rem}
+  @media(max-width:900px){.partners-inner{grid-template-columns:1fr;gap:2.5rem;padding:4rem 1.5rem}.partners-copy h2{font-size:2rem}}
+
+  /* promise band */
+  .band{background:var(--cream);position:relative;z-index:10}
+  .band-inner{max-width:80rem;margin:0 auto;padding:5rem 2rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:3rem}
+  .band-inner .col .n{font-family:var(--display);font-style:italic;color:var(--terracotta);font-size:1rem;margin-bottom:.75rem}
+  .band-inner .col h4{font-family:var(--display);font-size:1.6rem;line-height:1.15;font-weight:400;margin-bottom:.75rem}
+  .band-inner .col p{color:var(--muted);font-size:.95rem;line-height:1.6}
+  .band-inner .col p.zh{font-family:"Noto Sans SC",sans-serif;margin-top:.6rem;font-size:.88rem}
+  @media(max-width:900px){.band-inner{grid-template-columns:1fr;gap:2.25rem}}
+
+  /* map teaser */
+  .map-teaser{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center}
+  .map-teaser .copy h2{font-family:var(--display);font-weight:400;font-size:2.75rem;line-height:1.05;letter-spacing:-0.02em}
+  .map-teaser .copy h2 em{color:var(--muted)}
+  .map-teaser .copy .zh{font-family:"Noto Serif SC",serif;color:var(--muted);margin-top:.6rem;font-size:1rem}
+  .map-teaser .copy p{color:var(--muted);margin-top:1.5rem;line-height:1.65;max-width:42ch;font-size:1rem}
+  .map-teaser .copy p.zh-p{font-family:"Noto Sans SC",sans-serif;margin-top:.6rem;font-size:.95rem}
+  .map-teaser .copy .cta{margin-top:2rem}
+  .map-vis{position:relative;aspect-ratio:4/3;border-radius:16px;overflow:hidden;background:linear-gradient(135deg,#EFEAD9 0%,#E2DCC6 100%);border:1px solid var(--border)}
+  .map-vis::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(154,152,146,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(154,152,146,.18) 1px,transparent 1px);background-size:40px 40px;mask-image:radial-gradient(ellipse at center,#000 40%,transparent 85%)}
+  .pin{position:absolute;width:14px;height:14px;border-radius:50% 50% 50% 0;background:var(--terracotta);transform:rotate(-45deg);border:1.5px solid var(--ink);box-shadow:0 0 0 6px rgba(201,100,66,.12)}
+  @media(max-width:900px){.map-teaser{grid-template-columns:1fr}}
+
+  /* footer */
+  footer{background:var(--ink);color:#fff;padding:4rem 2rem 2.5rem;position:relative;z-index:10}
+  .footer-inner{max-width:80rem;margin:0 auto;display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr 1fr;gap:2.5rem}
+  footer .logo{color:#fff}
+  footer .logo .star{color:var(--terracotta)}
+  footer .tag{color:rgba(255,255,255,.58);font-size:.95rem;line-height:1.6;margin-top:1rem;max-width:34ch}
+  footer .tag a{color:#fff;border-bottom:1px solid rgba(255,255,255,.4)}
+  footer h5{font-family:var(--display);font-weight:400;font-size:1.05rem;margin-bottom:1rem;font-style:italic;color:#fff}
+  footer ul{list-style:none;display:flex;flex-direction:column;gap:.5rem}
+  footer ul a{color:rgba(255,255,255,.58);font-size:.875rem;transition:color .2s;cursor:pointer}
+  footer ul a:hover{color:#fff}
+  .footer-bottom{max-width:80rem;margin:3rem auto 0;padding-top:2rem;border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;color:rgba(255,255,255,.45);font-size:.8rem;flex-wrap:wrap;gap:1rem}
+  @media(max-width:1100px){.footer-inner{grid-template-columns:1.4fr 1fr 1fr;gap:2.25rem}}
+  @media(max-width:900px){.footer-inner{grid-template-columns:1fr 1fr;gap:2rem}}
+
+  /* responsive nav */
+  @media(max-width:820px){
+    .menu{display:none}
+    .nav{padding:1.25rem}
+    .section-head{flex-direction:column;align-items:flex-start}
+    .section-head h2{font-size:2rem}
+    section.block{padding:4rem 1.5rem}
+  }
+</style>
 </head>
-<body data-lang="en">
+<body>
+  <div class="page">
 
-<div class="geo-banner" id="geo-banner">
-  <span id="geo-text"></span>
-  <a id="geo-link" href="#"></a>
-  <button onclick="dismissBanner()">✕</button>
-</div>
+    <!-- VIDEO LAYER -->
+    <div class="video-layer" aria-hidden="true">
+      <video id="bgVideo" muted playsinline preload="auto"
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_083109_283f3553-e28f-428b-a723-d639c617eb2b.mp4"></video>
+      <div class="video-overlay"></div>
+    </div>
 
-<nav>
-  <div class="inner">
-    <div class="brand">Kids<em>Explorer</em></div>
-    <div class="lang-switch">
-      <button class="active" onclick="setLang('en')">EN</button>
-      <button onclick="setLang('zh')">中文</button>
+    <!-- NAV -->
+    <header class="nav-wrap">
+      <nav class="nav">
+        <a href="/" class="logo">Kids<span class="star">*</span>Explorer<span class="star">*</span></a>
+        <ul class="menu">
+          <li><a href="#top" class="active">Home</a></li>
+          <li><a href="#countries">Countries · 国家</a></li>
+          <li><a href="#categories">Categories · 品类</a></li>
+          <li><a href="#about">About · 关于</a></li>
+          <li><a href="#partners">For partners · 合作</a></li>
+        </ul>
+        <div style="display:flex;gap:.75rem;align-items:center">
+          <a class="cta" id="navCta" href="#countries">Open the map</a>
+        </div>
+      </nav>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero" id="top">
+      <div class="kicker fr">19 countries <span class="dot">·</span> bilingual <span class="dot">·</span> free <span class="dot">·</span> 19 国 · 中英双语 · 永久免费</div>
+      <h1 class="headline fr">
+        Family-friendly places across <em>Europe,</em> mapped.
+        <span class="zh">欧洲 19 国 亲子好去处，一张地图全收录</span>
+      </h1>
+      <p class="desc fr-1">
+        7,600+ theme parks, zoos, museums, playgrounds, and nature spots across 19 countries — with verified coordinates, opening hours, and Chinese-language support indicators. Built by a Dutch-Chinese mom for families planning weekend trips and school holidays.
+      </p>
+      <p class="desc fr-1" style="margin-top:.9rem;font-family:'Noto Sans SC',sans-serif">
+        7,600+ 主题乐园、动物园、博物馆、游乐场、自然景点，覆盖 19 国——含精确坐标、开放时间、中文向导可用标识。由荷兰华人妈妈为度假规划的家庭打造。
+      </p>
+      <div class="hero-ctas fr-2">
+        <a class="hero-cta" href="#countries">Pick a country → 选择国家</a>
+        <a class="hero-cta ghost" href="#about">How it works</a>
+      </div>
+      <div class="hero-meta fr-3">
+        <span><b>7,600+</b> venues · 场所</span>
+        <span><b>19</b> countries · 国家</span>
+        <span><b>16</b> categories · 品类</span>
+        <span><b>EN · 中</b> bilingual · 双语</span>
+      </div>
+    </section>
+
+    <!-- COUNTRIES -->
+    <section class="block" id="countries">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Pick a country · 选择国家</div>
+          <h2>Tap a country to open its <em>interactive map.</em></h2>
+          <div class="zh">点击国家查看互动地图</div>
+        </div>
+        <a class="more" href="#all-countries">All 19 countries →</a>
+      </div>
+      <div class="countries" id="countriesGrid"></div>
+      <div id="all-countries" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:2rem">
+        <span style="font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--stone);margin-right:.5rem;align-self:center">Also covering · 也包括</span>
+        <span id="countryChips"></span>
+      </div>
+    </section>
+
+    <!-- CATEGORIES -->
+    <section class="block" id="categories">
+      <div class="geo-banner" id="geoBanner">
+        <span class="geo-dot" aria-hidden="true"></span>
+        <span class="geo-txt" id="geoTxt"></span>
+        <button class="geo-change" id="geoChange" type="button" hidden>change · 切换</button>
+      </div>
+      <div class="section-head">
+        <div>
+          <div class="eyebrow" id="catEyebrow">16 categories · 16 品类</div>
+          <h2>Whatever the weather, <em>a place for the kids.</em></h2>
+          <div class="zh">无论晴雨，总有去处</div>
+        </div>
+        <a class="more" href="#countries" id="catMore">All categories →</a>
+      </div>
+      <div class="cat-grid">
+        <a class="cat" data-cat="theme-parks"    ><div class="cat-n">01</div><div class="cat-en">Theme parks</div><div class="cat-zh">主题乐园</div><div class="cat-c">Open the map →</div></a>
+        <a class="cat" data-cat="zoos"           ><div class="cat-n">02</div><div class="cat-en">Zoos &amp; aquariums</div><div class="cat-zh">动物园 · 水族馆</div><div class="cat-c">Open the map →</div></a>
+        <a class="cat" data-cat="museums"        ><div class="cat-n">03</div><div class="cat-en">Museums</div><div class="cat-zh">博物馆</div><div class="cat-c">Open the map →</div></a>
+        <a class="cat" data-cat="playgrounds"    ><div class="cat-n">04</div><div class="cat-en">Playgrounds</div><div class="cat-zh">游乐场</div><div class="cat-c">Open the map →</div></a>
+        <a class="cat" data-cat="nature"         ><div class="cat-n">05</div><div class="cat-en">Nature &amp; parks</div><div class="cat-zh">自然 · 公园</div><div class="cat-c">Open the map →</div></a>
+        <a class="cat" data-cat="indoor-play"    ><div class="cat-n">06</div><div class="cat-en">Indoor play</div><div class="cat-zh">室内游乐</div><div class="cat-c">Open the map →</div></a>
+        <a class="cat" data-cat="farms"          ><div class="cat-n">07</div><div class="cat-en">Farms &amp; petting zoos</div><div class="cat-zh">农场 · 动物互动</div><div class="cat-c">Open the map →</div></a>
+        <a class="cat" data-cat="water-parks"    ><div class="cat-n">08</div><div class="cat-en">Water parks &amp; pools</div><div class="cat-zh">水上乐园 · 泳池</div><div class="cat-c">Open the map →</div></a>
+        <a class="cat" data-cat="science-centres"><div class="cat-n">09</div><div class="cat-en">Science centres</div><div class="cat-zh">科学馆</div><div class="cat-c">Open the map →</div></a>
+        <a class="cat" data-cat="castles"        ><div class="cat-n">10</div><div class="cat-en">Castles &amp; historic</div><div class="cat-zh">城堡 · 历史景点</div><div class="cat-c">Open the map →</div></a>
+        <a class="cat" data-cat="beaches"        ><div class="cat-n">11</div><div class="cat-en">Beaches</div><div class="cat-zh">海滩</div><div class="cat-c">Open the map →</div></a>
+        <a class="cat" data-cat="all"            ><div class="cat-n">12</div><div class="cat-en">And 4 more…</div><div class="cat-zh">更多品类</div><div class="cat-c">View all →</div></a>
+      </div>
+    </section>
+
+    <!-- PARTNERS · B2B data licensing -->
+    <section class="partners" id="partners">
+      <div class="partners-inner">
+        <div class="partners-copy">
+          <div class="eyebrow">For partners · 合作</div>
+          <h2>A verified dataset of <em>7,600+ family venues,</em> ready to plug in.</h2>
+          <div class="zh-h">一份 7,600+ 亲子场所的干净数据，为你的产品所用</div>
+          <p>If you run a travel app, a family platform, a tourism board, or a research project and you need a clean, cross-checked dataset of family-friendly venues across 19 European countries — with verified coordinates, opening hours, categories, and Chinese-language support flags — you can license it directly.</p>
+          <p class="zh-p">旅行 App、亲子平台、旅游局、学术研究需要干净的亲子场所数据？我们提供涵盖欧洲 19 国、经三重校验的数据集——含精确坐标、营业时间、品类与中文友好标签——可直接授权使用。</p>
+          <div class="p-ctas">
+            <a class="cta" href="mailto:hello@kidsexplorer.eu?subject=Data%20licensing%20enquiry&amp;body=Hi%20Nana%2C%0A%0AWe're%20interested%20in%20licensing%20the%20Kids%20Explorer%20dataset.%20A%20bit%20about%20us%3A%0A%0A-%20%0A%0A-%20%0A%0AThanks!">Email hello@ — data licensing</a>
+            <a class="cta ghost" href="mailto:hello@kidsexplorer.eu?subject=Partnership%20enquiry">Other partnerships</a>
+          </div>
+        </div>
+        <aside class="partners-panel" aria-label="What partners use this for">
+          <h4>What partners use it for</h4>
+          <ul class="partners-list">
+            <li>
+              <span class="bullet">01</span>
+              <div>
+                <div class="label">Family-travel apps &amp; itinerary tools</div>
+                <div class="sub">Venue API + monthly refresh — power "near me" and trip-planning features without scraping.</div>
+                <div class="sub zh">亲子旅行/行程 App：调用接口 + 月度更新，省去爬虫维护。</div>
+              </div>
+            </li>
+            <li>
+              <span class="bullet">02</span>
+              <div>
+                <div class="label">Tourism boards &amp; DMOs</div>
+                <div class="sub">Custom country / region exports — for visitor portals, print guides, press kits.</div>
+                <div class="sub zh">旅游局/目的地营销机构：按国家或地区定制导出，用于门户、印刷指南、宣传物料。</div>
+              </div>
+            </li>
+            <li>
+              <span class="bullet">03</span>
+              <div>
+                <div class="label">Research &amp; family-tech teams</div>
+                <div class="sub">CSV / JSON snapshot with categories, age ranges, and Chinese-support flags.</div>
+                <div class="sub zh">学术研究 / 亲子科技团队：CSV / JSON 快照，含品类、年龄段、中文友好标签。</div>
+              </div>
+            </li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <!-- PROMISE BAND -->
+    <div class="band" id="about">
+      <div class="band-inner">
+        <div class="col">
+          <div class="n">One.</div>
+          <h4>Verified coordinates, real opening hours.</h4>
+          <p>Every venue is cross-checked against OpenStreetMap, Nominatim, and the brand's own website — so the pin is where the place is, and the hours are this week's.</p>
+          <p class="zh">每个地点都经 OSM、Nominatim 和品牌官网三重校验——图钉落在真实位置，营业时间每周更新。</p>
+        </div>
+        <div class="col">
+          <div class="n">Two.</div>
+          <h4>Bilingual, by design.</h4>
+          <p>Everything in English and 中文, with Chinese-language support indicators on venues that offer signage, audio guides, or staff who can help in Mandarin.</p>
+          <p class="zh">全站中英双语，并标注哪些场所提供中文标识、中文语音导览或会讲中文的工作人员。</p>
+        </div>
+        <div class="col">
+          <div class="n">Three.</div>
+          <h4>Free forever, no ads, no accounts.</h4>
+          <p>Built by a Dutch-Chinese mom for families planning weekend trips and school holidays. No pop-ups, no sign-ups — just open the map and go.</p>
+          <p class="zh">一位荷兰华人妈妈为家庭出游打造。没有广告、不用注册、不需账号——打开地图就能用。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAP TEASER -->
+    <section class="block" id="map">
+      <div class="map-teaser">
+        <div class="copy">
+          <div class="eyebrow">The map · 地图</div>
+          <h2>All 7,600+ venues, <em>on one quiet map.</em></h2>
+          <div class="zh">7,600+ 地点，在一张安静的地图上</div>
+          <p>Filter by country, category, age range, or indoor/outdoor. Toggle "Chinese-language support" to see only venues with signage or staff who can help in Mandarin. Tap a pin for verified coordinates, opening hours, and the official website — no account required.</p>
+          <p class="zh-p">按国家、品类、年龄段或室内外筛选。开启"中文友好"只看带中文指引的场所。点击图钉查看坐标、营业时间与官网——无需注册。</p>
+          <a class="cta" id="mapCta" href="#countries">Open the map →</a>
+        </div>
+        <div class="map-vis" aria-hidden="true">
+          <div class="pin" style="top:28%;left:24%"></div>
+          <div class="pin" style="top:44%;left:38%"></div>
+          <div class="pin" style="top:36%;left:58%"></div>
+          <div class="pin" style="top:62%;left:48%"></div>
+          <div class="pin" style="top:54%;left:72%"></div>
+          <div class="pin" style="top:70%;left:30%"></div>
+          <div class="pin" style="top:22%;left:68%"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="footer-inner">
+        <div>
+          <a href="/" class="logo">Kids<span class="star">*</span>Explorer<span class="star">*</span></a>
+          <p class="tag">Family-friendly venues across Europe, mapped. Built with ❤️ by <a href="https://nanaliu.nl">Nana Liu</a>.<br>由 Nana Liu 用 ❤️ 打造 · 永久免费</p>
+        </div>
+        <div>
+          <h5>Explore · 浏览</h5>
+          <ul>
+            <li><a href="#countries">All 19 countries</a></li>
+            <li><a href="#categories">All 16 categories</a></li>
+            <li><a href="#map">Interactive map</a></li>
+            <li><a href="#countries">Chinese support · 中文</a></li>
+          </ul>
+        </div>
+        <div>
+          <h5>About · 关于</h5>
+          <ul>
+            <li><a href="#about">How it's made</a></li>
+            <li><a href="#about">Data sources</a></li>
+            <li><a href="https://nanaliu.nl">Nana Liu</a></li>
+            <li><a href="mailto:hello@kidsexplorer.eu">Contact · hello@</a></li>
+          </ul>
+        </div>
+        <div>
+          <h5>Verified via · 数据来源</h5>
+          <ul>
+            <li><a href="https://www.openstreetmap.org/">OpenStreetMap</a></li>
+            <li><a href="https://nominatim.org/">Nominatim</a></li>
+            <li><a href="#about">Brand websites</a></li>
+            <li><a href="mailto:hello@kidsexplorer.eu">Community reports</a></li>
+          </ul>
+        </div>
+        <div>
+          <h5>More from Nana · 姐妹项目</h5>
+          <ul>
+            <li><a href="https://nanaliu.nl" rel="me">nanaliu.nl — portfolio</a></li>
+            <li><a href="https://xinaliu2134.github.io/withyou/">WithYou — ASD support</a></li>
+            <li><a href="https://xinaliu2134.github.io/autism-tools/">Autism tools</a></li>
+            <li><a href="https://xinaliu2134.github.io/hollandlife-v2/">Holland Life · 荷兰生活</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 Kids Explorer · kidsexplorer.eu · Free forever · 永久免费</span>
+        <span>Data verified via OSM + Nominatim + brand websites</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Geo picker modal -->
+  <div class="geo-modal" id="geoModal" role="dialog" aria-label="Choose country">
+    <div class="geo-modal-inner">
+      <button class="gm-close" id="gmClose" aria-label="Close">×</button>
+      <h4>Where are you? · 你在哪里</h4>
+      <div class="gm-sub">pick a country · 选择国家</div>
+      <div class="geo-list" id="geoList"></div>
     </div>
   </div>
-</nav>
 
-<header class="hero container">
-  <div class="eyebrow"><span class="en">19 countries · bilingual · free</span><span class="zh">19 国 · 中英双语 · 免费</span></div>
-  <h1>
-    <span class="en">Family-friendly places across <em>Europe</em>, mapped.</span>
-    <span class="zh">欧洲 12 国 <em>亲子好去处</em>，一张地图全收录</span>
-  </h1>
-  <p class="sub">
-    <span class="en">7,600+ theme parks, zoos, museums, playgrounds, and nature spots across 19 countries — with verified coordinates, opening hours, and Chinese-language support indicators. Built by a Dutch-Chinese mom for families planning weekend trips and school holidays.</span>
-    <span class="zh">7,600+ 主题乐园、动物园、博物馆、游乐场、自然景点，覆盖19国——含精确坐标、开放时间、中文向导可用标识。由荷兰华人妈妈为度假规划的家庭打造。</span>
-  </p>
-  <div class="stat-strip">
-    <div><strong>7,600+</strong><span class="en">venues</span><span class="zh">场所</span></div>
-    <div><strong>19</strong><span class="en">countries</span><span class="zh">国家</span></div>
-    <div><strong>16</strong><span class="en">categories</span><span class="zh">品类</span></div>
-    <div><strong>EN · 中</strong><span class="en">bilingual</span><span class="zh">双语</span></div>
-  </div>
-</header>
+  <script>
+    // ====== REAL DATA — 19 countries, matches live kidsexplorer.eu slugs & counts ======
+    const COUNTRIES = [
+      // Featured 8 (shown as cards, in editorial order). The rest become chips.
+      {slug:'nl', flag:'🇳🇱', en:'Netherlands',    native:'Nederland',        zh:'荷兰',     count:672, featured:true, grad:'linear-gradient(135deg,#e6d7c3 0%,#b0825c 100%)'},
+      {slug:'de', flag:'🇩🇪', en:'Germany',        native:'Deutschland',      zh:'德国',     count:593, featured:true, grad:'linear-gradient(135deg,#e8d5c2 0%,#a56a48 100%)'},
+      {slug:'fr', flag:'🇫🇷', en:'France',         native:'France',           zh:'法国',     count:607, featured:true, grad:'linear-gradient(135deg,#f0dcc2 0%,#c78a4a 100%)'},
+      {slug:'be', flag:'🇧🇪', en:'Belgium',        native:'België',           zh:'比利时',   count:464, featured:true, grad:'linear-gradient(135deg,#dfe4d6 0%,#5c7452 100%)'},
+      {slug:'it', flag:'🇮🇹', en:'Italy',          native:'Italia',           zh:'意大利',   count:570, featured:true, grad:'linear-gradient(135deg,#ecd6be 0%,#a86a40 100%)'},
+      {slug:'es', flag:'🇪🇸', en:'Spain',          native:'España',           zh:'西班牙',   count:576, featured:true, grad:'linear-gradient(135deg,#f0d9bf 0%,#b4723e 100%)'},
+      {slug:'at', flag:'🇦🇹', en:'Austria',        native:'Österreich',       zh:'奥地利',   count:293, featured:true, grad:'linear-gradient(135deg,#d7e2df 0%,#456a64 100%)'},
+      {slug:'ch', flag:'🇨🇭', en:'Switzerland',    native:'Schweiz',          zh:'瑞士',     count:257, featured:true, grad:'linear-gradient(135deg,#eadbcf 0%,#8f6e5a 100%)'},
+      // Chip countries
+      {slug:'uk', flag:'🇬🇧', en:'United Kingdom', native:'UK',               zh:'英国',     count:515, featured:false},
+      {slug:'ie', flag:'🇮🇪', en:'Ireland',        native:'Éire',             zh:'爱尔兰',   count:176, featured:false},
+      {slug:'pt', flag:'🇵🇹', en:'Portugal',       native:'Portugal',         zh:'葡萄牙',   count:533, featured:false},
+      {slug:'se', flag:'🇸🇪', en:'Sweden',         native:'Sverige',          zh:'瑞典',     count:300, featured:false},
+      {slug:'dk', flag:'🇩🇰', en:'Denmark',        native:'Danmark',          zh:'丹麦',     count:300, featured:false},
+      {slug:'no', flag:'🇳🇴', en:'Norway',         native:'Norge',            zh:'挪威',     count:300, featured:false},
+      {slug:'pl', flag:'🇵🇱', en:'Poland',         native:'Polska',           zh:'波兰',     count:300, featured:false},
+      {slug:'cz', flag:'🇨🇿', en:'Czech Republic', native:'Česká republika',  zh:'捷克',     count:300, featured:false},
+      {slug:'hu', flag:'🇭🇺', en:'Hungary',        native:'Magyarország',     zh:'匈牙利',   count:300, featured:false},
+      {slug:'hr', flag:'🇭🇷', en:'Croatia',        native:'Hrvatska',         zh:'克罗地亚', count:300, featured:false},
+      {slug:'gr', flag:'🇬🇷', en:'Greece',         native:'Ελλάδα',           zh:'希腊',     count:249, featured:false}
+    ];
 
-<main class="container">
-  <h2>
-    <span class="en">Pick a country</span>
-    <span class="zh">选择国家</span>
-  </h2>
-  <p class="section-sub">
-    <span class="en">Tap a country to open its interactive map</span>
-    <span class="zh">点击国家查看互动地图</span>
-  </p>
+    // Country code → our slug (for IP + timezone detection)
+    const CC_TO_SLUG = {
+      NL:'nl', BE:'be', DE:'de', FR:'fr', GB:'uk', UK:'uk', IE:'ie',
+      ES:'es', PT:'pt', IT:'it', CH:'ch', AT:'at', GR:'gr',
+      PL:'pl', SE:'se', DK:'dk', NO:'no', CZ:'cz', HU:'hu', HR:'hr'
+    };
+    const TZ_TO_CC = {
+      'Europe/Amsterdam':'NL','Europe/Brussels':'BE','Europe/Berlin':'DE','Europe/Paris':'FR',
+      'Europe/London':'GB','Europe/Dublin':'IE','Europe/Madrid':'ES','Europe/Lisbon':'PT',
+      'Europe/Rome':'IT','Europe/Zurich':'CH','Europe/Vienna':'AT','Europe/Athens':'GR',
+      'Europe/Warsaw':'PL','Europe/Stockholm':'SE','Europe/Copenhagen':'DK',
+      'Europe/Oslo':'NO','Europe/Prague':'CZ','Europe/Budapest':'HU','Europe/Zagreb':'HR'
+    };
 
-  <div class="grid" id="grid"></div>
-</main>
-
-<footer>
-  <div class="container">
-    <span class="en">Built with ❤️ by <a href="https://nanaliu.nl">Nana Liu</a> · Data verified via OSM + Nominatim + brand websites · Free forever</span>
-    <span class="zh">由 <a href="https://nanaliu.nl">Nana Liu</a> 用 ❤️ 打造 · 数据经 OSM + Nominatim + 品牌官网交叉验证 · 永久免费</span>
-  </div>
-</footer>
-
-<script>
-const COUNTRIES = [
-  {slug:'nl', flag:'🇳🇱', en:'Netherlands', native:'Nederland',  zh:'荷兰',     count:672, region:'benelux'},
-  {slug:'be', flag:'🇧🇪', en:'Belgium',     native:'België',     zh:'比利时',   count:464, region:'benelux'},
-  {slug:'de', flag:'🇩🇪', en:'Germany',     native:'Deutschland',zh:'德国',     count:593, region:'dach'},
-  {slug:'at', flag:'🇦🇹', en:'Austria',     native:'Österreich', zh:'奥地利',   count:293, region:'dach'},
-  {slug:'ch', flag:'🇨🇭', en:'Switzerland', native:'Schweiz',    zh:'瑞士',     count:257, region:'dach'},
-  {slug:'fr', flag:'🇫🇷', en:'France',      native:'France',     zh:'法国',     count:607, region:'fr'},
-  {slug:'es', flag:'🇪🇸', en:'Spain',       native:'España',     zh:'西班牙',   count:576, region:'iberia'},
-  {slug:'pt', flag:'🇵🇹', en:'Portugal',    native:'Portugal',   zh:'葡萄牙',   count:533, region:'iberia'},
-  {slug:'it', flag:'🇮🇹', en:'Italy',       native:'Italia',     zh:'意大利',   count:570, region:'south'},
-  {slug:'gr', flag:'🇬🇷', en:'Greece',      native:'Ελλάδα',     zh:'希腊',     count:249, region:'south'},
-  {slug:'hr', flag:'🇭🇷', en:'Croatia',     native:'Hrvatska',   zh:'克罗地亚', count:300, region:'south'},
-  {slug:'se', flag:'🇸🇪', en:'Sweden',      native:'Sverige',    zh:'瑞典',     count:300, region:'nordic'},
-  {slug:'dk', flag:'🇩🇰', en:'Denmark',     native:'Danmark',    zh:'丹麦',     count:300, region:'nordic'},
-  {slug:'no', flag:'🇳🇴', en:'Norway',      native:'Norge',      zh:'挪威',     count:300, region:'nordic'},
-  {slug:'pl', flag:'🇵🇱', en:'Poland',      native:'Polska',     zh:'波兰',     count:300, region:'central'},
-  {slug:'cz', flag:'🇨🇿', en:'Czech Republic',native:'Česká republika',zh:'捷克',count:300, region:'central'},
-  {slug:'hu', flag:'🇭🇺', en:'Hungary',     native:'Magyarország',zh:'匈牙利',  count:300, region:'central'},
-  {slug:'ie', flag:'🇮🇪', en:'Ireland',     native:'Éire',       zh:'爱尔兰',   count:176, region:'british'},
-  {slug:'uk', flag:'🇬🇧', en:'United Kingdom',native:'UK',       zh:'英国',     count:515, region:'british'}
-];
-
-function render() {
-  const grid = document.getElementById('grid');
-  const lang = document.body.dataset.lang;
-  // Mobile → V2, desktop → V1. User can override via ?desktop=1 or ?mobile=1.
-  const q = location.search;
-  const forceDesktop = q.indexOf('desktop=1') !== -1;
-  const forceMobile = q.indexOf('mobile=1') !== -1;
-  const isMobile = forceMobile || (!forceDesktop && window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
-  const suffix = isMobile ? '-v2' : '';
-  grid.innerHTML = COUNTRIES.map(c => `
-    <a href="/${c.slug}${suffix}/" class="country">
-      <div class="flag">${c.flag}</div>
-      <div class="country-name">${lang === 'zh' ? c.zh : c.en}</div>
-      <div class="country-native">${c.native}</div>
-      <div class="country-stat">
-        <span>${c.count.toLocaleString()} ${lang === 'zh' ? '场所' : 'venues'}</span>
-        <span class="arrow">${lang === 'zh' ? '打开地图 →' : 'Open map →'}</span>
-      </div>
-    </a>
-  `).join('');
-}
-
-function setLang(l) {
-  document.body.dataset.lang = l;
-  document.querySelectorAll('.lang-switch button').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  render();
-}
-
-render();
-
-// ===== IP Geolocation Banner =====
-// Map country code → slug
-const CC_TO_SLUG = {
-  NL:'nl', BE:'be', DE:'de', FR:'fr', GB:'uk', UK:'uk', IE:'ie',
-  ES:'es', PT:'pt', IT:'it', CH:'ch', AT:'at', GR:'gr',
-  PL:'pl', SE:'se', DK:'dk', NO:'no', CZ:'cz', HU:'hu', HR:'hr'
-};
-
-async function detectCountry() {
-  // Dismissed recently?
-  if (localStorage.getItem('ke_banner_dismissed')) return;
-  // Timezone fallback (instant, no network)
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-  const TZ_TO_CC = {
-    'Europe/Amsterdam':'NL','Europe/Brussels':'BE','Europe/Berlin':'DE','Europe/Paris':'FR',
-    'Europe/London':'GB','Europe/Dublin':'IE','Europe/Madrid':'ES','Europe/Lisbon':'PT',
-    'Europe/Rome':'IT','Europe/Zurich':'CH','Europe/Vienna':'AT','Europe/Athens':'GR',
-    'Europe/Warsaw':'PL','Europe/Stockholm':'SE','Europe/Copenhagen':'DK',
-    'Europe/Oslo':'NO','Europe/Prague':'CZ','Europe/Budapest':'HU','Europe/Zagreb':'HR'
-  };
-  let cc = TZ_TO_CC[tz];
-  // Try IP lookup for more accuracy
-  try {
-    const r = await fetch('https://ipapi.co/json/', {cache:'no-store'});
-    if (r.ok) {
-      const d = await r.json();
-      if (d.country_code) cc = d.country_code;
+    // URL builder — matches the live site's scheme: /{slug}/ on desktop, /{slug}-v2/ on mobile
+    // Can be overridden with ?desktop=1 or ?mobile=1
+    function isMobile() {
+      const q = location.search;
+      if (q.indexOf('desktop=1') !== -1) return false;
+      if (q.indexOf('mobile=1') !== -1) return true;
+      return window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
     }
-  } catch(e) {}
-  if (!cc) return;
-  const slug = CC_TO_SLUG[cc];
-  if (!slug) return;
-  const country = COUNTRIES.find(c => c.slug === slug);
-  if (!country) return;
-  // Show banner
-  const lang = document.body.dataset.lang;
-  document.getElementById('geo-text').textContent = lang === 'zh'
-    ? `📍 检测到您在${country.zh}，直接打开本国地图？`
-    : `📍 Looks like you're in ${country.en}. Jump straight to the map?`;
-  const link = document.getElementById('geo-link');
-  link.textContent = lang === 'zh' ? `打开 ${country.flag} ${country.zh} →` : `Open ${country.flag} ${country.en} →`;
-  link.href = `/${slug}/`;
-  document.getElementById('geo-banner').classList.add('show');
-}
-function dismissBanner() {
-  document.getElementById('geo-banner').classList.remove('show');
-  localStorage.setItem('ke_banner_dismissed', '1');
-}
-detectCountry();
-</script>
+    function countryUrl(slug) {
+      const suffix = isMobile() ? '-v2' : '';
+      return `/${slug}${suffix}/`;
+    }
+
+    // ====== Detected country state ======
+    let detectedSlug = null;
+
+    function findCountry(slug){ return COUNTRIES.find(c => c.slug === slug); }
+
+    // ====== Render country cards + chips ======
+    function renderCountries() {
+      const grid = document.getElementById('countriesGrid');
+      const chipWrap = document.getElementById('countryChips');
+      grid.innerHTML = COUNTRIES.filter(c => c.featured).map(c => `
+        <a class="country" href="${countryUrl(c.slug)}">
+          <div class="ph" style="background-image:${c.grad}"></div>
+          <div class="scrim"></div>
+          <div class="txt">
+            <div class="en">${c.flag} ${c.en}</div>
+            <div class="zh">${c.zh}</div>
+            <div class="n">${c.count.toLocaleString()}+ venues · 场所</div>
+          </div>
+        </a>
+      `).join('');
+      chipWrap.innerHTML = COUNTRIES.filter(c => !c.featured).map(c => `
+        <a class="chip" href="${countryUrl(c.slug)}">${c.flag} ${c.en} · ${c.zh}</a>
+      `).join(' ');
+    }
+
+    // ====== Category links route to the detected country's map ======
+    function applyCategoryLinks() {
+      const slug = detectedSlug || 'nl'; // default to NL
+      const url = countryUrl(slug);
+      document.querySelectorAll('.cat[data-cat]').forEach(a => { a.href = url; });
+      document.getElementById('catMore').href = url;
+      document.getElementById('mapCta').href = url;
+      document.getElementById('navCta').href = url;
+
+      const info = findCountry(slug);
+      const eb = document.getElementById('catEyebrow');
+      if (eb && info && detectedSlug) {
+        eb.innerHTML = `16 categories in ${info.flag} ${info.en} · 16 品类`;
+      }
+    }
+
+    // ====== Geo banner ======
+    async function detectCountry() {
+      if (localStorage.getItem('ke_banner_dismissed')) {
+        applyCategoryLinks();
+        return;
+      }
+      // Timezone first (instant, no network)
+      let cc = null;
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        cc = TZ_TO_CC[tz] || null;
+      } catch(e) {}
+      // Then try IP for better accuracy
+      try {
+        const r = await fetch('https://ipapi.co/json/', { cache:'no-store' });
+        if (r.ok) {
+          const d = await r.json();
+          if (d && d.country_code) cc = d.country_code;
+        }
+      } catch(e) {}
+      if (!cc) { applyCategoryLinks(); return; }
+      const slug = CC_TO_SLUG[cc];
+      if (!slug) { applyCategoryLinks(); return; }
+      detectedSlug = slug;
+      applyCategoryLinks();
+      showGeoBanner(slug);
+    }
+
+    function showGeoBanner(slug) {
+      const info = findCountry(slug);
+      if (!info) return;
+      const banner = document.getElementById('geoBanner');
+      const txt = document.getElementById('geoTxt');
+      const change = document.getElementById('geoChange');
+      txt.innerHTML = `📍 Looks like you're in <b>${info.flag} ${info.en}</b> <span class="geo-zh">· 你在 ${info.zh}</span> — <a href="${countryUrl(slug)}" style="color:var(--ink);border-bottom:1px solid var(--ink)">open the map →</a>`;
+      change.hidden = false;
+      banner.classList.add('show');
+    }
+
+    // Geo change modal
+    const geoModal = document.getElementById('geoModal');
+    const geoList = document.getElementById('geoList');
+    function populateGeoList() {
+      COUNTRIES.forEach(c => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.dataset.slug = c.slug;
+        b.innerHTML = `${c.flag} ${c.en} <span style="opacity:.6;margin-left:.25rem">${c.zh}</span>`;
+        b.addEventListener('click', () => {
+          location.href = countryUrl(c.slug);
+        });
+        geoList.appendChild(b);
+      });
+    }
+    document.getElementById('geoChange').addEventListener('click', () => {
+      geoList.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.slug === detectedSlug));
+      geoModal.classList.add('open');
+    });
+    document.getElementById('gmClose').addEventListener('click', () => geoModal.classList.remove('open'));
+    geoModal.addEventListener('click', (e) => { if (e.target === geoModal) geoModal.classList.remove('open'); });
+
+    // Init
+    renderCountries();
+    applyCategoryLinks();
+    populateGeoList();
+    detectCountry();
+
+    // ====== Background video fade loop ======
+    (function(){
+      const video = document.getElementById('bgVideo');
+      if (!video) return;
+      const FADE = 0.5;
+      let raf = null, looping = false;
+      function tick(){
+        const d = video.duration, t = video.currentTime;
+        if (isFinite(d) && d > 0) {
+          let opacity = 1;
+          if (t < FADE) opacity = Math.max(0, t / FADE);
+          else if (t > d - FADE) opacity = Math.max(0, (d - t) / FADE);
+          video.style.opacity = opacity.toFixed(3);
+        }
+        raf = requestAnimationFrame(tick);
+      }
+      function start(){ if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); }
+      video.addEventListener('loadedmetadata', start);
+      video.addEventListener('play', start);
+      video.addEventListener('ended', () => {
+        if (looping) return;
+        looping = true;
+        video.style.opacity = '0';
+        setTimeout(async () => {
+          try { video.currentTime = 0; await video.play(); } catch(e){}
+          looping = false;
+        }, 100);
+      });
+      const tryPlay = () => video.play().catch(()=>{});
+      if (video.readyState >= 2) tryPlay();
+      else video.addEventListener('canplay', tryPlay, { once:true });
+      const resume = () => { tryPlay(); document.removeEventListener('click', resume); };
+      document.addEventListener('click', resume, { once:true });
+    })();
+  </script>
 </body>
 </html>
