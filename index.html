@@ -511,6 +511,7 @@
       <div class="footer-bottom">
         <span>© 2026 Kids Explorer · kidsexplorer.eu · Free forever · 永久免费</span>
         <span>Data verified via OSM + Nominatim + brand websites</span>
+        <span style="opacity:.85">Country photos via Wikimedia Commons — Efteling ©Rémih · Parc Astérix ©Bernd van Delft · Wiener Prater ©Manfred Werner · Conny-Land ©Christophe95 (CC BY-SA) · Europa-Park / Plopsaland / Gardaland / PortAventura (CC0/PD)</span>
       </div>
     </footer>
 
@@ -530,14 +531,14 @@
     // ====== REAL DATA — 19 countries, matches live kidsexplorer.eu slugs & counts ======
     const COUNTRIES = [
       // Featured 8 (shown as cards, in editorial order). The rest become chips.
-      {slug:'nl', flag:'🇳🇱', en:'Netherlands',    native:'Nederland',        zh:'荷兰',     count:672, featured:true, grad:'linear-gradient(135deg,#e6d7c3 0%,#b0825c 100%)'},
-      {slug:'de', flag:'🇩🇪', en:'Germany',        native:'Deutschland',      zh:'德国',     count:593, featured:true, grad:'linear-gradient(135deg,#e8d5c2 0%,#a56a48 100%)'},
-      {slug:'fr', flag:'🇫🇷', en:'France',         native:'France',           zh:'法国',     count:607, featured:true, grad:'linear-gradient(135deg,#f0dcc2 0%,#c78a4a 100%)'},
-      {slug:'be', flag:'🇧🇪', en:'Belgium',        native:'België',           zh:'比利时',   count:464, featured:true, grad:'linear-gradient(135deg,#dfe4d6 0%,#5c7452 100%)'},
-      {slug:'it', flag:'🇮🇹', en:'Italy',          native:'Italia',           zh:'意大利',   count:570, featured:true, grad:'linear-gradient(135deg,#ecd6be 0%,#a86a40 100%)'},
-      {slug:'es', flag:'🇪🇸', en:'Spain',          native:'España',           zh:'西班牙',   count:576, featured:true, grad:'linear-gradient(135deg,#f0d9bf 0%,#b4723e 100%)'},
-      {slug:'at', flag:'🇦🇹', en:'Austria',        native:'Österreich',       zh:'奥地利',   count:293, featured:true, grad:'linear-gradient(135deg,#d7e2df 0%,#456a64 100%)'},
-      {slug:'ch', flag:'🇨🇭', en:'Switzerland',    native:'Schweiz',          zh:'瑞士',     count:257, featured:true, grad:'linear-gradient(135deg,#eadbcf 0%,#8f6e5a 100%)'},
+      {slug:'nl', img:'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Efteling_The_House_of_the_Five_Senses.jpg/1920px-Efteling_The_House_of_the_Five_Senses.jpg', flag:'🇳🇱', en:'Netherlands',    native:'Nederland',        zh:'荷兰',     count:672, featured:true, grad:'linear-gradient(135deg,#e6d7c3 0%,#b0825c 100%)'},
+      {slug:'de', img:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Landappbw_97025_1817_Europa-Park_Rust.jpg/1280px-Landappbw_97025_1817_Europa-Park_Rust.jpg', flag:'🇩🇪', en:'Germany',        native:'Deutschland',      zh:'德国',     count:593, featured:true, grad:'linear-gradient(135deg,#e8d5c2 0%,#a56a48 100%)'},
+      {slug:'fr', img:'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Le_Cheval_de_Troie_%28Parc_Ast%C3%A9rix%29.jpg/1920px-Le_Cheval_de_Troie_%28Parc_Ast%C3%A9rix%29.jpg', flag:'🇫🇷', en:'France',         native:'France',           zh:'法国',     count:607, featured:true, grad:'linear-gradient(135deg,#f0dcc2 0%,#c78a4a 100%)'},
+      {slug:'be', img:'https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Wickieland_shops_and_restaurants%2C_Plopsaland_De_Panne%2C_2021.jpg/1920px-Wickieland_shops_and_restaurants%2C_Plopsaland_De_Panne%2C_2021.jpg', flag:'🇧🇪', en:'Belgium',        native:'België',           zh:'比利时',   count:464, featured:true, grad:'linear-gradient(135deg,#dfe4d6 0%,#5c7452 100%)'},
+      {slug:'it', img:'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Ingresso_del_Gardaland_Park.jpg/1280px-Ingresso_del_Gardaland_Park.jpg', flag:'🇮🇹', en:'Italy',          native:'Italia',           zh:'意大利',   count:570, featured:true, grad:'linear-gradient(135deg,#ecd6be 0%,#a86a40 100%)'},
+      {slug:'es', img:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/Dragon_Khan_and_Shambhala_from_far%2C_Port_Aventura%2C_2012.JPG/1280px-Dragon_Khan_and_Shambhala_from_far%2C_Port_Aventura%2C_2012.JPG', flag:'🇪🇸', en:'Spain',          native:'España',           zh:'西班牙',   count:576, featured:true, grad:'linear-gradient(135deg,#f0d9bf 0%,#b4723e 100%)'},
+      {slug:'at', img:'https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Riesenrad_Wiener_Prater_2020-07-12_d.jpg/1920px-Riesenrad_Wiener_Prater_2020-07-12_d.jpg', flag:'🇦🇹', en:'Austria',        native:'Österreich',       zh:'奥地利',   count:293, featured:true, grad:'linear-gradient(135deg,#d7e2df 0%,#456a64 100%)'},
+      {slug:'ch', img:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/Cobra_Conny-Land.JPG/1920px-Cobra_Conny-Land.JPG', flag:'🇨🇭', en:'Switzerland',    native:'Schweiz',          zh:'瑞士',     count:257, featured:true, grad:'linear-gradient(135deg,#eadbcf 0%,#8f6e5a 100%)'},
       // Chip countries
       {slug:'uk', flag:'🇬🇧', en:'United Kingdom', native:'UK',               zh:'英国',     count:515, featured:false},
       {slug:'ie', flag:'🇮🇪', en:'Ireland',        native:'Éire',             zh:'爱尔兰',   count:176, featured:false},
@@ -590,7 +591,7 @@
       const chipWrap = document.getElementById('countryChips');
       grid.innerHTML = COUNTRIES.filter(c => c.featured).map(c => `
         <a class="country" href="${countryUrl(c.slug)}">
-          <div class="ph" style="background-image:${c.grad}"></div>
+          <div class="ph" style="background-image:url('${c.img}'),${c.grad}"></div>
           <div class="scrim"></div>
           <div class="txt">
             <div class="en">${c.flag} ${c.en}</div>
