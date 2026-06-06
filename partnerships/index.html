@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Partnerships — Kids Explorer</title>
+<style>
+  :root {
+    --text: #1a1a2e;
+    --muted: #555;
+    --accent: #2563eb;
+    --bg: #fafafa;
+    --card-bg: #fff;
+    --border: #e5e7eb;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.7;
+  }
+  nav {
+    padding: 1.2rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    background: #fff;
+  }
+  nav .logo { font-family: 'Georgia', serif; font-size: 1.25rem; font-weight: 600; color: var(--text); text-decoration: none; }
+  nav .logo em { font-style: italic; }
+  nav a { color: var(--muted); text-decoration: none; font-size: 0.9rem; }
+  nav a:hover { color: var(--text); }
+
+  .hero {
+    max-width: 640px;
+    margin: 5rem auto 3rem;
+    padding: 0 1.5rem;
+    text-align: center;
+  }
+  .hero h1 { font-size: 2.2rem; font-weight: 700; line-height: 1.25; margin-bottom: 1rem; }
+  .hero p { font-size: 1.05rem; color: var(--muted); }
+
+  section {
+    max-width: 640px;
+    margin: 0 auto 3rem;
+    padding: 0 1.5rem;
+  }
+  section h2 { font-size: 1.35rem; font-weight: 600; margin-bottom: 1rem; }
+  section p { color: var(--muted); margin-bottom: 0.8rem; font-size: 0.95rem; }
+
+  .audience-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  @media (max-width: 500px) { .audience-grid { grid-template-columns: 1fr; } }
+  .audience-item {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+  }
+  .audience-item .num { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+  .audience-item .desc { font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem; }
+
+  .collab-list { margin-top: 1rem; }
+  .collab-item {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.4rem;
+    margin-bottom: 0.8rem;
+  }
+  .collab-item h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.3rem; }
+  .collab-item p { font-size: 0.88rem; color: var(--muted); margin: 0; }
+
+  .no-list {
+    background: #fef3f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 1rem 1.4rem;
+    margin-top: 1.5rem;
+  }
+  .no-list h3 { font-size: 0.95rem; font-weight: 600; color: #991b1b; margin-bottom: 0.3rem; }
+  .no-list p { font-size: 0.85rem; color: #7f1d1d; margin: 0; }
+
+  .cta-box {
+    text-align: center;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 2rem;
+    margin-top: 2rem;
+  }
+  .cta-box h2 { font-size: 1.3rem; margin-bottom: 0.5rem; }
+  .cta-box p { color: var(--muted); font-size: 0.92rem; }
+  .cta-box a.email-btn {
+    display: inline-block;
+    margin-top: 1rem;
+    padding: 0.7rem 2rem;
+    background: var(--accent);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .cta-box a.email-btn:hover { background: #1d4ed8; }
+
+  footer {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    font-size: 0.82rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    margin-top: 4rem;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Kids_<em>Explorer</em>_</a>
+  <div>
+    <a href="/">Map</a>&nbsp;&nbsp;&nbsp;
+    <a href="/data">Data</a>&nbsp;&nbsp;&nbsp;
+    <a href="/partnerships" style="font-weight:600;color:var(--text);">Partnerships</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>Partner with Kids Explorer</h1>
+  <p>We help family-focused brands and organizations reach parents planning real trips across Europe — in English and Chinese.</p>
+</div>
+
+<!-- AUDIENCE -->
+<section>
+  <h2>Our audience</h2>
+  <p>Parents actively planning weekend outings and holiday trips with children across Europe.</p>
+  <div class="audience-grid">
+    <div class="audience-item">
+      <div class="num">19 countries</div>
+      <div class="desc">Pan-European reach, strongest in NL, DE, FR, UK</div>
+    </div>
+    <div class="audience-item">
+      <div class="num">EN + 中文</div>
+      <div class="desc">Bilingual audience, incl. Chinese expat families in Europe</div>
+    </div>
+    <div class="audience-item">
+      <div class="num">High intent</div>
+      <div class="desc">Visitors are actively choosing where to go this weekend</div>
+    </div>
+    <div class="audience-item">
+      <div class="num">Family spend</div>
+      <div class="desc">Audience books tickets, hotels, and transport around visits</div>
+    </div>
+  </div>
+  <p style="font-size:0.82rem;margin-top:1rem;">Detailed analytics and a media kit are available on request.</p>
+</section>
+
+<!-- WHAT WE DO -->
+<section>
+  <h2>Ways to work together</h2>
+  <div class="collab-list">
+    <div class="collab-item">
+      <h3>Sponsored venue feature</h3>
+      <p>Highlight your attraction, destination, or experience to families actively browsing. Clearly labeled as sponsored. One country page or site-wide.</p>
+    </div>
+    <div class="collab-item">
+      <h3>Data licensing</h3>
+      <p>License our 7,600+ structured venue records for your app, platform, or campaign. <a href="/data" style="color:var(--accent);">Learn more →</a></p>
+    </div>
+    <div class="collab-item">
+      <h3>Content collaboration</h3>
+      <p>Co-create a seasonal guide, city spotlight, or thematic collection (e.g. "Best Christmas markets for families"). Your brand, our data and audience.</p>
+    </div>
+    <div class="collab-item">
+      <h3>Chinese market access</h3>
+      <p>Reach Chinese-speaking families in Europe through our bilingual platform — a rare direct channel for tourism boards and family brands entering this audience.</p>
+    </div>
+  </div>
+
+  <!-- WHAT WE DON'T DO -->
+  <div class="no-list">
+    <h3>What we don't do</h3>
+    <p>No display ads. No pop-ups. No sponsored content disguised as editorial. Every paid placement is clearly labeled, and we only partner with brands genuinely relevant to families.</p>
+  </div>
+</section>
+
+<!-- CTA -->
+<section>
+  <div class="cta-box">
+    <h2>Interested?</h2>
+    <p>Tell us a bit about your organization and what you have in mind. We'll reply within 48 hours.</p>
+    <a href="mailto:pax@xzzktech.cn?subject=Partnership%20inquiry%20—%20Kids%20Explorer" class="email-btn">pax@xzzktech.cn</a>
+  </div>
+</section>
+
+<footer>
+  <p>Kids Explorer — Family-friendly places across Europe, mapped.</p>
+  <p style="margin-top:0.3rem;">
+    <a href="/">Home</a> · <a href="/data">Data licensing</a> · <a href="/partnerships">Partnerships</a> · <a href="mailto:pax@xzzktech.cn">pax@xzzktech.cn</a>
+  </p>
+</footer>
+
+</body>
+</html>
