@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Licensing — Kids Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --text: #1a1a1a;
+    --muted: #6b6b6b;
+    --accent: #c75a3a;
+    --accent-light: #fdf4f0;
+    --bg: #fafaf8;
+    --card-bg: #ffffff;
+    --border: #e8e5e0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.7;
+  }
+
+  /* --- NAV (matching KidsExplorer style) --- */
+  nav {
+    padding: 1rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    background: #fff;
+  }
+  nav .logo {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 1.2rem;
+    color: var(--text);
+    text-decoration: none;
+    letter-spacing: -0.02em;
+  }
+  nav .logo em { font-style: italic; color: var(--accent); }
+  nav .links { display: flex; gap: 2rem; align-items: center; }
+  nav .links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+  }
+  nav .links a:hover { color: var(--text); }
+  nav .links a.active { color: var(--text); font-weight: 600; }
+
+  /* --- HERO --- */
+  .hero {
+    max-width: 780px;
+    margin: 5rem auto 1.5rem;
+    padding: 0 2rem;
+    text-align: center;
+  }
+  .hero .label {
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.2rem;
+  }
+  .hero h1 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 2.8rem;
+    font-weight: 400;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+  }
+  .hero h1 em { font-style: italic; }
+  .hero p {
+    font-size: 1rem;
+    color: var(--muted);
+    max-width: 540px;
+    margin: 0 auto;
+    line-height: 1.8;
+  }
+
+  /* --- STATS --- */
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 3.5rem;
+    margin: 3rem auto 4rem;
+    flex-wrap: wrap;
+  }
+  .stat { text-align: center; }
+  .stat .number {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 1.8rem;
+    font-style: italic;
+    color: var(--accent);
+  }
+  .stat .label {
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 0.2rem;
+  }
+
+  /* --- SECTIONS --- */
+  section {
+    max-width: 780px;
+    margin: 0 auto 4rem;
+    padding: 0 2rem;
+  }
+  section .section-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+  }
+  section h2 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 1.8rem;
+    font-weight: 400;
+    margin-bottom: 1rem;
+  }
+  section h2 em { font-style: italic; }
+
+  /* --- SCHEMA TABLE --- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  td:last-child { text-align: right; color: var(--muted); font-size: 0.82rem; }
+
+  /* --- USE CASES --- */
+  .cases {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    border-top: 1px solid var(--border);
+    margin-top: 1.5rem;
+  }
+  .case-item {
+    display: grid;
+    grid-template-columns: 2.5rem 1fr;
+    gap: 1rem;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+  }
+  .case-num {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--accent);
+    padding-top: 0.1rem;
+  }
+  .case-item h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.3rem; }
+  .case-item p { font-size: 0.85rem; color: var(--muted); line-height: 1.6; margin: 0; }
+
+  /* --- PRICING --- */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+  @media (max-width: 600px) { .pricing-grid { grid-template-columns: 1fr; } }
+  .pricing-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.8rem;
+  }
+  .pricing-card h3 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+  .pricing-card .price {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 2rem;
+    color: var(--text);
+    margin-bottom: 0.8rem;
+  }
+  .pricing-card .price small { font-size: 0.9rem; color: var(--muted); font-family: 'Inter', sans-serif; }
+  .pricing-card ul {
+    list-style: none;
+    padding: 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 2;
+  }
+  .pricing-card ul li::before { content: "→ "; color: var(--accent); }
+
+  /* --- FORM --- */
+  .form-section {
+    background: var(--accent-light);
+    border-radius: 8px;
+    padding: 2.5rem;
+    margin-top: 2rem;
+  }
+  .form-section h2 { margin-bottom: 0.3rem; }
+  .form-section > p { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+  .contact-form label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+    margin-top: 1.2rem;
+  }
+  .contact-form label:first-of-type { margin-top: 0; }
+  .contact-form input,
+  .contact-form textarea,
+  .contact-form select {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.88rem;
+    font-family: inherit;
+    background: #fff;
+  }
+  .contact-form textarea { resize: vertical; min-height: 70px; }
+  .submit-btn {
+    margin-top: 1.5rem;
+    display: inline-block;
+    padding: 0.7rem 2.2rem;
+    background: var(--text);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+  .submit-btn:hover { background: #333; }
+
+  /* --- TRUST --- */
+  .trust {
+    text-align: center;
+    padding: 3rem 2rem;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+  .trust p {
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+  .trust a { color: var(--accent); text-decoration: none; }
+
+  /* --- FOOTER --- */
+  footer {
+    text-align: center;
+    padding: 2.5rem 2rem;
+    font-size: 0.78rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="https://kidsexplorer.eu/" class="logo">Kids <em>*Explorer*</em></a>
+  <div class="links">
+    <a href="https://kidsexplorer.eu/#countries">Countries · 国家</a>
+    <a href="https://kidsexplorer.eu/#categories">Categories · 品类</a>
+    <a href="https://kidsexplorer.eu/#about">About · 关于</a>
+    <a href="https://kidsexplorer.eu/#partners">For partners · 合作</a>
+    <a href="#" class="active">Data · 数据</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="label">DATA LICENSING · 数据授权</div>
+  <h1>Europe's largest <em>family-friendly</em> venue dataset</h1>
+  <p>7,600+ verified attractions across 19 countries. Structured, bilingual, triple-checked against OSM + Nominatim + brand websites.</p>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="number">7,600+</div><div class="label">Venues · 场所</div></div>
+  <div class="stat"><div class="number">19</div><div class="label">Countries · 国家</div></div>
+  <div class="stat"><div class="number">16</div><div class="label">Categories · 品类</div></div>
+  <div class="stat"><div class="number">EN · 中</div><div class="label">Bilingual · 双语</div></div>
+</div>
+
+<!-- SCHEMA -->
+<section>
+  <div class="section-label">WHAT'S IN THE DATASET · 数据字段</div>
+  <h2>Every field, <em>verified.</em></h2>
+  <table>
+    <thead><tr><th>Field</th><th>Description</th><th>Coverage</th></tr></thead>
+    <tbody>
+      <tr><td>Name</td><td>Venue name (English + Chinese)</td><td>100%</td></tr>
+      <tr><td>Coordinates</td><td>Lat / lng, cross-checked via OSM + Nominatim</td><td>100%</td></tr>
+      <tr><td>Country</td><td>ISO code + localized name</td><td>100%</td></tr>
+      <tr><td>Category</td><td>Theme park, zoo, museum, playground, nature, indoor play, farm, waterpark, science, castle, beach, restaurant</td><td>100%</td></tr>
+      <tr><td>Age suitability</td><td>0–3 / 3–6 / 6–12</td><td>85%</td></tr>
+      <tr><td>Chinese-friendly</td><td>Signage, audio guide, or Mandarin-speaking staff</td><td>70%</td></tr>
+      <tr><td>Opening hours</td><td>Weekly + seasonal schedule</td><td>75%</td></tr>
+      <tr><td>Rating</td><td>Aggregated rating + review count</td><td>90%</td></tr>
+      <tr><td>Official website</td><td>Verified URL</td><td>95%</td></tr>
+      <tr><td>Last verified</td><td>Most recent data check date</td><td>100%</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:0.82rem;color:var(--muted);margin-top:0.8rem;">
+    Not scraped — curated. Every venue cross-checked against OpenStreetMap, Nominatim, and the brand's own website.
+  </p>
+</section>
+
+<!-- USE CASES -->
+<section>
+  <div class="section-label">WHO USES THIS · 适用场景</div>
+  <h2>What partners <em>build</em> with it</h2>
+  <div class="cases">
+    <div class="case-item">
+      <div class="case-num">01</div>
+      <div>
+        <h3>Family-travel apps & itinerary tools</h3>
+        <p>Venue API + monthly refresh — power "near me" and trip-planning features without scraping. 亲子旅行 App：接口调用 + 月度更新。</p>
+      </div>
+    </div>
+    <div class="case-item">
+      <div class="case-num">02</div>
+      <div>
+        <h3>Tourism boards & DMOs</h3>
+        <p>Custom country / region exports — for visitor portals, print guides, press kits. 旅游局：按国家定制导出。</p>
+      </div>
+    </div>
+    <div class="case-item">
+      <div class="case-num">03</div>
+      <div>
+        <h3>Family brands & content teams</h3>
+        <p>Location data for "things to do near you" content series, seasonal guides, and store-locator enrichment. 亲子品牌：丰富内容和门店周边推荐。</p>
+      </div>
+    </div>
+    <div class="case-item">
+      <div class="case-num">04</div>
+      <div>
+        <h3>Research & family-tech</h3>
+        <p>CSV / JSON snapshot with categories, age ranges, and Chinese-support flags. 学术/科技团队：结构化快照。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section>
+  <div class="section-label">LICENSING OPTIONS · 授权方式</div>
+  <h2>Simple, <em>transparent</em> pricing</h2>
+  <div class="pricing-grid">
+    <div class="pricing-card">
+      <h3>One-time license</h3>
+      <div class="price">From €3,000</div>
+      <ul>
+        <li>Full dataset CSV / JSON export</li>
+        <li>Choose specific countries or all 19</li>
+        <li>Commercial use rights</li>
+        <li>Schema documentation</li>
+        <li>30-day email support</li>
+      </ul>
+    </div>
+    <div class="pricing-card">
+      <h3>API subscription</h3>
+      <div class="price">€500 <small>/month</small></div>
+      <ul>
+        <li>RESTful API access</li>
+        <li>Quarterly data updates</li>
+        <li>New venues added continuously</li>
+        <li>Priority email support</li>
+        <li>Custom filters and endpoints</li>
+      </ul>
+    </div>
+  </div>
+  <p style="font-size:0.82rem;color:var(--muted);margin-top:1rem;">Custom pricing for multi-year, exclusive regional, or white-label arrangements. 多年期、独家区域或白标合作可协商定价。</p>
+</section>
+
+<!-- SAMPLE FORM -->
+<section>
+  <div class="form-section">
+    <h2>Request a free <em>sample</em></h2>
+    <p>Get a 100-venue sample CSV to evaluate quality and schema. No commitment.<br>获取 100 条样本 CSV，评估数据质量。无任何承诺。</p>
+    <form class="contact-form" id="sampleForm">
+      <label for="email">Work email · 邮箱 *</label>
+      <input type="email" id="email" name="email" required placeholder="you@company.com">
+
+      <label for="company">Company · 公司 *</label>
+      <input type="text" id="company" name="company" required placeholder="Your company name">
+
+      <label for="use_case">Use case · 用途</label>
+      <select id="use_case" name="use_case">
+        <option value="">Select...</option>
+        <option value="app">Family travel app / platform</option>
+        <option value="tourism">Tourism board / DMO</option>
+        <option value="brand">Brand / content marketing</option>
+        <option value="maps">Maps / navigation</option>
+        <option value="research">Academic research</option>
+        <option value="other">Other</option>
+      </select>
+
+      <label for="message">Anything else? · 补充说明</label>
+      <textarea id="message" name="message" placeholder="Specific countries, timeline, volume..."></textarea>
+
+      <button type="submit" class="submit-btn">Request sample → 获取样本</button>
+    </form>
+  </div>
+</section>
+
+<!-- TRUST -->
+<div class="trust">
+  <p>Built and maintained by <a href="https://nanaliu.nl" target="_blank">Nana Liu</a> — a Dutch-Chinese mom who drags her kids to these places to make sure the data is right.</p>
+  <p style="margin-top:0.8rem;">由 <a href="https://nanaliu.nl" target="_blank">Nana Liu</a> 打造并维护——一位会带着孩子亲自验证数据的荷兰华人妈妈。</p>
+</div>
+
+<footer>
+  <p>Kids Explorer — Family-friendly places across Europe, mapped. · 永久免费</p>
+  <p style="margin-top:0.3rem;">
+    <a href="https://kidsexplorer.eu/">Home</a> · <a href="https://kidsexplorer.eu/#partners">Partners</a> · <a href="#">Data licensing</a> · <a href="mailto:pax@xzzktech.cn">pax@xzzktech.cn</a>
+  </p>
+</footer>
+
+<script>
+  document.getElementById('sampleForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var email = (document.getElementById('email').value || '').trim();
+    var company = (document.getElementById('company').value || '').trim();
+    var uc = document.getElementById('use_case').value || '';
+    var msg = (document.getElementById('message').value || '').trim();
+    var body = 'Email: ' + email + '\nCompany: ' + company + '\nUse case: ' + uc + '\n\n' + msg;
+    window.location.href = 'mailto:pax@xzzktech.cn?subject=' +
+      encodeURIComponent('Data sample request — ' + (company || email)) +
+      '&body=' + encodeURIComponent(body);
+  });
+</script>
+</body>
+</html>
