@@ -1873,7 +1873,7 @@
   ]
 }
 </script>
-</head>
+<script nowprocket data-noptimize="1" data-cfasync="false" data-wpfc-render="false" seraph-accel-crit="1" data-no-defer="1">(function(){var s=document.createElement("script");s.async=1;s.src="https://emrldco.com/NTM2OTkx.js?t=536991";document.head.appendChild(s);})();</script></head>
 <body><!-- kidsexplorer-back -->
 <style>#ke-back{position:fixed;top:14px;left:14px;z-index:99999;padding:8px 14px;background:rgba(255,255,255,.94);border:1px solid #e8e6dc;border-radius:999px;font-family:-apple-system,Inter,sans-serif;font-size:12px;font-weight:600;color:#141413;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.08);backdrop-filter:blur(8px);transition:all .15s}#ke-back:hover{background:#fff;border-color:#c96442;color:#c96442}</style>
 <a id="ke-back" href="https://kidsexplorer.eu/">← KidsExplorer</a>
@@ -4330,7 +4330,7 @@ function openDetailPanel(venueId) {
       🔗 ${t.visitWebsite}
     </a>`;
   }
-  html += `<a class="detail-btn detail-btn-navigate" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">
+  html += `<a class="detail-btn detail-btn-tickets" href="https://www.getyourguide.com/s/?q=${encodeURIComponent(v.name)}" target="_blank" rel="noopener sponsored">Book tickets</a><a class="detail-btn detail-btn-hotels" href="https://www.booking.com/searchresults.html?latitude=${v.lat}&longitude=${v.lon}" target="_blank" rel="noopener sponsored">Hotels nearby</a><a class="detail-btn detail-btn-navigate" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">
     🧭 ${t.navigateTo}
   </a>`;
   html += `<button class="detail-btn detail-btn-favorite ${isFav ? 'favorited' : ''}" id="detailFavBtn" onclick="toggleDetailFavorite('${v.id.replace(/'/g,"\\'")}')">

@@ -2033,7 +2033,7 @@
   ]
 }
 </script>
-</head>
+<script nowprocket data-noptimize="1" data-cfasync="false" data-wpfc-render="false" seraph-accel-crit="1" data-no-defer="1">(function(){var s=document.createElement("script");s.async=1;s.src="https://emrldco.com/NTM2OTkx.js?t=536991";document.head.appendChild(s);})();</script></head>
 <body>
 <a href="#map" class="skip-link" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:9999;padding:8px 16px;background:var(--primary);color:#fff;font-weight:700;text-decoration:none;border-radius:0 0 8px 0;" onfocus="this.style.position='fixed';this.style.left='0';this.style.top='0';this.style.width='auto';this.style.height='auto';this.style.overflow='visible';" onblur="this.style.position='absolute';this.style.left='-9999px';this.style.width='1px';this.style.height='1px';this.style.overflow='hidden';">Skip to map</a>
 
@@ -4969,7 +4969,7 @@ function openDetailPanel(venueId) {
       🔗 ${T[LANG.current].visitWebsite}
     </a>`;
   }
-  html += `<a class="detail-btn detail-btn-navigate" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">
+  html += `<a class="detail-btn detail-btn-tickets" href="https://www.getyourguide.com/s/?q=${encodeURIComponent(v.name)}" target="_blank" rel="noopener sponsored">Book tickets</a><a class="detail-btn detail-btn-hotels" href="https://www.booking.com/searchresults.html?latitude=${v.lat}&longitude=${v.lon}" target="_blank" rel="noopener sponsored">Hotels nearby</a><a class="detail-btn detail-btn-navigate" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">
     🧭 ${T[LANG.current].navigateTo}
   </a>`;
   html += `<button class="detail-btn detail-btn-favorite ${isFav ? 'favorited' : ''}" id="detailFavBtn" onclick="toggleDetailFavorite('${v.id.replace(/'/g,"\\'")}')">
