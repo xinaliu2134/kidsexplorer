@@ -3608,7 +3608,7 @@ function renderList() {
           ? `<a class="btn-website" href="${v.website}" target="_blank" rel="noopener">${T[LANG.current].website}</a>`
           : `<span class="btn-website" style="opacity:.45;cursor:default">${T[LANG.current].noWebsite}</span>`
         }
-        <a class="btn-website" href="https://www.getyourguide.com/s/?q=${encodeURIComponent(v.name)}" target="_blank" rel="noopener sponsored">Book tickets</a><a class="btn-website" href="https://www.booking.com/searchresults.html?latitude=${v.lat}&longitude=${v.lon}" target="_blank" rel="noopener sponsored">Hotels nearby</a><a class="btn-nav" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">${T[LANG.current].navigate}</a>
+        <a class="btn-website" href="https://www.tiqets.com/en/search?q=${encodeURIComponent(v.name)}" target="_blank" rel="noopener sponsored">Book tickets</a><a class="btn-website" href="https://www.booking.com/searchresults.html?latitude=${v.lat}&longitude=${v.lon}" target="_blank" rel="noopener sponsored">Hotels nearby</a><a class="btn-nav" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">${T[LANG.current].navigate}</a>
         <button class="btn-map" onclick="flyToVenue('${v.id}')">${T[LANG.current].flyTo}</button>
       </div>
     `;
@@ -4330,7 +4330,7 @@ function openDetailPanel(venueId) {
       🔗 ${t.visitWebsite}
     </a>`;
   }
-  html += `<a class="detail-btn detail-btn-tickets" href="https://www.getyourguide.com/s/?q=${encodeURIComponent(v.name)}" target="_blank" rel="noopener sponsored">Book tickets</a><a class="detail-btn detail-btn-hotels" href="https://www.booking.com/searchresults.html?latitude=${v.lat}&longitude=${v.lon}" target="_blank" rel="noopener sponsored">Hotels nearby</a><a class="detail-btn detail-btn-navigate" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">
+  html += `<a class="detail-btn detail-btn-tickets" href="https://www.tiqets.com/en/search?q=${encodeURIComponent(v.name)}" target="_blank" rel="noopener sponsored">Book tickets</a><a class="detail-btn detail-btn-hotels" href="https://www.booking.com/searchresults.html?latitude=${v.lat}&longitude=${v.lon}" target="_blank" rel="noopener sponsored">Hotels nearby</a><a class="detail-btn detail-btn-navigate" href="https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lon}" target="_blank" rel="noopener">
     🧭 ${t.navigateTo}
   </a>`;
   html += `<button class="detail-btn detail-btn-favorite ${isFav ? 'favorited' : ''}" id="detailFavBtn" onclick="toggleDetailFavorite('${v.id.replace(/'/g,"\\'")}')">
